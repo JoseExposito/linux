@@ -15024,6 +15024,15 @@ L:	linux-rdma@vger.kernel.org
 S:	Maintained
 F:	drivers/infiniband/ulp/rtrs/
 
+RUST
+W:	https://github.com/Rust-for-Linux
+S:	Maintained
+K:	\b(?i:rust)\b
+L:	linux-rust@vger.kernel.org (TODO: waiting for reply to my request)
+F:	rust/
+F:	Documentation/rust/
+F:	drivers/char/rust_example/
+
 RXRPC SOCKETS (AF_RXRPC)
 M:	David Howells <dhowells@redhat.com>
 L:	linux-afs@lists.infradead.org
