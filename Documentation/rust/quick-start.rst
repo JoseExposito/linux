@@ -8,7 +8,7 @@ This document describes how to get started with Rust kernel development.
 Requirements
 ------------
 
-A nightly Rust toolchain (at least ``rustc``, ``cargo`` and ``rustfmt``) is required. In the future, this restriction will be lifted. If you are using ``rustup``, run::
+A recent nightly Rust toolchain (at least ``rustc``, ``cargo`` and ``rustfmt``) is required, e.g. `nightly-2020-08-27`. In the future, this restriction will be lifted. If you are using ``rustup``, run::
 
     rustup toolchain install nightly
 

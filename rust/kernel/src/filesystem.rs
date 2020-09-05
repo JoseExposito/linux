@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 
+// TODO: `filesystem` is really incomplete -- deletion to be considered
+
 use alloc::boxed::Box;
 use core::default::Default;
 use core::marker;

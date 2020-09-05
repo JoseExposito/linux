@@ -51,6 +51,8 @@ macro_rules! kernel_module {
     ($module:ty, $($name:ident : $value:expr),*) => {
         static mut __MOD: Option<$module> = None;
 
+        // Built-in modules are initialized through an initcall pointer
+        //
         // TODO: find a proper way to emulate the C macro, including
         // dealing with `HAVE_ARCH_PREL32_RELOCATIONS`
         #[cfg(not(module))]
