@@ -6,6 +6,7 @@
 name = "rust_example"
 version = "0.1.0"
 edition = "2018"
+publish = false
 
 [lib]
 crate-type = ["staticlib"]
