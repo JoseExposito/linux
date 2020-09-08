@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 
 #![no_std]
+#![feature(global_asm)]
 
 use kernel::prelude::*;
 
@@ -11,7 +12,7 @@ struct RustExample {
 impl KernelModule for RustExample {
     fn init() -> KernelResult<Self> {
         println!("Rust Example (init)");
-        println!("Am I built-in? {}", !cfg!(module));
+        println!("Am I built-in? {}", !cfg!(MODULE));
         Ok(RustExample {
             message: "on the heap!".to_owned(),
         })

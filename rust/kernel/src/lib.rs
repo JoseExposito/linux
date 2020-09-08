@@ -53,12 +53,22 @@ macro_rules! kernel_module {
 
         // Built-in modules are initialized through an initcall pointer
         //
-        // TODO: find a proper way to emulate the C macro (`module_init`),
-        // including dealing with `HAVE_ARCH_PREL32_RELOCATIONS`
-        #[cfg(not(module))]
+        // TODO: should we compile a C file on the fly to avoid duplication?
+        #[cfg(not(MODULE))]
+        #[cfg(not(CONFIG_HAVE_ARCH_PREL32_RELOCATIONS))]
         #[link_section = ".initcall6.init"]
         #[used]
         pub static __initcall: extern "C" fn() -> $crate::c_types::c_int = init_module;
+
+        #[cfg(not(MODULE))]
+        #[cfg(CONFIG_HAVE_ARCH_PREL32_RELOCATIONS)]
+        global_asm!(
+            r#".section ".initcall6.init", "a"
+            __initcall:
+                .long   init_module - .
+                .previous
+            "#
+        );
 
         // TODO: pass the kernel module name here to generate a unique,
         // helpful symbol name (the name would also useful for the `modinfo`
