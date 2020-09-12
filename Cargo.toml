@@ -4,6 +4,7 @@
 [workspace]
 members = [
     "rust/shlex",
+    "rust/module",
     "rust/kernel",
     "drivers/char/rust_example",
 ]
