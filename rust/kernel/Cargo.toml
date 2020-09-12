@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-2.0
+
+[package]
+name = "kernel"
+version = "0.1.0"
+authors = ["Rust for Linux Contributors"]
+edition = "2018"
+publish = false
+
+[dependencies]
+bitflags = "1"
+
+[build-dependencies]
+bindgen = "0.54"
+shlex = { path = "../shlex" }
+

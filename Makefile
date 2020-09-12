@@ -86,9 +86,11 @@ endif
 ifeq ($(KBUILD_VERBOSE),1)
   quiet =
   Q =
+  CARGO_VERBOSE = --verbose
 else
   quiet=quiet_
   Q = @
+  CARGO_VERBOSE = # TODO: could be --quiet if needed
 endif
 
 # If the user is running make -s (silent mode), suppress echoing of
@@ -446,6 +448,8 @@ READELF		= $(CROSS_COMPILE)readelf
 OBJSIZE		= $(CROSS_COMPILE)size
 STRIP		= $(CROSS_COMPILE)strip
 endif
+RUSTC		= rustc
+CARGO		= cargo
 PAHOLE		= pahole
 RESOLVE_BTFIDS	= $(objtree)/tools/bpf/resolve_btfids/resolve_btfids
 LEX		= flex
@@ -470,9 +474,13 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void -Wno-unknown-attribute $(CF)
 NOSTDINC_FLAGS :=
 CFLAGS_MODULE   =
+RUSTCFLAGS_MODULE =
+CARGOFLAGS_MODULE =
 AFLAGS_MODULE   =
 LDFLAGS_MODULE  =
 CFLAGS_KERNEL	=
+RUSTCFLAGS_KERNEL =
+CARGOFLAGS_KERNEL =
 AFLAGS_KERNEL	=
 LDFLAGS_vmlinux =
 
@@ -500,16 +508,27 @@ KBUILD_CFLAGS   := -Wall -Wundef -Werror=strict-prototypes -Wno-trigraphs \
 		   -Wno-format-security \
 		   -std=gnu89
 KBUILD_CPPFLAGS := -D__KERNEL__
+KBUILD_RUSTCFLAGS :=
+# TODO: a simple way to update `Cargo.lock` when we add a new driver
+# TODO: another option is using explicit target specs, e.g.
+# `--target=$(srctree)/arch/$(SRCARCH)/rust-target-spec.json`
+KBUILD_CARGOFLAGS := $(CARGO_VERBOSE) --locked \
+		    -Z build-std=core,alloc -Z unstable-options \
+		    --out-dir=out --target=x86_64-linux-kernel
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
+KBUILD_RUSTCFLAGS_KERNEL :=
+KBUILD_CARGOFLAGS_KERNEL :=
 KBUILD_AFLAGS_MODULE  := -DMODULE
 KBUILD_CFLAGS_MODULE  := -DMODULE
+KBUILD_RUSTCFLAGS_MODULE := --cfg MODULE
+KBUILD_CARGOFLAGS_MODULE :=
 KBUILD_LDFLAGS_MODULE :=
 export KBUILD_LDS_MODULE := $(srctree)/scripts/module-common.lds
 KBUILD_LDFLAGS :=
 CLANG_FLAGS :=
 
-export ARCH SRCARCH CONFIG_SHELL BASH HOSTCC KBUILD_HOSTCFLAGS CROSS_COMPILE LD CC
+export ARCH SRCARCH CONFIG_SHELL BASH HOSTCC KBUILD_HOSTCFLAGS CROSS_COMPILE LD CC RUSTC CARGO
 export CPP AR NM STRIP OBJCOPY OBJDUMP OBJSIZE READELF PAHOLE RESOLVE_BTFIDS LEX YACC AWK INSTALLKERNEL
 export PERL PYTHON PYTHON3 CHECK CHECKFLAGS MAKE UTS_MACHINE HOSTCXX
 export KGZIP KBZIP2 KLZOP LZMA LZ4 XZ ZSTD
@@ -518,9 +537,11 @@ export KBUILD_HOSTCXXFLAGS KBUILD_HOSTLDFLAGS KBUILD_HOSTLDLIBS LDFLAGS_MODULE
 export KBUILD_CPPFLAGS NOSTDINC_FLAGS LINUXINCLUDE OBJCOPYFLAGS KBUILD_LDFLAGS
 export KBUILD_CFLAGS CFLAGS_KERNEL CFLAGS_MODULE
 export CFLAGS_KASAN CFLAGS_KASAN_NOSANITIZE CFLAGS_UBSAN CFLAGS_KCSAN
+export KBUILD_RUSTCFLAGS RUSTCFLAGS_KERNEL RUSTCFLAGS_MODULE
+export KBUILD_CARGOFLAGS CARGOFLAGS_KERNEL CARGOFLAGS_MODULE
 export KBUILD_AFLAGS AFLAGS_KERNEL AFLAGS_MODULE
-export KBUILD_AFLAGS_MODULE KBUILD_CFLAGS_MODULE KBUILD_LDFLAGS_MODULE
-export KBUILD_AFLAGS_KERNEL KBUILD_CFLAGS_KERNEL
+export KBUILD_AFLAGS_MODULE KBUILD_CFLAGS_MODULE KBUILD_RUSTCFLAGS_MODULE KBUILD_CARGOFLAGS_MODULE KBUILD_LDFLAGS_MODULE
+export KBUILD_AFLAGS_KERNEL KBUILD_CFLAGS_KERNEL KBUILD_RUSTCFLAGS_KERNEL KBUILD_CARGOFLAGS_KERNEL
 
 # Files to ignore in find ... statements
 
@@ -733,12 +754,21 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, address-of-packed-member)
 
+# TODO: perhaps we could have some independent options for Rust only
+KBUILD_CARGOFLAGS += --release
+
 ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
 KBUILD_CFLAGS += -O2
+KBUILD_RUSTCFLAGS += # TODO: do we want -C opt-level=2 here?
+KBUILD_CARGOFLAGS +=
 else ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3
 KBUILD_CFLAGS += -O3
+KBUILD_RUSTCFLAGS += # flags already passed by cargo's --release
+KBUILD_CARGOFLAGS +=
 else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS += -Os
+KBUILD_RUSTCFLAGS += -C opt-level=z
+KBUILD_CARGOFLAGS +=
 endif
 
 # Tell gcc to never replace conditional load with a non-conditional one
@@ -814,6 +844,10 @@ KBUILD_CFLAGS	+= -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-f
 endif
 
 DEBUG_CFLAGS	:= $(call cc-option, -fno-var-tracking-assignments)
+DEBUG_RUSTCFLAGS :=
+DEBUG_CARGOFLAGS :=
+
+# TODO: see what we should set for rustc/cargo for debug
 
 ifdef CONFIG_DEBUG_INFO
 ifdef CONFIG_DEBUG_INFO_SPLIT
@@ -840,6 +874,12 @@ endif
 
 KBUILD_CFLAGS += $(DEBUG_CFLAGS)
 export DEBUG_CFLAGS
+
+KBUILD_RUSTCFLAGS += $(DEBUG_RUSTCFLAGS)
+export DEBUG_RUSTCFLAGS
+
+KBUILD_CARGOFLAGS += $(DEBUG_CARGOFLAGS)
+export DEBUG_CARGOFLAGS
 
 ifdef CONFIG_FUNCTION_TRACER
 ifdef CONFIG_FTRACE_MCOUNT_RECORD
@@ -972,10 +1012,12 @@ include $(addprefix $(srctree)/, $(include-y))
 # Do not add $(call cc-option,...) below this line. When you build the kernel
 # from the clean source tree, the GCC plugins do not exist at this point.
 
-# Add user supplied CPPFLAGS, AFLAGS and CFLAGS as the last assignments
+# Add user supplied CPPFLAGS, AFLAGS, CFLAGS, RUSTCFLAGS and CARGOFLAGS as the last assignments
 KBUILD_CPPFLAGS += $(KCPPFLAGS)
 KBUILD_AFLAGS   += $(KAFLAGS)
 KBUILD_CFLAGS   += $(KCFLAGS)
+KBUILD_RUSTCFLAGS += $(KRUSTCFLAGS)
+KBUILD_CARGOFLAGS += $(KCARGOFLAGS)
 
 KBUILD_LDFLAGS_MODULE += --build-id
 LDFLAGS_vmlinux += --build-id
@@ -1099,6 +1141,10 @@ export MODULES_NSDEPS := $(extmod-prefix)modules.nsdeps
 
 ifeq ($(KBUILD_EXTMOD),)
 core-y		+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/ block/
+
+ifdef CONFIG_HAS_RUST
+core-y		+= rust/
+endif
 
 vmlinux-dirs	:= $(patsubst %/,%,$(filter %/, \
 		     $(core-y) $(core-m) $(drivers-y) $(drivers-m) \
@@ -1483,13 +1529,17 @@ DISTCLEAN_FILES += tags TAGS cscope* GPATH GTAGS GRTAGS GSYMS
 #
 clean: rm-files := $(CLEAN_FILES)
 
-PHONY += archclean vmlinuxclean
+PHONY += archclean vmlinuxclean cargoclean
 
 vmlinuxclean:
 	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/link-vmlinux.sh clean
 	$(Q)$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) clean)
 
-clean: archclean vmlinuxclean
+# TODO: clean particular subfolders via `Makefile.clean`
+cargoclean:
+	$(Q)$(CARGO) clean
+
+clean: archclean vmlinuxclean cargoclean
 
 # mrproper - Delete all generated files, including .config
 #

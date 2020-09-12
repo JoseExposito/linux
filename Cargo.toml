@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-2.0
+
+# TODO: generate automatically
+[workspace]
+members = [
+    "rust/shlex",
+    "rust/kernel",
+    "drivers/char/rust_example",
+]
+
