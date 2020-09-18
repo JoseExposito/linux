@@ -15,7 +15,6 @@ pub mod c_types;
 pub mod chrdev;
 mod error;
 pub mod file_operations;
-pub mod filesystem;
 pub mod prelude;
 pub mod printk;
 pub mod random;
