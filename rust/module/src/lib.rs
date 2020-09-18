@@ -78,40 +78,56 @@ fn get_byte_string(it: &mut token_stream::IntoIter, expected_name: &str) -> Stri
     byte_string[2..byte_string.len() - 1].to_string()
 }
 
-fn build_modinfo_builtin_string(module_name: &str, name: &str, string: &str) -> String {
+fn __build_modinfo_string_base(module: &str, field: &str, content: &str, variable: &str, builtin: bool) -> String {
+    let string = if builtin {
+        // Built-in modules prefix their modinfo strings by `module.`
+        format!("{module}.{field}={content}", module=module, field=field, content=content)
+    } else {
+        // Loadable modules' modinfo strings go as-is
+        format!("{field}={content}", field=field, content=content)
+    };
+
     format!(
         "
-            // Built-in modules prefix their modinfo strings by `module_name.`
-            #[cfg(not(MODULE))]
+            {cfg}
             #[link_section = \".modinfo\"]
             #[used]
-            pub static {name}: [u8; {length}] = *b\"{module_name}.{string}\\0\";
+            pub static {variable}: [u8; {length}] = *b\"{string}\\0\";
         ",
-        module_name = module_name,
-        name = name,
-        length = module_name.len() + 1 + string.len() + 1,
+        cfg = if builtin { "#[cfg(not(MODULE))]" } else { "#[cfg(MODULE)]" },
+        variable = variable,
+        length = string.len() + 1,
         string = string,
     )
 }
 
-fn build_modinfo_string(module_name: &str, name: &str, string: &str) -> String {
-    format!(
-        "
-            // Loadable modules' modinfo strings go as-is
-            #[cfg(MODULE)]
-            #[link_section = \".modinfo\"]
-            #[used]
-            pub static {name}: [u8; {length}] = *b\"{string}\\0\";
-        ",
-        name = name,
-        length = string.len() + 1,
-        string = string,
-    ) + &build_modinfo_builtin_string(module_name, name, string)
+fn __build_modinfo_string_variable(module: &str, field: &str) -> String {
+    format!("__{module}_{field}", module=module, field=field)
+}
+
+fn build_modinfo_string_only_builtin(module: &str, field: &str, content: &str) -> String {
+    __build_modinfo_string_base(module, field, content, &__build_modinfo_string_variable(module, field), true)
+}
+
+fn build_modinfo_string_only_loadable(module: &str, field: &str, content: &str) -> String {
+    __build_modinfo_string_base(module, field, content, &__build_modinfo_string_variable(module, field), false)
+}
+
+fn build_modinfo_string(module: &str, field: &str, content: &str) -> String {
+    build_modinfo_string_only_builtin(module, field, content)
+        + &build_modinfo_string_only_loadable(module, field, content)
+}
+
+fn build_modinfo_string_param(module: &str, field: &str, param: &str, content: &str) -> String {
+    let variable = format!("__{module}_{field}_{param}", module=module, field=field, param=param);
+    let content = format!("{param}:{content}", param=param, content=content);
+    __build_modinfo_string_base(module, field, &content, &variable, true)
+        + &__build_modinfo_string_base(module, field, &content, &variable, false)
 }
 
 /// Declares a kernel module.
 ///
-/// The `typename` argument should be a type which implements the [`KernelModule`] trait.
+/// The `type` argument should be a type which implements the [`KernelModule`] trait.
 /// Also accepts various forms of kernel metadata.
 ///
 /// Example:
@@ -119,7 +135,7 @@ fn build_modinfo_string(module_name: &str, name: &str, string: &str) -> String {
 /// use kernel::prelude::*;
 ///
 /// module!{
-///     typename: MyKernelModule,
+///     type: MyKernelModule,
 ///     name: b"my_kernel_module",
 ///     author: b"Rust for Linux Contributors",
 ///     description: b"My very own kernel module!",
@@ -139,7 +155,7 @@ fn build_modinfo_string(module_name: &str, name: &str, string: &str) -> String {
 pub fn module(ts: TokenStream) -> TokenStream {
     let mut it = ts.into_iter();
 
-    let typename = get_ident(&mut it, "typename");
+    let type_ = get_ident(&mut it, "type");
     let name = get_byte_string(&mut it, "name");
     let author = get_byte_string(&mut it, "author");
     let description = get_byte_string(&mut it, "description");
@@ -170,9 +186,9 @@ pub fn module(ts: TokenStream) -> TokenStream {
 
         let mut param_it = group.stream().into_iter();
         let param_default = if param_type == "bool" {
-            get_ident(&mut param_it, "default_")
+            get_ident(&mut param_it, "default")
         } else {
-            get_literal(&mut param_it, "default_")
+            get_literal(&mut param_it, "default")
         };
         let param_permissions = get_literal(&mut param_it, "permissions");
         let param_description = get_byte_string(&mut param_it, "description");
@@ -183,29 +199,21 @@ pub fn module(ts: TokenStream) -> TokenStream {
         let param_kernel_type = match param_type.as_ref() {
             "bool" => "bool",
             "i32" => "int",
-            _ => panic!("Unrecognized type"),
+            t => panic!("Unrecognized type {}", t),
         };
 
-        params_modinfo.push_str(&build_modinfo_string(
-            &name,
-            &format!("__{}_{}_PARMTYPE", name, param_name),
-            &format!("parmtype={}:{}", param_name, param_kernel_type)
-        ));
-        params_modinfo.push_str(&build_modinfo_string(
-            &name,
-            &format!("__{}_{}_PARM", name, param_name),
-            &format!("parm={}:{}", param_name, param_description)
-        ));
+        params_modinfo.push_str(&build_modinfo_string_param(&name, "parmtype", &param_name, &param_kernel_type));
+        params_modinfo.push_str(&build_modinfo_string_param(&name, "parm", &param_name, &param_description));
         params_modinfo.push_str(
             &format!(
                 "
-                static mut __{name}_{param_name}_VALUE: {param_type} = {param_default};
+                static mut __{name}_{param_name}_value: {param_type} = {param_default};
 
                 struct __{name}_{param_name};
 
                 impl __{name}_{param_name} {{
                     fn read(&self) -> {param_type} {{
-                        unsafe {{ __{name}_{param_name}_VALUE }}
+                        unsafe {{ __{name}_{param_name}_value }}
                     }}
                 }}
 
@@ -220,15 +228,15 @@ pub fn module(ts: TokenStream) -> TokenStream {
                 }}
 
                 #[cfg(not(MODULE))]
-                const __{name}_{param_name}_NAME: *const kernel::c_types::c_char = b\"{name}.{param_name}\\0\" as *const _ as *const kernel::c_types::c_char;
+                const __{name}_{param_name}_name: *const kernel::c_types::c_char = b\"{name}.{param_name}\\0\" as *const _ as *const kernel::c_types::c_char;
 
                 #[cfg(MODULE)]
-                const __{name}_{param_name}_NAME: *const kernel::c_types::c_char = b\"{param_name}\\0\" as *const _ as *const kernel::c_types::c_char;
+                const __{name}_{param_name}_name: *const kernel::c_types::c_char = b\"{param_name}\\0\" as *const _ as *const kernel::c_types::c_char;
 
                 #[link_section = \"__param\"]
                 #[used]
-                static __{name}_{param_name}_STRUCT: __{name}_{param_name}_RacyKernelParam = __{name}_{param_name}_RacyKernelParam(kernel::bindings::kernel_param {{
-                    name: __{name}_{param_name}_NAME,
+                static __{name}_{param_name}_struct: __{name}_{param_name}_RacyKernelParam = __{name}_{param_name}_RacyKernelParam(kernel::bindings::kernel_param {{
+                    name: __{name}_{param_name}_name,
                     // TODO: `THIS_MODULE`
                     mod_: core::ptr::null_mut(),
                     ops: unsafe {{ &kernel::bindings::param_ops_{param_kernel_type} }} as *const kernel::bindings::kernel_param_ops,
@@ -236,7 +244,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
                     level: -1,
                     flags: 0,
                     __bindgen_anon_1: kernel::bindings::kernel_param__bindgen_ty_1 {{
-                        arg: unsafe {{ &__{name}_{param_name}_VALUE }} as *const _ as *mut kernel::c_types::c_void,
+                        arg: unsafe {{ &__{name}_{param_name}_value }} as *const _ as *mut kernel::c_types::c_void,
                     }},
                 }});
                 ",
@@ -250,9 +258,11 @@ pub fn module(ts: TokenStream) -> TokenStream {
         );
     }
 
+    let file = std::env::var("RUST_MODFILE").unwrap();
+
     format!(
         "
-            static mut __MOD: Option<{typename}> = None;
+            static mut __MOD: Option<{type_}> = None;
 
             // Loadable modules need to export the `{{init,cleanup}}_module` identifiers
             #[cfg(MODULE)]
@@ -271,14 +281,14 @@ pub fn module(ts: TokenStream) -> TokenStream {
             // and the identifiers need to be unique
             #[cfg(not(MODULE))]
             #[cfg(not(CONFIG_HAVE_ARCH_PREL32_RELOCATIONS))]
-            #[link_section = \".initcall6.init\"]
+            #[link_section = \"{initcall_section}\"]
             #[used]
             pub static __{name}_initcall: extern \"C\" fn() -> kernel::c_types::c_int = __{name}_init;
 
             #[cfg(not(MODULE))]
             #[cfg(CONFIG_HAVE_ARCH_PREL32_RELOCATIONS)]
             global_asm!(
-                r#\".section \".initcall6.init\", \"a\"
+                r#\".section \"{initcall_section}\", \"a\"
                 __{name}_initcall:
                     .long   __{name}_init - .
                     .previous
@@ -298,7 +308,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
             }}
 
             fn __init() -> kernel::c_types::c_int {{
-                match <{typename} as KernelModule>::init() {{
+                match <{type_} as KernelModule>::init() {{
                     Ok(m) => {{
                         unsafe {{
                             __MOD = Some(m);
@@ -327,29 +337,14 @@ pub fn module(ts: TokenStream) -> TokenStream {
 
             {params_modinfo}
         ",
-        typename = typename,
+        type_ = type_,
         name = name,
-        author = &build_modinfo_string(
-            &name,
-            &format!("__{}_AUTHOR", name),
-            &format!("author={}", author),
-        ),
-        description = &build_modinfo_string(
-            &name,
-            &format!("__{}_DESCRIPTION", name),
-            &format!("description={}", description),
-        ),
-        license = &build_modinfo_string(
-            &name,
-            &format!("__{}_LICENSE", name),
-            &format!("license={}", license),
-        ),
-        file = &build_modinfo_builtin_string(
-            &name,
-            &format!("__{}_FILE", name),
-            &format!("file={}", std::env::var("RUST_MODFILE").unwrap()),
-        ),
+        author = &build_modinfo_string(&name, "author", &author),
+        description = &build_modinfo_string(&name, "description", &description),
+        license = &build_modinfo_string(&name, "license", &license),
+        file = &build_modinfo_string_only_builtin(&name, "file", &file),
         params_modinfo = params_modinfo,
+        initcall_section = ".initcall6.init"
     ).parse().unwrap()
 }
 

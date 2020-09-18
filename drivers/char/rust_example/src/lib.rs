@@ -6,19 +6,19 @@
 use kernel::prelude::*;
 
 module!{
-    typename: RustExample,
+    type: RustExample,
     name: b"rust_example",
     author: b"Rust for Linux Contributors",
     description: b"An example kernel module written in Rust",
     license: b"GPL v2",
     params: {
         my_bool: bool {
-            default_: true,
+            default: true,
             permissions: 0,
             description: b"Example of bool",
         },
         my_i32: i32 {
-            default_: 42,
+            default: 42,
             permissions: 0o644,
             description: b"Example of i32",
         },
