@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 
 # No need for details like `authors` here -- that goes in the modinfo
-# via the `kernel_module!` macro
+# via the `module!` macro
 [package]
 name = "rust_example"
 version = "0.1.0"
