@@ -219,9 +219,14 @@ pub fn module(ts: TokenStream) -> TokenStream {
 
                 const {param_name}: __{name}_{param_name} = __{name}_{param_name};
 
-                // FIXME: does the `align` do the right thing here?
-                // `core::mem::size_of(usize)`
-                #[repr(C,align(8))]
+                // Note: the C macro that generates the static structs for the `__param` section
+                // asks for them to be `aligned(sizeof(void *))`. However, that was put in place
+                // in 2003 in commit 38d5b085d2 (\"[PATCH] Fix over-alignment problem on x86-64\")
+                // to undo GCC over-alignment of static structs of >32 bytes. It seems that is
+                // not the case anymore, so we simplify to a transparent representation here
+                // in the expectation that it is not needed anymore.
+                // TODO: revisit this to confirm the above comment and remove it if it happened
+                #[repr(transparent)]
                 struct __{name}_{param_name}_RacyKernelParam(kernel::bindings::kernel_param);
 
                 unsafe impl Sync for __{name}_{param_name}_RacyKernelParam {{
