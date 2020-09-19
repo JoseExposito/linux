@@ -7,8 +7,9 @@ pub use alloc::{
     borrow::ToOwned,
 };
 
+pub use module::module;
+
 pub use super::{
-    kernel_module,
     println,
     KernelResult,
     KernelModule,
