@@ -95,6 +95,9 @@ modules.order
 !.gitignore
 !.mailmap
 
+# XXX: Only for GitHub CI -- do not commit into mainline
+!.github
+
 #
 # Generated include files
 #

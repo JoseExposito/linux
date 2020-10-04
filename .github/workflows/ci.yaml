@@ -1,0 +1,36 @@
+on: [pull_request, push]
+
+jobs:
+  ci:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        mode: [debug, release]
+        module: [builtin, loadable]
+
+    steps:
+      # Setup
+      - uses: actions/checkout@v2
+      - run: sudo apt install libelf-dev qemu-system-x86 busybox-static
+      - run: rustup default nightly-2020-08-27
+      - run: rustup component add rust-src
+
+      # Build
+      - run: cp .github/workflows/kernel-${{ matrix.mode }}.config .config
+      - if: matrix.module == 'loadable'
+        run: sed -i -E 's/^(CONFIG_RUST_EXAMPLE=)(y)$/\1m/g' .config
+      - run: make CC=clang-10 LLVM_CONFIG_PATH=llvm-config-10 -j3
+
+      # Run
+      - if: matrix.module == 'builtin'
+        run: sed -i '/rust_example/d' .github/workflows/qemu-initramfs.desc
+      - run: usr/gen_init_cpio .github/workflows/qemu-initramfs.desc > qemu-initramfs.img
+      - run: qemu-system-x86_64 -kernel arch/x86/boot/bzImage -initrd qemu-initramfs.img -cpu Cascadelake-Server -smp 2 -append "console=ttyS0 ${{ matrix.module == 'builtin' && 'rust_example.my_i32=123321' || '' }}" -nographic -no-reboot | tee qemu-stdout.log
+
+      # Check
+      - run: grep -F 'Rust Example (init)' qemu-stdout.log
+      - run: "grep 'my_i32: \\+123321' qemu-stdout.log"
+      - if: matrix.module == 'loadable'
+        run: grep -F 'Rust Example (exit)' qemu-stdout.log

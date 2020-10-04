@@ -18,7 +18,10 @@ pub mod file_operations;
 pub mod prelude;
 pub mod printk;
 pub mod random;
+
+#[cfg(CONFIG_SYSCTL)]
 pub mod sysctl;
+
 mod types;
 pub mod user_ptr;
 
