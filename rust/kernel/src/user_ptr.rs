@@ -9,7 +9,8 @@ use crate::c_types;
 use crate::error;
 
 extern "C" {
-    fn rust_helper_access_ok(addr: *const c_types::c_void, len: c_types::c_ulong) -> c_types::c_int;
+    fn rust_helper_access_ok(addr: *const c_types::c_void, len: c_types::c_ulong)
+        -> c_types::c_int;
 }
 
 /// A reference to an area in userspace memory, which can be either

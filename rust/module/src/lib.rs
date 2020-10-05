@@ -4,7 +4,7 @@
 
 extern crate proc_macro;
 
-use proc_macro::{TokenStream, TokenTree, Group, Delimiter, token_stream};
+use proc_macro::{token_stream, Delimiter, Group, TokenStream, TokenTree};
 
 fn expect_ident(it: &mut token_stream::IntoIter) -> String {
     if let TokenTree::Ident(ident) = it.next().unwrap() {
@@ -78,13 +78,24 @@ fn get_byte_string(it: &mut token_stream::IntoIter, expected_name: &str) -> Stri
     byte_string[2..byte_string.len() - 1].to_string()
 }
 
-fn __build_modinfo_string_base(module: &str, field: &str, content: &str, variable: &str, builtin: bool) -> String {
+fn __build_modinfo_string_base(
+    module: &str,
+    field: &str,
+    content: &str,
+    variable: &str,
+    builtin: bool,
+) -> String {
     let string = if builtin {
         // Built-in modules prefix their modinfo strings by `module.`
-        format!("{module}.{field}={content}", module=module, field=field, content=content)
+        format!(
+            "{module}.{field}={content}",
+            module = module,
+            field = field,
+            content = content
+        )
     } else {
         // Loadable modules' modinfo strings go as-is
-        format!("{field}={content}", field=field, content=content)
+        format!("{field}={content}", field = field, content = content)
     };
 
     format!(
@@ -94,7 +105,11 @@ fn __build_modinfo_string_base(module: &str, field: &str, content: &str, variabl
             #[used]
             pub static {variable}: [u8; {length}] = *b\"{string}\\0\";
         ",
-        cfg = if builtin { "#[cfg(not(MODULE))]" } else { "#[cfg(MODULE)]" },
+        cfg = if builtin {
+            "#[cfg(not(MODULE))]"
+        } else {
+            "#[cfg(MODULE)]"
+        },
         variable = variable,
         length = string.len() + 1,
         string = string,
@@ -102,15 +117,27 @@ fn __build_modinfo_string_base(module: &str, field: &str, content: &str, variabl
 }
 
 fn __build_modinfo_string_variable(module: &str, field: &str) -> String {
-    format!("__{module}_{field}", module=module, field=field)
+    format!("__{module}_{field}", module = module, field = field)
 }
 
 fn build_modinfo_string_only_builtin(module: &str, field: &str, content: &str) -> String {
-    __build_modinfo_string_base(module, field, content, &__build_modinfo_string_variable(module, field), true)
+    __build_modinfo_string_base(
+        module,
+        field,
+        content,
+        &__build_modinfo_string_variable(module, field),
+        true,
+    )
 }
 
 fn build_modinfo_string_only_loadable(module: &str, field: &str, content: &str) -> String {
-    __build_modinfo_string_base(module, field, content, &__build_modinfo_string_variable(module, field), false)
+    __build_modinfo_string_base(
+        module,
+        field,
+        content,
+        &__build_modinfo_string_variable(module, field),
+        false,
+    )
 }
 
 fn build_modinfo_string(module: &str, field: &str, content: &str) -> String {
@@ -119,8 +146,13 @@ fn build_modinfo_string(module: &str, field: &str, content: &str) -> String {
 }
 
 fn build_modinfo_string_param(module: &str, field: &str, param: &str, content: &str) -> String {
-    let variable = format!("__{module}_{field}_{param}", module=module, field=field, param=param);
-    let content = format!("{param}:{content}", param=param, content=content);
+    let variable = format!(
+        "__{module}_{field}_{param}",
+        module = module,
+        field = field,
+        param = param
+    );
+    let content = format!("{param}:{content}", param = param, content = content);
     __build_modinfo_string_base(module, field, &content, &variable, true)
         + &__build_modinfo_string_base(module, field, &content, &variable, false)
 }
@@ -202,8 +234,18 @@ pub fn module(ts: TokenStream) -> TokenStream {
             t => panic!("Unrecognized type {}", t),
         };
 
-        params_modinfo.push_str(&build_modinfo_string_param(&name, "parmtype", &param_name, &param_kernel_type));
-        params_modinfo.push_str(&build_modinfo_string_param(&name, "parm", &param_name, &param_description));
+        params_modinfo.push_str(&build_modinfo_string_param(
+            &name,
+            "parmtype",
+            &param_name,
+            &param_kernel_type,
+        ));
+        params_modinfo.push_str(&build_modinfo_string_param(
+            &name,
+            "parm",
+            &param_name,
+            &param_description,
+        ));
         params_modinfo.push_str(
             &format!(
                 "
@@ -352,4 +394,3 @@ pub fn module(ts: TokenStream) -> TokenStream {
         initcall_section = ".initcall6.init"
     ).parse().unwrap()
 }
-
