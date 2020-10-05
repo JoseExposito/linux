@@ -5,7 +5,7 @@
 
 use kernel::prelude::*;
 
-module!{
+module! {
     type: RustExample,
     name: b"rust_example",
     author: b"Rust for Linux Contributors",
@@ -48,4 +48,3 @@ impl Drop for RustExample {
         println!("Rust Example (exit)");
     }
 }
-

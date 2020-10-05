@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 
-use std::path::PathBuf;
 use std::env;
+use std::path::PathBuf;
 
 const INCLUDED_TYPES: &[&str] = &["file_system_type", "mode_t", "umode_t", "ctl_table"];
 const INCLUDED_FUNCTIONS: &[&str] = &[
@@ -92,8 +92,7 @@ fn main() {
     println!("cargo:rerun-if-env-changed=RUST_BINDGEN_CFLAGS");
 
     let kernel_dir = "../../";
-    let cflags = env::var("RUST_BINDGEN_CFLAGS")
-        .expect("Must be invoked from kernel makefile");
+    let cflags = env::var("RUST_BINDGEN_CFLAGS").expect("Must be invoked from kernel makefile");
 
     let kernel_args = prepare_cflags(&cflags, &kernel_dir);
 
