@@ -158,7 +158,7 @@ unsafe extern "C" fn fsync_callback<T: FileOperations>(
     let fsync = T::FSYNC.unwrap();
     let f = &*((*file).private_data as *const T);
     match fsync(f, &File::from_ptr(file), start, end, datasync) {
-        Ok(result) => result as c_types::c_int,
+        Ok(result) => result.try_into().unwrap(),
         Err(e) => e.to_kernel_errno(),
     }
 }
