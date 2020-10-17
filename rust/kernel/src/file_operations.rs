@@ -140,6 +140,29 @@ unsafe extern "C" fn llseek_callback<T: FileOperations>(
     }
 }
 
+unsafe extern "C" fn fsync_callback<T: FileOperations>(
+    file: *mut bindings::file,
+    start: bindings::loff_t,
+    end: bindings::loff_t,
+    datasync: c_types::c_int,
+) -> c_types::c_int {
+    let start = match start.try_into() {
+        Ok(v) => v,
+        Err(_) => return Error::EINVAL.to_kernel_errno(),
+    };
+    let end = match end.try_into() {
+        Ok(v) => v,
+        Err(_) => return Error::EINVAL.to_kernel_errno(),
+    };
+    let datasync = datasync != 0;
+    let fsync = T::FSYNC.unwrap();
+    let f = &*((*file).private_data as *const T);
+    match fsync(f, &File::from_ptr(file), start, end, datasync) {
+        Ok(result) => result as c_types::c_int,
+        Err(e) => e.to_kernel_errno(),
+    }
+}
+
 pub(crate) struct FileOperationsVtable<T>(marker::PhantomData<T>);
 
 impl<T: FileOperations> FileOperationsVtable<T> {
@@ -170,7 +193,11 @@ impl<T: FileOperations> FileOperationsVtable<T> {
         fasync: None,
         flock: None,
         flush: None,
-        fsync: None,
+        fsync: if let Some(_) = T::FSYNC {
+            Some(fsync_callback::<T>)
+        } else {
+            None
+        },
         get_unmapped_area: None,
         iterate: None,
         iterate_shared: None,
@@ -195,6 +222,7 @@ impl<T: FileOperations> FileOperationsVtable<T> {
 pub type ReadFn<T> = Option<fn(&T, &File, &mut UserSlicePtrWriter, u64) -> KernelResult<()>>;
 pub type WriteFn<T> = Option<fn(&T, &mut UserSlicePtrReader, u64) -> KernelResult<()>>;
 pub type SeekFn<T> = Option<fn(&T, &File, SeekFrom) -> KernelResult<u64>>;
+pub type FSync<T> = Option<fn(&T, &File, u64, u64, bool) -> KernelResult<u32>>;
 
 /// `FileOperations` corresponds to the kernel's `struct file_operations`. You
 /// implement this trait whenever you'd create a `struct file_operations`.
@@ -216,4 +244,8 @@ pub trait FileOperations: Sync + Sized {
     /// Changes the position of the file. Corresponds to the `llseek` function
     /// pointer in `struct file_operations`.
     const SEEK: SeekFn<Self> = None;
+
+    /// Syncs pending changes to this file. Corresponds to the `fsync` function 
+    /// pointer in the `struct file_operations`.
+    const FSYNC: FSync<Self> = None;
 }
