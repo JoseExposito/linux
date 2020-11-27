@@ -18,7 +18,7 @@
 #endif
 
 /* Chosen so that structs with an unsigned long line up. */
-#define MAX_PARAM_PREFIX_LEN (64 - sizeof(unsigned long))
+#define MAX_PARAM_PREFIX_LEN (256 - sizeof(unsigned long))
 
 #define __MODULE_INFO(tag, name, info)					  \
 static const char __UNIQUE_ID(name)[]					  \

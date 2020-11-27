@@ -3,97 +3,136 @@
 Quick Start
 ===========
 
-This document describes how to get started with Rust kernel development.
+This document describes how to get started with kernel development in Rust.
 
 
 Requirements
 ------------
 
-rustc and cargo
-***************
+This section explains how to fetch the requirements to work with Rust.
+If you have worked previously with Rust, this will only take a moment.
 
-A recent nightly Rust toolchain (with, at least, ``rustc`` and ``cargo``)
-is required, e.g. ``nightly-2021-01-02``. In the future, this restriction
-will be lifted.
+Some of these requirements might be available from your Linux distribution
+under names like ``rustc``, ``rust-src``, ``rust-bindgen``, etc. However,
+at the time of writing, they are likely to not be recent enough.
+
+
+rustc
+*****
+
+A recent *nightly* Rust toolchain (with, at least, ``rustc``) is required,
+e.g. ``nightly-2021-01-02``. Our goal is to use a stable toolchain as soon
+as possible, but for the moment we depend on a handful of nightly features.
 
 If you are using ``rustup``, run::
 
     rustup toolchain install nightly
 
-Otherwise, fetch a standalone installer from:
+Otherwise, fetch a standalone installer or install ``rustup`` from:
 
     https://www.rust-lang.org
 
 
-rustc sources
-*************
+Rust standard library source
+****************************
 
-The sources for the compiler are required to be available because the standard
-library (``core`` and ``alloc``) is cross-compiled.
+The Rust standard library source is required because the build system will
+cross-compile ``core`` and ``alloc``.
 
 If you are using ``rustup``, run::
 
     rustup component add rust-src
 
-Otherwise, if you used a standalone installer, you can clone the Rust compiler
-sources and create a symlink to them in the installation folder of
-your nightly toolchain::
+Otherwise, if you used a standalone installer, you can clone the Rust
+repository into the installation folder of your nightly toolchain::
 
-    git clone https://github.com/rust-lang/rust
-    ln -s rust .../rust-nightly/lib/rustlib/src
+    git clone --recurse-submodules https://github.com/rust-lang/rust $(rustc --print sysroot)/lib/rustlib/src/rust
+
+
+compiler-builtins source
+************************
+
+The source for ``compiler-builtins`` (a Rust port of LLVM's ``compiler-rt``)
+is required.
+
+The build system expects the sources alongside the Rust ones we just installed,
+so you can clone it into the installation folder of your nightly toolchain::
+
+    git clone https://github.com/rust-lang/compiler-builtins $(rustc --print sysroot)/lib/rustlib/src/compiler-builtins
 
 
 bindgen
 *******
 
 The bindings to the C side of the kernel are generated at build time using
-``bindgen``. Currently we assume the latest version available, but that
-may change in the future.
+the ``bindgen`` tool. A recent version should work, e.g. ``0.56.0``.
 
-Install it via::
+Install it via (this will build the tool from source)::
 
-    cargo install bindgen
+    cargo install --version 0.56.0 bindgen
+
+This tool uses ``libclang`` (LLVM) to understand the C code in the kernel,
+which means you will need a recent LLVM installed; like when you compile
+the kernel with ``CC=clang`` or ``LLVM=1``.
 
 
 rustfmt
 *******
 
-Optionally, if you install ``rustfmt``, then you will get the generated
-C bindings automatically formatted. It is also useful to have the tool
-to format your own code, too.
+Optionally, if you install the ``rustfmt`` tool, then the generated C bindings
+will be automatically formatted. It is also useful to have the tool to format
+your own code, too.
 
-If you are using ``rustup``, its ``default`` profile already installs it,
-so you should be good to go. If you are using another one, you can also
-install the component::
+If you are using ``rustup``, its ``default`` profile already installs the tool,
+so you should be good to go. If you are using another profile, you can install
+the component manually::
 
     rustup component add rustfmt
 
 The standalone installers also come with ``rustfmt``.
 
 
-Testing a simple driver
------------------------
+Configuration
+-------------
 
-If the kernel configuration system is able to find ``rustc`` and ``cargo``,
-it will enable Rust support (``CONFIG_HAS_RUST``). In turn, this will make
-visible the rest of options that depend on Rust.
+``Rust support`` (``CONFIG_RUST``) needs to be enabled in the ``General setup``
+menu. The option is only shown if the build system can locate ``rustc``.
+In turn, this will make visible the rest of options that depend on Rust.
 
-A simple driver you can compile to test things out is at
-``drivers/char/rust_example`` (``CONFIG_RUST_EXAMPLE``). Enable it and compile
-the kernel with:
-
-    make LLVM=1
-
-TODO: drop LLVM=1, allowing to mix GCC with LLVM
+Afterwards, go to ``Character devices`` under ``Device Drivers`` and enable
+the example Rust driver ``Rust example`` (``CONFIG_RUST_EXAMPLE``).
 
 
-Avoiding the network
---------------------
+Building
+--------
 
-You can prefetch the dependencies that ``cargo`` will download by running::
+Building a x86_64 or arm64 kernel with either GCC, Clang or a complete LLVM
+toolchain should all work. However, please note that using GCC is more
+experimental at the moment.
 
-    cargo fetch
 
-in the kernel sources root. After this step, a network connection is
-not needed anymore.
+Hacking
+-------
+
+If you want to dive deeper, take a look at the source code of the example
+driver at ``drivers/char/rust_example.rs``, the Rust support code under
+``rust/`` and the ``Rust hacking`` menu under ``Kernel hacking``.
+
+If you use GDB/Binutils and Rust symbols aren't getting demangled, the reason
+is your toolchain doesn't support Rust's new v0 mangling scheme yet. There are
+a few ways out:
+
+  - If you don't mind building your own tools, we provide the following fork
+    with the support cherry-picked from GCC on top of very recent releases:
+
+        https://github.com/Rust-for-Linux/binutils-gdb/releases/tag/gdb-10.1-release-rust
+        https://github.com/Rust-for-Linux/binutils-gdb/releases/tag/binutils-2_35_1-rust
+
+  - If you only need GDB and can enable ``CONFIG_DEBUG_INFO``, do so:
+    some versions of GDB (e.g. vanilla GDB 10.1) are able to use
+    the pre-demangled names embedded in the debug info.
+
+  - If you don't need loadable module support, you may compile without
+    the ``-Zsymbol-mangling-version=v0`` flag. However, we don't maintain
+    support for that, so avoid it unless you are in a hurry.
 

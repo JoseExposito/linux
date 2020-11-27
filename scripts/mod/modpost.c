@@ -49,7 +49,7 @@ enum export {
  * here we use Elf_Addr instead of long for covering cross-compile
  */
 
-#define MODULE_NAME_LEN (64 - sizeof(Elf_Addr))
+#define MODULE_NAME_LEN (256 - sizeof(Elf_Addr))
 
 void __attribute__((format(printf, 2, 3)))
 modpost_log(enum loglevel loglevel, const char *fmt, ...)

@@ -48,4 +48,7 @@ obj-$(CONFIG_XILLYBUS)		+= xillybus/
 obj-$(CONFIG_POWERNV_OP_PANEL)	+= powernv-op-panel.o
 obj-$(CONFIG_ADI)		+= adi.o
 
-obj-$(CONFIG_RUST_EXAMPLE)	+= rust_example/
+obj-$(CONFIG_RUST_EXAMPLE)	+= rust_example.o
+obj-$(CONFIG_RUST_EXAMPLE_2)	+= rust_example_2.o
+obj-$(CONFIG_RUST_EXAMPLE_3)	+= rust_example_3.o
+obj-$(CONFIG_RUST_EXAMPLE_4)	+= rust_example_4.o

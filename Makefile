@@ -86,11 +86,9 @@ endif
 ifeq ($(KBUILD_VERBOSE),1)
   quiet =
   Q =
-  CARGO_VERBOSE = --verbose
 else
   quiet=quiet_
   Q = @
-  CARGO_VERBOSE = # TODO: could be --quiet if needed
 endif
 
 # If the user is running make -s (silent mode), suppress echoing of
@@ -447,7 +445,6 @@ READELF		= $(CROSS_COMPILE)readelf
 STRIP		= $(CROSS_COMPILE)strip
 endif
 RUSTC		= rustc
-CARGO		= cargo
 BINDGEN		= bindgen
 PAHOLE		= pahole
 RESOLVE_BTFIDS	= $(objtree)/tools/bpf/resolve_btfids/resolve_btfids
@@ -474,12 +471,10 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 NOSTDINC_FLAGS :=
 CFLAGS_MODULE   =
 RUSTCFLAGS_MODULE =
-CARGOFLAGS_MODULE =
 AFLAGS_MODULE   =
 LDFLAGS_MODULE  =
 CFLAGS_KERNEL	=
 RUSTCFLAGS_KERNEL =
-CARGOFLAGS_KERNEL =
 AFLAGS_KERNEL	=
 LDFLAGS_vmlinux =
 
@@ -507,24 +502,21 @@ KBUILD_CFLAGS   := -Wall -Wundef -Werror=strict-prototypes -Wno-trigraphs \
 		   -Werror=return-type -Wno-format-security \
 		   -std=gnu89
 KBUILD_CPPFLAGS := -D__KERNEL__
-KBUILD_RUSTCFLAGS :=
-# TODO: a simple way to update `Cargo.lock` when we add a new driver
-KBUILD_CARGOFLAGS := $(CARGO_VERBOSE) --locked \
-		    -Z build-std=core,alloc -Z unstable-options \
-		    --target=$(srctree)/arch/$(SRCARCH)/rust/target.json
+KBUILD_RUSTCFLAGS := --emit=dep-info,obj,link -Zbinary_dep_depinfo=y \
+		     -Cpanic=abort -Cembed-bitcode=n -Clto=n -Crpath=n \
+		     -Cforce-unwind-tables=n -Ccodegen-units=1 \
+		     -Zsymbol-mangling-version=v0
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_RUSTCFLAGS_KERNEL :=
-KBUILD_CARGOFLAGS_KERNEL :=
 KBUILD_AFLAGS_MODULE  := -DMODULE
 KBUILD_CFLAGS_MODULE  := -DMODULE
 KBUILD_RUSTCFLAGS_MODULE := --cfg MODULE
-KBUILD_CARGOFLAGS_MODULE :=
 KBUILD_LDFLAGS_MODULE :=
 KBUILD_LDFLAGS :=
 CLANG_FLAGS :=
 
-export ARCH SRCARCH CONFIG_SHELL BASH HOSTCC KBUILD_HOSTCFLAGS CROSS_COMPILE LD CC RUSTC CARGO BINDGEN
+export ARCH SRCARCH CONFIG_SHELL BASH HOSTCC KBUILD_HOSTCFLAGS CROSS_COMPILE LD CC RUSTC BINDGEN
 export CPP AR NM STRIP OBJCOPY OBJDUMP READELF PAHOLE RESOLVE_BTFIDS LEX YACC AWK INSTALLKERNEL
 export PERL PYTHON PYTHON3 CHECK CHECKFLAGS MAKE UTS_MACHINE HOSTCXX
 export KGZIP KBZIP2 KLZOP LZMA LZ4 XZ ZSTD
@@ -533,10 +525,9 @@ export KBUILD_HOSTCXXFLAGS KBUILD_HOSTLDFLAGS KBUILD_HOSTLDLIBS LDFLAGS_MODULE
 export KBUILD_CPPFLAGS NOSTDINC_FLAGS LINUXINCLUDE OBJCOPYFLAGS KBUILD_LDFLAGS
 export KBUILD_CFLAGS CFLAGS_KERNEL CFLAGS_MODULE
 export KBUILD_RUSTCFLAGS RUSTCFLAGS_KERNEL RUSTCFLAGS_MODULE
-export KBUILD_CARGOFLAGS CARGOFLAGS_KERNEL CARGOFLAGS_MODULE
 export KBUILD_AFLAGS AFLAGS_KERNEL AFLAGS_MODULE
-export KBUILD_AFLAGS_MODULE KBUILD_CFLAGS_MODULE KBUILD_RUSTCFLAGS_MODULE KBUILD_CARGOFLAGS_MODULE KBUILD_LDFLAGS_MODULE
-export KBUILD_AFLAGS_KERNEL KBUILD_CFLAGS_KERNEL KBUILD_RUSTCFLAGS_KERNEL KBUILD_CARGOFLAGS_KERNEL
+export KBUILD_AFLAGS_MODULE KBUILD_CFLAGS_MODULE KBUILD_RUSTCFLAGS_MODULE KBUILD_LDFLAGS_MODULE
+export KBUILD_AFLAGS_KERNEL KBUILD_CFLAGS_KERNEL KBUILD_RUSTCFLAGS_KERNEL
 
 # Files to ignore in find ... statements
 
@@ -579,20 +570,24 @@ ifdef building_out_of_srctree
 	{ echo "# this is build directory, ignore it"; echo "*"; } > .gitignore
 endif
 
-ifneq ($(shell $(CC) --version 2>&1 | head -n 1 | grep clang),)
+TENTATIVE_CLANG_FLAGS := -Werror=unknown-warning-option
 ifneq ($(CROSS_COMPILE),)
-CLANG_FLAGS	+= --target=$(notdir $(CROSS_COMPILE:%-=%))
+TENTATIVE_CLANG_FLAGS	+= --target=$(notdir $(CROSS_COMPILE:%-=%))
 GCC_TOOLCHAIN_DIR := $(dir $(shell which $(CROSS_COMPILE)elfedit))
-CLANG_FLAGS	+= --prefix=$(GCC_TOOLCHAIN_DIR)$(notdir $(CROSS_COMPILE))
+TENTATIVE_CLANG_FLAGS	+= --prefix=$(GCC_TOOLCHAIN_DIR)$(notdir $(CROSS_COMPILE))
 GCC_TOOLCHAIN	:= $(realpath $(GCC_TOOLCHAIN_DIR)/..)
 endif
 ifneq ($(GCC_TOOLCHAIN),)
-CLANG_FLAGS	+= --gcc-toolchain=$(GCC_TOOLCHAIN)
+TENTATIVE_CLANG_FLAGS	+= --gcc-toolchain=$(GCC_TOOLCHAIN)
 endif
 ifneq ($(LLVM_IAS),1)
-CLANG_FLAGS	+= -no-integrated-as
+TENTATIVE_CLANG_FLAGS	+= -no-integrated-as
 endif
-CLANG_FLAGS	+= -Werror=unknown-warning-option
+
+export TENTATIVE_CLANG_FLAGS
+
+ifneq ($(shell $(CC) --version 2>&1 | head -n 1 | grep clang),)
+CLANG_FLAGS	+= $(TENTATIVE_CLANG_FLAGS)
 KBUILD_CFLAGS	+= $(CLANG_FLAGS)
 KBUILD_AFLAGS	+= $(CLANG_FLAGS)
 export CLANG_FLAGS
@@ -752,21 +747,43 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, address-of-packed-member)
 
-# TODO: perhaps we could have some independent options for Rust only
-KBUILD_CARGOFLAGS += --release
+ifdef CONFIG_RUST_DEBUG_ASSERTIONS
+KBUILD_RUSTCFLAGS += -Cdebug-assertions=y
+else
+KBUILD_RUSTCFLAGS += -Cdebug-assertions=n
+endif
+
+ifdef CONFIG_RUST_OVERFLOW_CHECKS
+KBUILD_RUSTCFLAGS += -Coverflow-checks=y
+else
+KBUILD_RUSTCFLAGS += -Coverflow-checks=n
+endif
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
 KBUILD_CFLAGS += -O2
-KBUILD_RUSTCFLAGS += # TODO: do we want -C opt-level=2 here?
-KBUILD_CARGOFLAGS +=
+KBUILD_RUSTCFLAGS_OPT_LEVEL_MAP := 2
 else ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3
 KBUILD_CFLAGS += -O3
-KBUILD_RUSTCFLAGS += # flags already passed by cargo's --release
-KBUILD_CARGOFLAGS +=
+KBUILD_RUSTCFLAGS_OPT_LEVEL_MAP := 3
 else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS += -Os
-KBUILD_RUSTCFLAGS += -C opt-level=z
-KBUILD_CARGOFLAGS +=
+KBUILD_RUSTCFLAGS_OPT_LEVEL_MAP := z
+endif
+
+ifdef CONFIG_RUST_OPT_LEVEL_SIMILAR_AS_CHOSEN_FOR_C
+KBUILD_RUSTCFLAGS += -Copt-level=$(KBUILD_RUSTCFLAGS_OPT_LEVEL_MAP)
+else ifdef CONFIG_RUST_OPT_LEVEL_0
+KBUILD_RUSTCFLAGS += -Copt-level=0
+else ifdef CONFIG_RUST_OPT_LEVEL_1
+KBUILD_RUSTCFLAGS += -Copt-level=1
+else ifdef CONFIG_RUST_OPT_LEVEL_2
+KBUILD_RUSTCFLAGS += -Copt-level=2
+else ifdef CONFIG_RUST_OPT_LEVEL_3
+KBUILD_RUSTCFLAGS += -Copt-level=3
+else ifdef CONFIG_RUST_OPT_LEVEL_S
+KBUILD_RUSTCFLAGS += -Copt-level=s
+else ifdef CONFIG_RUST_OPT_LEVEL_Z
+KBUILD_RUSTCFLAGS += -Copt-level=z
 endif
 
 # Tell gcc to never replace conditional load with a non-conditional one
@@ -816,6 +833,7 @@ endif
 KBUILD_CFLAGS += $(call cc-disable-warning, unused-const-variable)
 ifdef CONFIG_FRAME_POINTER
 KBUILD_CFLAGS	+= -fno-omit-frame-pointer -fno-optimize-sibling-calls
+KBUILD_RUSTCFLAGS += -Cforce-frame-pointers=y
 else
 # Some targets (ARM with Thumb2, for example), can't be built with frame
 # pointers.  For those, we don't have FUNCTION_TRACER automatically
@@ -848,9 +866,6 @@ DEBUG_CFLAGS	:= $(call cc-ifversion, -lt, 0500, $(call cc-option, -fno-var-track
 endif
 
 DEBUG_RUSTCFLAGS :=
-DEBUG_CARGOFLAGS :=
-
-# TODO: see what we should set for rustc/cargo for debug
 
 ifdef CONFIG_DEBUG_INFO
 
@@ -862,6 +877,11 @@ endif
 
 ifneq ($(LLVM_IAS),1)
 KBUILD_AFLAGS	+= -Wa,-gdwarf-2
+ifdef CONFIG_DEBUG_INFO_REDUCED
+DEBUG_RUSTCFLAGS += -Cdebuginfo=1
+else
+DEBUG_RUSTCFLAGS += -Cdebuginfo=2
+endif
 endif
 
 ifdef CONFIG_DEBUG_INFO_DWARF4
@@ -886,9 +906,6 @@ export DEBUG_CFLAGS
 
 KBUILD_RUSTCFLAGS += $(DEBUG_RUSTCFLAGS)
 export DEBUG_RUSTCFLAGS
-
-KBUILD_CARGOFLAGS += $(DEBUG_CARGOFLAGS)
-export DEBUG_CARGOFLAGS
 
 ifdef CONFIG_FUNCTION_TRACER
 ifdef CONFIG_FTRACE_MCOUNT_RECORD
@@ -1008,12 +1025,11 @@ include $(addprefix $(srctree)/, $(include-y))
 # Do not add $(call cc-option,...) below this line. When you build the kernel
 # from the clean source tree, the GCC plugins do not exist at this point.
 
-# Add user supplied CPPFLAGS, AFLAGS, CFLAGS, RUSTCFLAGS and CARGOFLAGS as the last assignments
+# Add user supplied CPPFLAGS, AFLAGS, CFLAGS and RUSTCFLAGS as the last assignments
 KBUILD_CPPFLAGS += $(KCPPFLAGS)
 KBUILD_AFLAGS   += $(KAFLAGS)
 KBUILD_CFLAGS   += $(KCFLAGS)
 KBUILD_RUSTCFLAGS += $(KRUSTCFLAGS)
-KBUILD_CARGOFLAGS += $(KCARGOFLAGS)
 
 KBUILD_LDFLAGS_MODULE += --build-id=sha1
 LDFLAGS_vmlinux += --build-id=sha1
@@ -1144,11 +1160,7 @@ export MODORDER := $(extmod-prefix)modules.order
 export MODULES_NSDEPS := $(extmod-prefix)modules.nsdeps
 
 ifeq ($(KBUILD_EXTMOD),)
-core-y		+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/ block/
-
-ifdef CONFIG_HAS_RUST
-core-y		+= rust/
-endif
+core-y		+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/ block/ rust/
 
 vmlinux-dirs	:= $(patsubst %/,%,$(filter %/, \
 		     $(core-y) $(core-m) $(drivers-y) $(drivers-m) \
@@ -1250,6 +1262,7 @@ archprepare: outputmakefile archheaders archscripts scripts include/config/kerne
 prepare0: archprepare
 	$(Q)$(MAKE) $(build)=scripts/mod
 	$(Q)$(MAKE) $(build)=.
+	$(Q)$(MAKE) $(build)=rust
 
 # All the preparing..
 prepare: prepare0 prepare-objtool prepare-resolve_btfids
@@ -1535,17 +1548,13 @@ DISTCLEAN_FILES += tags TAGS cscope* GPATH GTAGS GRTAGS GSYMS
 #
 clean: rm-files := $(CLEAN_FILES)
 
-PHONY += archclean vmlinuxclean cargoclean
+PHONY += archclean vmlinuxclean
 
 vmlinuxclean:
 	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/link-vmlinux.sh clean
 	$(Q)$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) clean)
 
-# TODO: clean particular subfolders via `Makefile.clean`
-cargoclean:
-	$(Q)$(CARGO) clean
-
-clean: archclean vmlinuxclean cargoclean
+clean: archclean vmlinuxclean
 
 # mrproper - Delete all generated files, including .config
 #
@@ -1865,6 +1874,7 @@ clean: $(clean-dirs)
 	$(call cmd,rmfiles)
 	@find $(if $(KBUILD_EXTMOD), $(KBUILD_EXTMOD), .) $(RCS_FIND_IGNORE) \
 		\( -name '*.[aios]' -o -name '*.ko' -o -name '.*.cmd' \
+		-o -name '*.rlib' \
 		-o -name '*.ko.*' \
 		-o -name '*.dtb' -o -name '*.dtb.S' -o -name '*.dt.yaml' \
 		-o -name '*.dwo' -o -name '*.lst' \

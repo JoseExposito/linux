@@ -472,7 +472,7 @@ config ADI
 	  driver include crash and makedumpfile.
 
 config RUST_EXAMPLE
-	depends on HAS_RUST
+	depends on RUST
 	tristate "Rust Example"
 	default n
 	help
@@ -480,6 +480,48 @@ config RUST_EXAMPLE
 
 	  To compile this as a module, choose M here:
 	  the module will be called rust_example.
+
+	  If unsure, say N.
+
+# XXX: Only for GitHub -- do not commit into mainline
+config RUST_EXAMPLE_2
+	depends on RUST
+	tristate "Rust Example 2"
+	default n
+	help
+	  This option builds a second example module written in Rust.
+	  It is intended to test several Rust modules at the same time.
+
+	  To compile this as a module, choose M here:
+	  the module will be called rust_example_2.
+
+	  If unsure, say N.
+
+# XXX: Only for GitHub -- do not commit into mainline
+config RUST_EXAMPLE_3
+	depends on RUST
+	tristate "Rust Example 3"
+	default n
+	help
+	  This option builds a third example module written in Rust.
+	  It is intended to test several Rust modules at the same time.
+
+	  To compile this as a module, choose M here:
+	  the module will be called rust_example_3.
+
+	  If unsure, say N.
+
+# XXX: Only for GitHub -- do not commit into mainline
+config RUST_EXAMPLE_4
+	depends on RUST
+	tristate "Rust Example 4"
+	default n
+	help
+	  This option builds a fourth example module written in Rust.
+	  It is intended to test several Rust modules at the same time.
+
+	  To compile this as a module, choose M here:
+	  the module will be called rust_example_4.
 
 	  If unsure, say N.
 

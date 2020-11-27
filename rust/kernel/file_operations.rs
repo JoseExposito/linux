@@ -11,12 +11,6 @@ use crate::c_types;
 use crate::error::{Error, KernelResult};
 use crate::user_ptr::{UserSlicePtr, UserSlicePtrReader, UserSlicePtrWriter};
 
-bitflags::bitflags! {
-    pub struct FileFlags: c_types::c_uint {
-        const NONBLOCK = bindings::O_NONBLOCK;
-    }
-}
-
 pub struct File {
     ptr: *const bindings::file,
 }
@@ -28,10 +22,6 @@ impl File {
 
     pub fn pos(&self) -> u64 {
         unsafe { (*self.ptr).f_pos as u64 }
-    }
-
-    pub fn flags(&self) -> FileFlags {
-        FileFlags::from_bits_truncate(unsafe { (*self.ptr).f_flags })
     }
 }
 

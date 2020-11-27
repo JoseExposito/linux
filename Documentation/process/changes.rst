@@ -31,6 +31,8 @@ you probably needn't concern yourself with pcmciautils.
 ====================== ===============  ========================================
 GNU C                  4.9              gcc --version
 Clang/LLVM (optional)  10.0.1           clang --version
+rustc (optional)       nightly          rustc --version
+bindgen (optional)     0.56.0           bindgen --version
 GNU make               3.81             make --version
 binutils               2.23             ld -v
 flex                   2.5.35           flex --version
