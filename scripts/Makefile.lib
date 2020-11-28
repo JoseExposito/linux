@@ -196,7 +196,7 @@ endif
 endif
 
 # TODO: quick hack
-part-of-module = $(if $(filter $(basename $@).o,$(real-obj-m)),y,$(and $(real-obj-m),$(shell echo $@ | sed -E 's!.+/out/lib.+\.a!y!;t;d')))
+part-of-module = $(if $(filter $(basename $@).o,$(real-obj-m)),y,$(and $(real-obj-m),$(shell echo $@ | sed -E 's!.+/lib.+\.a!y!;t;d')))
 quiet_modtag = $(if $(part-of-module),[M],   )
 
 modkern_cflags =                                          \
@@ -229,7 +229,7 @@ c_flags        = -Wp,-MMD,$(depfile) $(NOSTDINC_FLAGS) $(LINUXINCLUDE)     \
 RUST_BINDGEN_CFLAGS = $(c_flags) $(KBUILD_CFLAGS_MODULE)
 export RUST_BINDGEN_CFLAGS
 
-KCONFIG_RUSTC_CFG ?= $(srctree)/include/generated/rustc_cfg
+KCONFIG_RUSTC_CFG ?= ./include/generated/rustc_cfg
 
 rustc_flags     = $(_rustc_flags) $(modkern_rustcflags) @$(shell readlink -f $(KCONFIG_RUSTC_CFG))
 

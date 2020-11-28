@@ -513,7 +513,7 @@ KBUILD_RUSTCFLAGS :=
 # TODO: a simple way to update `Cargo.lock` when we add a new driver
 KBUILD_CARGOFLAGS := $(CARGO_VERBOSE) --locked \
 		    -Z build-std=core,alloc -Z unstable-options \
-		    --out-dir=out --target=$(PWD)/$(srctree)/arch/$(SRCARCH)/rust/target.json
+		    --target=$(srctree)/arch/$(SRCARCH)/rust/target.json
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_RUSTCFLAGS_KERNEL :=
