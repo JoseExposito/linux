@@ -7,6 +7,7 @@ Documentation related to Rust within the kernel. If you are starting out, read t
     :maxdepth: 1
 
     quick-start
+    coding
 
 .. only::  subproject and html
 
