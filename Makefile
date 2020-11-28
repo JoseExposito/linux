@@ -510,11 +510,9 @@ KBUILD_CFLAGS   := -Wall -Wundef -Werror=strict-prototypes -Wno-trigraphs \
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_RUSTCFLAGS :=
 # TODO: a simple way to update `Cargo.lock` when we add a new driver
-# TODO: another option is using explicit target specs, e.g.
-# `--target=$(srctree)/arch/$(SRCARCH)/rust-target-spec.json`
 KBUILD_CARGOFLAGS := $(CARGO_VERBOSE) --locked \
 		    -Z build-std=core,alloc -Z unstable-options \
-		    --out-dir=out --target=x86_64-linux-kernel
+		    --out-dir=out --target=$(PWD)/$(srctree)/arch/$(SRCARCH)/rust/target.json
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_RUSTCFLAGS_KERNEL :=

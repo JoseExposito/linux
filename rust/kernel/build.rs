@@ -96,7 +96,8 @@ fn main() {
 
     let kernel_args = prepare_cflags(&cflags, &kernel_dir);
 
-    let target = env::var("TARGET").unwrap();
+    // TODO: pass the proper triple to bindgen
+    let target = "x86_64-linux-kernel";
 
     let mut builder = bindgen::Builder::default()
         .use_core()
