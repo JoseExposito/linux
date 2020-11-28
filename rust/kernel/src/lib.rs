@@ -5,6 +5,11 @@
 #![no_std]
 #![feature(allocator_api, alloc_error_handler)]
 
+// Ensure conditional compilation based on the kernel configuration works;
+// otherwise we may silently break things like initcall handling.
+#[cfg(not(CONFIG_HAS_RUST))]
+compile_error!("Missing kernel configuration for conditional compilation");
+
 extern crate alloc;
 
 use core::panic::PanicInfo;
