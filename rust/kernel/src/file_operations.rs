@@ -41,16 +41,34 @@ pub enum SeekFrom {
     Current(i64),
 }
 
+fn from_kernel_result<T>(r: KernelResult<T>) -> T
+where
+    T: TryFrom<c_types::c_int>,
+    T::Error: core::fmt::Debug,
+{
+    match r {
+        Ok(v) => v,
+        Err(e) => T::try_from(e.to_kernel_errno()).unwrap(),
+    }
+}
+
+macro_rules! from_kernel_result {
+    ($($tt:tt)*) => {{
+        from_kernel_result((|| {
+            $($tt)*
+        })())
+    }};
+}
+
 unsafe extern "C" fn open_callback<T: FileOperations>(
     _inode: *mut bindings::inode,
     file: *mut bindings::file,
 ) -> c_types::c_int {
-    let f = match T::open() {
-        Ok(f) => Box::new(f),
-        Err(e) => return e.to_kernel_errno(),
-    };
-    (*file).private_data = Box::into_raw(f) as *mut c_types::c_void;
-    0
+    from_kernel_result! {
+        let f = Box::new(T::open()?);
+        (*file).private_data = Box::into_raw(f) as *mut c_types::c_void;
+        Ok(0)
+    }
 }
 
 unsafe extern "C" fn read_callback<T: FileOperations>(
@@ -59,25 +77,15 @@ unsafe extern "C" fn read_callback<T: FileOperations>(
     len: c_types::c_size_t,
     offset: *mut bindings::loff_t,
 ) -> c_types::c_ssize_t {
-    let mut data = match UserSlicePtr::new(buf as *mut c_types::c_void, len) {
-        Ok(ptr) => ptr.writer(),
-        Err(e) => return e.to_kernel_errno().try_into().unwrap(),
-    };
-    let f = &*((*file).private_data as *const T);
-    // No FMODE_UNSIGNED_OFFSET support, so offset must be in [0, 2^63).
-    // See discussion in #113
-    let positive_offset = match (*offset).try_into() {
-        Ok(v) => v,
-        Err(_) => return Error::EINVAL.to_kernel_errno().try_into().unwrap(),
-    };
-    let read = T::READ.unwrap();
-    match read(f, &File::from_ptr(file), &mut data, positive_offset) {
-        Ok(()) => {
-            let written = len - data.len();
-            (*offset) += bindings::loff_t::try_from(written).unwrap();
-            written.try_into().unwrap()
-        }
-        Err(e) => e.to_kernel_errno().try_into().unwrap(),
+    from_kernel_result! {
+        let mut data = UserSlicePtr::new(buf as *mut c_types::c_void, len)?.writer();
+        let f = &*((*file).private_data as *const T);
+        // No FMODE_UNSIGNED_OFFSET support, so offset must be in [0, 2^63).
+        // See discussion in #113
+        T::READ.unwrap()(f, &File::from_ptr(file), &mut data, (*offset).try_into()?)?;
+        let written = len - data.len();
+        (*offset) += bindings::loff_t::try_from(written).unwrap();
+        Ok(written.try_into().unwrap())
     }
 }
 
@@ -87,25 +95,15 @@ unsafe extern "C" fn write_callback<T: FileOperations>(
     len: c_types::c_size_t,
     offset: *mut bindings::loff_t,
 ) -> c_types::c_ssize_t {
-    let mut data = match UserSlicePtr::new(buf as *mut c_types::c_void, len) {
-        Ok(ptr) => ptr.reader(),
-        Err(e) => return e.to_kernel_errno().try_into().unwrap(),
-    };
-    let f = &*((*file).private_data as *const T);
-    // No FMODE_UNSIGNED_OFFSET support, so offset must be in [0, 2^63).
-    // See discussion in #113
-    let positive_offset = match (*offset).try_into() {
-        Ok(v) => v,
-        Err(_) => return Error::EINVAL.to_kernel_errno().try_into().unwrap(),
-    };
-    let write = T::WRITE.unwrap();
-    match write(f, &mut data, positive_offset) {
-        Ok(()) => {
-            let read = len - data.len();
-            (*offset) += bindings::loff_t::try_from(read).unwrap();
-            read.try_into().unwrap()
-        }
-        Err(e) => e.to_kernel_errno().try_into().unwrap(),
+    from_kernel_result! {
+        let mut data = UserSlicePtr::new(buf as *mut c_types::c_void, len)?.reader();
+        let f = &*((*file).private_data as *const T);
+        // No FMODE_UNSIGNED_OFFSET support, so offset must be in [0, 2^63).
+        // See discussion in #113
+        T::WRITE.unwrap()(f, &mut data, (*offset).try_into()?)?;
+        let read = len - data.len();
+        (*offset) += bindings::loff_t::try_from(read).unwrap();
+        Ok(read.try_into().unwrap())
     }
 }
 
@@ -123,20 +121,16 @@ unsafe extern "C" fn llseek_callback<T: FileOperations>(
     offset: bindings::loff_t,
     whence: c_types::c_int,
 ) -> bindings::loff_t {
-    let off = match whence as u32 {
-        bindings::SEEK_SET => match offset.try_into() {
-            Ok(v) => SeekFrom::Start(v),
-            Err(_) => return Error::EINVAL.to_kernel_errno().into(),
-        },
-        bindings::SEEK_CUR => SeekFrom::Current(offset),
-        bindings::SEEK_END => SeekFrom::End(offset),
-        _ => return Error::EINVAL.to_kernel_errno().into(),
-    };
-    let f = &*((*file).private_data as *const T);
-    let seek = T::SEEK.unwrap();
-    match seek(f, &File::from_ptr(file), off) {
-        Ok(off) => off as bindings::loff_t,
-        Err(e) => e.to_kernel_errno().into(),
+    from_kernel_result! {
+        let off = match whence as u32 {
+            bindings::SEEK_SET => SeekFrom::Start(offset.try_into()?),
+            bindings::SEEK_CUR => SeekFrom::Current(offset),
+            bindings::SEEK_END => SeekFrom::End(offset),
+            _ => return Err(Error::EINVAL),
+        };
+        let f = &*((*file).private_data as *const T);
+        let off = T::SEEK.unwrap()(f, &File::from_ptr(file), off)?;
+        Ok(off as bindings::loff_t)
     }
 }
 
@@ -146,20 +140,13 @@ unsafe extern "C" fn fsync_callback<T: FileOperations>(
     end: bindings::loff_t,
     datasync: c_types::c_int,
 ) -> c_types::c_int {
-    let start = match start.try_into() {
-        Ok(v) => v,
-        Err(_) => return Error::EINVAL.to_kernel_errno(),
-    };
-    let end = match end.try_into() {
-        Ok(v) => v,
-        Err(_) => return Error::EINVAL.to_kernel_errno(),
-    };
-    let datasync = datasync != 0;
-    let fsync = T::FSYNC.unwrap();
-    let f = &*((*file).private_data as *const T);
-    match fsync(f, &File::from_ptr(file), start, end, datasync) {
-        Ok(result) => result.try_into().unwrap(),
-        Err(e) => e.to_kernel_errno(),
+    from_kernel_result! {
+        let start = start.try_into()?;
+        let end = end.try_into()?;
+        let datasync = datasync != 0;
+        let f = &*((*file).private_data as *const T);
+        let res = T::FSYNC.unwrap()(f, &File::from_ptr(file), start, end, datasync)?;
+        Ok(res.try_into().unwrap())
     }
 }
 
