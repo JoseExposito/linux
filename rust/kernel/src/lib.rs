@@ -68,7 +68,7 @@ pub fn try_alloc<T>(value: T) -> KernelResult<Box<T>> {
     let layout = Layout::new::<MaybeUninit<T>>();
     let ptr: NonNull<MaybeUninit<T>> = if layout.size() == 0 {
         NonNull::dangling()
-        // SAFETY: We checked that the layout size is nonzero.
+    // SAFETY: We checked that the layout size is nonzero.
     } else if let Some(nn) = NonNull::new(unsafe { alloc::alloc::alloc(layout) }) {
         nn.cast()
     } else {
