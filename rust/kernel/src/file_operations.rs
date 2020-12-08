@@ -8,6 +8,7 @@ use alloc::boxed::Box;
 use crate::bindings;
 use crate::c_types;
 use crate::error::{Error, KernelResult};
+use crate::try_alloc;
 use crate::user_ptr::{UserSlicePtr, UserSlicePtrReader, UserSlicePtrWriter};
 
 bitflags::bitflags! {
@@ -65,7 +66,7 @@ unsafe extern "C" fn open_callback<T: FileOperations>(
     file: *mut bindings::file,
 ) -> c_types::c_int {
     from_kernel_result! {
-        let f = Box::new(T::open()?);
+        let f = try_alloc(T::open()?)?;
         (*file).private_data = Box::into_raw(f) as *mut c_types::c_void;
         Ok(0)
     }
@@ -232,7 +233,7 @@ pub trait FileOperations: Sync + Sized {
     /// pointer in `struct file_operations`.
     const SEEK: SeekFn<Self> = None;
 
-    /// Syncs pending changes to this file. Corresponds to the `fsync` function 
+    /// Syncs pending changes to this file. Corresponds to the `fsync` function
     /// pointer in the `struct file_operations`.
     const FSYNC: FSync<Self> = None;
 }

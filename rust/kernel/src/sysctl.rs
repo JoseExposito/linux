@@ -9,6 +9,7 @@ use core::sync::atomic;
 use crate::bindings;
 use crate::c_types;
 use crate::error;
+use crate::try_alloc;
 use crate::types;
 use crate::user_ptr::{UserSlicePtr, UserSlicePtrWriter};
 
@@ -129,7 +130,7 @@ impl<T: SysctlStorage> Sysctl<T> {
             return Err(error::Error::EINVAL);
         }
 
-        let storage = Box::new(storage);
+        let storage = try_alloc(storage)?;
         let mut table = vec![
             bindings::ctl_table {
                 procname: name.as_ptr() as *const i8,
