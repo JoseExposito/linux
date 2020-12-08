@@ -15061,10 +15061,10 @@ S:	Maintained
 F:	drivers/infiniband/ulp/rtrs/
 
 RUST
-W:	https://github.com/Rust-for-Linux
+W:	https://github.com/Rust-for-Linux/linux
 S:	Maintained
 K:	\b(?i:rust)\b
-L:	linux-rust@vger.kernel.org (TODO: waiting for reply to my request)
+L:	rust-for-linux@vger.kernel.org
 F:	rust/
 F:	Documentation/rust/
 F:	drivers/char/rust_example/
