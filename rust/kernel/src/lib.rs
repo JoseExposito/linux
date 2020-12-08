@@ -12,7 +12,12 @@ compile_error!("Missing kernel configuration for conditional compilation");
 
 extern crate alloc;
 
+use alloc::boxed::Box;
+use core::alloc::Layout;
+use core::mem::MaybeUninit;
 use core::panic::PanicInfo;
+use core::pin::Pin;
+use core::ptr::NonNull;
 
 mod allocator;
 pub mod bindings;
@@ -56,3 +61,33 @@ fn panic(_info: &PanicInfo) -> ! {
 
 #[global_allocator]
 static ALLOCATOR: allocator::KernelAllocator = allocator::KernelAllocator;
+
+/// Attempts to allocate memory for `value` using the global allocator. On success, `value` is
+/// moved into it and returned to the caller wrapped in a `Box`.
+pub fn try_alloc<T>(value: T) -> KernelResult<Box<T>> {
+    let layout = Layout::new::<MaybeUninit<T>>();
+    let ptr: NonNull<MaybeUninit<T>> = if layout.size() == 0 {
+        NonNull::dangling()
+        // SAFETY: We checked that the layout size is nonzero.
+    } else if let Some(nn) = NonNull::new(unsafe { alloc::alloc::alloc(layout) }) {
+        nn.cast()
+    } else {
+        return Err(Error::ENOMEM);
+    };
+
+    unsafe {
+        // SAFETY: `ptr` was just allocated and isn't used afterwards.
+        let mut b = Box::from_raw(ptr.as_ptr());
+        // SAFETY: The pointer is valid for write and is properly aligned. The dangling pointer
+        // case is only when the size of the value is zero; writing zero bytes to it is allowed.
+        b.as_mut_ptr().write(value);
+        // SAFETY: The value was initialised in the call above.
+        Ok(Box::from_raw(Box::into_raw(b) as *mut T))
+    }
+}
+
+/// Attempts to allocate memory for `value` using the global allocator. On success, `value` is
+/// moved into it and returned to the caller wrapped in a pinned `Box`.
+pub fn try_alloc_pinned<T>(value: T) -> KernelResult<Pin<Box<T>>> {
+    Ok(Pin::from(try_alloc(value)?))
+}
