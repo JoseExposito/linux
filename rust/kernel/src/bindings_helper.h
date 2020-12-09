@@ -5,6 +5,7 @@
 #include <linux/module.h>
 #include <linux/random.h>
 #include <linux/slab.h>
+#include <linux/sysctl.h>
 #include <linux/uaccess.h>
 #include <linux/version.h>
 
