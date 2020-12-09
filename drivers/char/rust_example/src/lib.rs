@@ -3,7 +3,12 @@
 #![no_std]
 #![feature(global_asm)]
 
+extern crate alloc;
+
+use alloc::boxed::Box;
+use core::pin::Pin;
 use kernel::prelude::*;
+use kernel::{cstr, file_operations::FileOperations, miscdev};
 
 module! {
     type: RustExample,
@@ -25,8 +30,18 @@ module! {
     },
 }
 
+struct RustFile;
+
+impl FileOperations for RustFile {
+    fn open() -> KernelResult<Self> {
+        println!("rust file was opened!");
+        Ok(Self)
+    }
+}
+
 struct RustExample {
     message: String,
+    _dev: Pin<Box<miscdev::Registration>>,
 }
 
 impl KernelModule for RustExample {
@@ -36,8 +51,10 @@ impl KernelModule for RustExample {
         println!("Parameters:");
         println!("  my_bool:  {}", my_bool.read());
         println!("  my_i32:   {}", my_i32.read());
+
         Ok(RustExample {
             message: "on the heap!".to_owned(),
+            _dev: miscdev::Registration::new_pinned::<RustFile>(cstr!("rust_miscdev"), None)?,
         })
     }
 }
