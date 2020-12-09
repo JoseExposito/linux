@@ -59,3 +59,19 @@ jobs:
       - run: "grep 'my_i32: \\+123321' qemu-stdout.log"
       - if: matrix.module == 'loadable'
         run: grep -F 'Rust Example (exit)' qemu-stdout.log
+
+      # Report
+      - if: matrix.outputdir == 'src' && matrix.module == 'loadable'
+        run: ls -l       drivers/char/rust_example/rust_example.ko
+      - if: matrix.outputdir == 'build' && matrix.module == 'loadable'
+        run: ls -l build/drivers/char/rust_example/rust_example.ko
+
+      - if: matrix.outputdir == 'src'
+        run: ls -l       vmlinux       arch/x86/boot/bzImage
+      - if: matrix.outputdir == 'build'
+        run: ls -l build/vmlinux build/arch/x86/boot/bzImage
+
+      - if: matrix.outputdir == 'src'
+        run: size        vmlinux
+      - if: matrix.outputdir == 'build'
+        run: size  build/vmlinux
