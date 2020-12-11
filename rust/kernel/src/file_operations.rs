@@ -113,7 +113,7 @@ unsafe extern "C" fn release_callback<T: FileOperations>(
     file: *mut bindings::file,
 ) -> c_types::c_int {
     let ptr = mem::replace(&mut (*file).private_data, ptr::null_mut());
-    drop(T::Wrapper::from_pointer(ptr as _));
+    T::release(T::Wrapper::from_pointer(ptr as _), &File::from_ptr(file));
     0
 }
 
@@ -222,6 +222,11 @@ pub trait FileOperations: Sync + Sized {
     /// Creates a new instance of this file. Corresponds to the `open` function
     /// pointer in `struct file_operations`.
     fn open() -> KernelResult<Self::Wrapper>;
+
+    /// Cleans up after the last reference to the file goes away. Note that the object is moved, so
+    /// it will be freed automatically unless the implemention moves it elsewhere. Corresponds to
+    /// the `release` function pointer in `struct file_operations`.
+    fn release(_obj: Self::Wrapper, _file: &File) {}
 
     /// Reads data from this file to userspace. Corresponds to the `read`
     /// function pointer in `struct file_operations`.
