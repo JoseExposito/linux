@@ -4,11 +4,11 @@ use core::convert::{TryFrom, TryInto};
 use core::{marker, mem, ptr};
 
 use alloc::boxed::Box;
+use alloc::sync::Arc;
 
 use crate::bindings;
 use crate::c_types;
 use crate::error::{Error, KernelResult};
-use crate::try_alloc;
 use crate::user_ptr::{UserSlicePtr, UserSlicePtrReader, UserSlicePtrWriter};
 
 bitflags::bitflags! {
@@ -66,8 +66,8 @@ unsafe extern "C" fn open_callback<T: FileOperations>(
     file: *mut bindings::file,
 ) -> c_types::c_int {
     from_kernel_result! {
-        let f = try_alloc(T::open()?)?;
-        (*file).private_data = Box::into_raw(f) as *mut c_types::c_void;
+        let ptr = T::open()?.into_pointer();
+        (*file).private_data = ptr as *mut c_types::c_void;
         Ok(0)
     }
 }
@@ -113,7 +113,7 @@ unsafe extern "C" fn release_callback<T: FileOperations>(
     file: *mut bindings::file,
 ) -> c_types::c_int {
     let ptr = mem::replace(&mut (*file).private_data, ptr::null_mut());
-    drop(Box::from_raw(ptr as *mut T));
+    drop(T::Wrapper::from_pointer(ptr as _));
     0
 }
 
@@ -217,9 +217,11 @@ pub type FSync<T> = Option<fn(&T, &File, u64, u64, bool) -> KernelResult<u32>>;
 /// File descriptors may be used from multiple threads (or processes)
 /// concurrently, so your type must be `Sync`.
 pub trait FileOperations: Sync + Sized {
+    type Wrapper: PointerWrapper<Self>;
+
     /// Creates a new instance of this file. Corresponds to the `open` function
     /// pointer in `struct file_operations`.
-    fn open() -> KernelResult<Self>;
+    fn open() -> KernelResult<Self::Wrapper>;
 
     /// Reads data from this file to userspace. Corresponds to the `read`
     /// function pointer in `struct file_operations`.
@@ -236,4 +238,33 @@ pub trait FileOperations: Sync + Sized {
     /// Syncs pending changes to this file. Corresponds to the `fsync` function
     /// pointer in the `struct file_operations`.
     const FSYNC: FSync<Self> = None;
+}
+
+/// `PointerWrapper` is used to convert an object into a raw pointer that represents it. It can
+/// eventually be converted back into the object. This is used to store objects as pointers in
+/// kernel data structures, for example, an implementation of `FileOperations` in `struct
+/// file::private_data`.
+pub trait PointerWrapper<T> {
+    fn into_pointer(self) -> *const T;
+    unsafe fn from_pointer(ptr: *const T) -> Self;
+}
+
+impl<T> PointerWrapper<T> for Box<T> {
+    fn into_pointer(self) -> *const T {
+        Box::into_raw(self)
+    }
+
+    unsafe fn from_pointer(ptr: *const T) -> Self {
+        Box::<T>::from_raw(ptr as _)
+    }
+}
+
+impl<T> PointerWrapper<T> for Arc<T> {
+    fn into_pointer(self) -> *const T {
+        Arc::into_raw(self)
+    }
+
+    unsafe fn from_pointer(ptr: *const T) -> Self {
+        Arc::<T>::from_raw(ptr)
+    }
 }
