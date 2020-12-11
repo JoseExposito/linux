@@ -8,7 +8,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use core::pin::Pin;
 use kernel::prelude::*;
-use kernel::{cstr, file_operations::FileOperations, miscdev};
+use kernel::{cstr, file_operations::FileOperations, miscdev, try_alloc};
 
 module! {
     type: RustExample,
@@ -33,9 +33,11 @@ module! {
 struct RustFile;
 
 impl FileOperations for RustFile {
-    fn open() -> KernelResult<Self> {
+    type Wrapper = Box<Self>;
+
+    fn open() -> KernelResult<Self::Wrapper> {
         println!("rust file was opened!");
-        Ok(Self)
+        try_alloc(Self)
     }
 }
 
