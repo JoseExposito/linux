@@ -17,8 +17,10 @@ jobs:
     steps:
       # Setup
       - uses: actions/checkout@v2
-      - run: sudo apt update
-      - run: sudo apt install libelf-dev qemu-system-x86 busybox-static
+      - run: wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+      - run: sudo add-apt-repository 'deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main'
+      - run: sudo apt-get update -y
+      - run: sudo apt-get install -y clang-11 libelf-dev qemu-system-x86 busybox-static
       - run: rustup default nightly-2020-08-27
       - run: rustup component add rustfmt
       - run: rustup component add rust-src
@@ -33,9 +35,9 @@ jobs:
         run: mkdir build && mv .config build/.config
 
       - if: matrix.outputdir == 'src'
-        run: make         CC=clang-10 LLVM_CONFIG_PATH=llvm-config-10 -j3
+        run: make         CC=clang-11 LLVM_CONFIG_PATH=llvm-config-11 -j3
       - if: matrix.outputdir == 'build'
-        run: make O=build CC=clang-10 LLVM_CONFIG_PATH=llvm-config-10 -j3
+        run: make O=build CC=clang-11 LLVM_CONFIG_PATH=llvm-config-11 -j3
 
       # Run
       - if: matrix.module == 'builtin'
