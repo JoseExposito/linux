@@ -13,7 +13,7 @@ rustc and cargo
 ***************
 
 A recent nightly Rust toolchain (with, at least, ``rustc`` and ``cargo``)
-is required, e.g. ``nightly-2020-08-27``. In the future, this restriction
+is required, e.g. ``nightly-2021-01-02``. In the future, this restriction
 will be lifted.
 
 If you are using ``rustup``, run::

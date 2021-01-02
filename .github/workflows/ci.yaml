@@ -21,7 +21,7 @@ jobs:
       - run: sudo add-apt-repository 'deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main'
       - run: sudo apt-get update -y
       - run: sudo apt-get install -y clang-11 libelf-dev qemu-system-x86 busybox-static
-      - run: rustup default nightly-2020-08-27
+      - run: rustup default nightly-2021-01-02
       - run: rustup component add rustfmt
       - run: rustup component add rust-src
 
