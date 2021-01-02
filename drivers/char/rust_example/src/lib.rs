@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0
 
 #![no_std]
-#![feature(global_asm)]
+#![feature(allocator_api, global_asm)]
 
 extern crate alloc;
 
 use alloc::boxed::Box;
 use core::pin::Pin;
 use kernel::prelude::*;
-use kernel::{cstr, file_operations::FileOperations, miscdev, try_alloc};
+use kernel::{cstr, file_operations::FileOperations, miscdev};
 
 module! {
     type: RustExample,
@@ -37,7 +37,7 @@ impl FileOperations for RustFile {
 
     fn open() -> KernelResult<Self::Wrapper> {
         println!("rust file was opened!");
-        try_alloc(Self)
+        Ok(Box::try_new(Self)?)
     }
 }
 

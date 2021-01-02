@@ -28,7 +28,7 @@ impl Registration {
         name: CStr<'static>,
         minor: Option<i32>,
     ) -> KernelResult<Pin<Box<Self>>> {
-        let mut r = crate::try_alloc_pinned(Self::new())?;
+        let mut r = Pin::from(Box::try_new(Self::new())?);
         r.as_mut().register::<T>(name, minor)?;
         Ok(r)
     }
