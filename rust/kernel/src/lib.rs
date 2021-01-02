@@ -12,9 +12,7 @@ compile_error!("Missing kernel configuration for conditional compilation");
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use core::panic::PanicInfo;
-use core::pin::Pin;
 
 mod allocator;
 pub mod bindings;
@@ -59,15 +57,3 @@ fn panic(_info: &PanicInfo) -> ! {
 
 #[global_allocator]
 static ALLOCATOR: allocator::KernelAllocator = allocator::KernelAllocator;
-
-/// Attempts to allocate memory for `value` using the global allocator. On success, `value` is
-/// moved into it and returned to the caller wrapped in a `Box`.
-pub fn try_alloc<T>(value: T) -> KernelResult<Box<T>> {
-    Box::try_new(value).map_err(|_| Error::ENOMEM)
-}
-
-/// Attempts to allocate memory for `value` using the global allocator. On success, `value` is
-/// moved into it and returned to the caller wrapped in a pinned `Box`.
-pub fn try_alloc_pinned<T>(value: T) -> KernelResult<Pin<Box<T>>> {
-    Ok(Pin::from(try_alloc(value)?))
-}

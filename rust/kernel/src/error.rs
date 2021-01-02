@@ -2,6 +2,8 @@
 
 use core::num::TryFromIntError;
 
+use alloc::alloc::AllocError;
+
 use crate::bindings;
 use crate::c_types;
 
@@ -30,3 +32,9 @@ impl From<TryFromIntError> for Error {
 }
 
 pub type KernelResult<T> = Result<T, Error>;
+
+impl From<AllocError> for Error {
+    fn from(_: AllocError) -> Error {
+        Error::ENOMEM
+    }
+}
