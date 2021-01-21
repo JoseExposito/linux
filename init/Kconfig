@@ -52,17 +52,13 @@ config LLD_VERSION
 	default $(shell,$(srctree)/scripts/lld-version.sh $(LD))
 
 config HAS_RUST
-	def_bool $(success,$(RUSTC) --version && $(CARGO) --version)
+	depends on ARM64 || X86_64
+	def_bool $(success,$(RUSTC) --version)
 
 config RUSTC_VERSION
 	depends on HAS_RUST
 	int
 	default $(shell,$(srctree)/scripts/rust-version.sh $(RUSTC))
-
-config CARGO_VERSION
-	depends on HAS_RUST
-	int
-	default $(shell,$(srctree)/scripts/rust-version.sh $(CARGO))
 
 config CC_CAN_LINK
 	bool
@@ -2038,6 +2034,23 @@ config PROFILING
 	help
 	  Say Y here to enable the extended profiling support mechanisms used
 	  by profilers such as OProfile.
+
+config RUST
+	bool "Rust support"
+	depends on HAS_RUST
+	default n
+	help
+	  Enables Rust support in the kernel.
+
+	  This allows other Rust-related options, like drivers written in Rust,
+	  to be selected.
+
+	  It is also required to be able to load external kernel modules
+	  written in Rust.
+
+	  See Documentation/rust/ for more information.
+
+	  If unsure, say N.
 
 #
 # Place an empty function call at each tracepoint site. Can be

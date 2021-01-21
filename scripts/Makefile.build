@@ -23,14 +23,11 @@ subdir-y :=
 subdir-m :=
 EXTRA_AFLAGS   :=
 EXTRA_CFLAGS   :=
-EXTRA_RUSTCFLAGS :=
-EXTRA_CARGOFLAGS :=
 EXTRA_CPPFLAGS :=
 EXTRA_LDFLAGS  :=
 asflags-y  :=
 ccflags-y  :=
 rustcflags-y :=
-cargoflags-y :=
 cppflags-y :=
 ldflags-y  :=
 
@@ -299,30 +296,23 @@ quiet_cmd_cc_lst_c = MKLST   $@
 $(obj)/%.lst: $(src)/%.c FORCE
 	$(call if_changed_dep,cc_lst_c)
 
-# Compile Rust sources (.rs) via cargo
+# Compile Rust sources (.rs)
 # ---------------------------------------------------------------------------
 
-quiet_cmd_cargo = CARGO $(quiet_modtag) $@
-      cmd_cargo = export RUST_BINDINGS_FILE=$(shell readlink -f include/generated/rust_bindings.rs) && $(CARGO) build --manifest-path $(srctree)/$(src)/Cargo.toml --out-dir $(src) $(cargo_flags)
+rustc_cross_flags := --target=$(srctree)/arch/$(SRCARCH)/rust/target.json
 
-include/generated/rust_bindings.rs: FORCE
-	$(Q)$(BINDGEN) $(srctree)/rust/kernel/src/bindings_helper.h \
-		--opaque-type xregs_state \
-		--opaque-type desc_struct \
-		--use-core \
-		--with-derive-default \
-		--ctypes-prefix c_types \
-		--size_t-is-usize \
-		-o include/generated/rust_bindings.rs \
-		-- $(c_flags)
+quiet_cmd_rustc_o_rs = RUSTC $(quiet_modtag) $@
+      cmd_rustc_o_rs = \
+	RUST_MODFILE=$(modfile) \
+	$(RUSTC) $(rustc_flags) $(rustc_cross_flags) --edition 2018 \
+		--extern alloc --extern kernel \
+		--crate-type rlib --out-dir $(obj) -L $(objtree)/rust/ \
+		--crate-name $(patsubst %.o,%,$(notdir $@)) $<; \
+	mv $(obj)/$(subst .o,,$(notdir $@)).d $(depfile); \
+	sed -i '/^\#/d' $(depfile)
 
-# The .o from the Rust staticlib
-$(obj)/%.o: $(src)/lib%.a
-	$(Q)$(LD) -r -o $@ --whole-archive $<
-
-# The Rust staticlib from cargo
-$(obj)/lib%.a: include/generated/rust_bindings.rs FORCE
-	$(call cmd,cargo)
+$(obj)/%.o: $(src)/%.rs FORCE
+	$(call if_changed_dep,rustc_o_rs)
 
 # Compile assembler sources (.S)
 # ---------------------------------------------------------------------------

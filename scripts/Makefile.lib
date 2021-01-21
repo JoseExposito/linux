@@ -21,7 +21,6 @@ endif
 KBUILD_AFLAGS += $(subdir-asflags-y)
 KBUILD_CFLAGS += $(subdir-ccflags-y)
 KBUILD_RUSTCFLAGS += $(subdir-rustcflags-y)
-KBUILD_CARGOFLAGS += $(subdir-cargoflags-y)
 
 # Figure out what we need to build from the various variables
 # ===========================================================================
@@ -132,10 +131,6 @@ _rustc_flags    = $(filter-out $(RUSTCFLAGS_REMOVE_$(target-stem).o), \
                      $(filter-out $(rustcflags-remove-y), \
                          $(KBUILD_RUSTCFLAGS) $(rustcflags-y)) \
                      $(RUSTCFLAGS_$(target-stem).o))
-_cargo_flags    = $(filter-out $(CARGOFLAGS_REMOVE_$(target-stem).o), \
-                     $(filter-out $(cargoflags-remove-y), \
-                         $(KBUILD_CARGOFLAGS) $(cargoflags-y)) \
-                     $(CARGOFLAGS_$(target-stem).o))
 _a_flags       = $(filter-out $(AFLAGS_REMOVE_$(target-stem).o), \
                      $(filter-out $(asflags-remove-y), \
                          $(KBUILD_CPPFLAGS) $(KBUILD_AFLAGS) $(asflags-y)) \
@@ -209,11 +204,6 @@ modkern_rustcflags =                                              \
 		$(KBUILD_RUSTCFLAGS_MODULE) $(RUSTCFLAGS_MODULE), \
 		$(KBUILD_RUSTCFLAGS_KERNEL) $(RUSTCFLAGS_KERNEL))
 
-modkern_cargoflags =                                              \
-	$(if $(part-of-module),                                   \
-		$(KBUILD_CARGOFLAGS_MODULE) $(CARGOFLAGS_MODULE), \
-		$(KBUILD_CARGOFLAGS_KERNEL) $(CARGOFLAGS_KERNEL))
-
 modkern_aflags = $(if $(part-of-module),				\
 			$(KBUILD_AFLAGS_MODULE) $(AFLAGS_MODULE),	\
 			$(KBUILD_AFLAGS_KERNEL) $(AFLAGS_KERNEL))
@@ -223,26 +213,7 @@ c_flags        = -Wp,-MMD,$(depfile) $(NOSTDINC_FLAGS) $(LINUXINCLUDE)     \
 		 $(_c_flags) $(modkern_cflags)                           \
 		 $(basename_flags) $(modname_flags)
 
-# Needed for the Rust bindings
-# TODO: we unconditionally pass `KBUILD_CFLAGS_MODULE` to avoid having
-# dual bindings, but ideally we should generate two set of bindings
-RUST_BINDGEN_CFLAGS = $(c_flags) $(KBUILD_CFLAGS_MODULE)
-export RUST_BINDGEN_CFLAGS
-
-KCONFIG_RUSTC_CFG ?= ./include/generated/rustc_cfg
-
-rustc_flags     = $(_rustc_flags) $(modkern_rustcflags) @$(shell readlink -f $(KCONFIG_RUSTC_CFG))
-
-# Passed by cargo
-RUSTFLAGS = $(rustc_flags)
-export RUSTFLAGS
-
-# For the `module!` macro
-# TODO: should be `$(modfile)`, but it is not correct for us
-RUST_MODFILE = $(obj)/$(notdir $(obj))
-export RUST_MODFILE
-
-cargo_flags     = $(_cargo_flags) $(modkern_cargoflags)
+rustc_flags     = $(_rustc_flags) $(modkern_rustcflags) @$(objtree)/include/generated/rustc_cfg
 
 a_flags        = -Wp,-MMD,$(depfile) $(NOSTDINC_FLAGS) $(LINUXINCLUDE)     \
 		 $(_a_flags) $(modkern_aflags)

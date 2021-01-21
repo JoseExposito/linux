@@ -4,13 +4,18 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::u32;
 
-use crate::bindings;
 use crate::c_types;
 use crate::error;
 
 extern "C" {
     fn rust_helper_access_ok(addr: *const c_types::c_void, len: c_types::c_ulong)
         -> c_types::c_int;
+
+    fn rust_helper_copy_from_user(to: *mut c_types::c_void, from: *const c_types::c_void,
+        n: c_types::c_ulong) -> c_types::c_ulong;
+
+    fn rust_helper_copy_to_user(to: *mut c_types::c_void, from: *const c_types::c_void,
+        n: c_types::c_ulong) -> c_types::c_ulong;
 }
 
 /// A reference to an area in userspace memory, which can be either
@@ -124,7 +129,7 @@ impl UserSlicePtrReader {
             return Err(error::Error::EFAULT);
         }
         let res = unsafe {
-            bindings::_copy_from_user(
+            rust_helper_copy_from_user(
                 data.as_mut_ptr() as *mut c_types::c_void,
                 self.0,
                 data.len() as _,
@@ -158,7 +163,7 @@ impl UserSlicePtrWriter {
             return Err(error::Error::EFAULT);
         }
         let res = unsafe {
-            bindings::_copy_to_user(
+            rust_helper_copy_to_user(
                 self.0,
                 data.as_ptr() as *const c_types::c_void,
                 data.len() as _,

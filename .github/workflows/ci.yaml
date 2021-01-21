@@ -6,74 +6,172 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-20.04
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     strategy:
       matrix:
-        mode: [debug, release]
-        module: [builtin, loadable]
-        outputdir: [src, build]
+        arch: [x86_64, arm64]
+        toolchain: [gcc, clang, llvm]
+        config: [debug, release]
+        rustc: [2021-01-02]
+        output: [src] # [src, build]
+        install: [rustup] # [rustup, standalone]
+        sysroot: [common] # [common, custom]
+
+        # A few independent combinations to avoid exploding the matrix:
+        #   - The other option for `output`.
+        #   - Different nightlies for `rustc`.
+        #   - The other three (`install`, `sysroot`) combinations
+        #     (they are interrelated, so the cross-product needs to be tested)
+        include:
+          - arch: x86_64
+            toolchain: gcc
+            config: debug
+            rustc: 2021-01-09
+            output: build
+            install: rustup
+            sysroot: custom
+
+          - arch: arm64
+            toolchain: clang
+            config: release
+            rustc: 2021-01-16
+            output: build
+            install: standalone
+            sysroot: common
+
+          - arch: x86_64
+            toolchain: llvm
+            config: debug
+            rustc: 2021-01-19
+            output: build
+            install: standalone
+            sysroot: custom
 
     steps:
-      # Setup
+      # Setup: checkout
       - uses: actions/checkout@v2
-      - run: wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+
+      # Setup: variables
+      - if: matrix.arch == 'x86_64'
+        run: |
+          echo 'IMAGE_PATH=arch/x86/boot/bzImage' >> $GITHUB_ENV
+          echo 'QEMU_ARCH=x86_64' >> $GITHUB_ENV
+          echo 'QEMU_MACHINE=pc' >> $GITHUB_ENV
+          echo 'QEMU_CPU=Cascadelake-Server' >> $GITHUB_ENV
+          echo 'QEMU_APPEND=console=ttyS0' >> $GITHUB_ENV
+      - if: matrix.arch == 'arm64'
+        run: |
+          echo 'MAKE_ARCH=ARCH=arm64' >> $GITHUB_ENV
+          echo 'MAKE_CROSS_COMPILE=CROSS_COMPILE=aarch64-linux-gnu-' >> $GITHUB_ENV
+          echo 'IMAGE_PATH=arch/arm64/boot/Image.gz' >> $GITHUB_ENV
+          echo 'QEMU_ARCH=aarch64' >> $GITHUB_ENV
+          echo 'QEMU_MACHINE=virt' >> $GITHUB_ENV
+          echo 'QEMU_CPU=cortex-a72' >> $GITHUB_ENV
+
+      - if: matrix.toolchain == 'clang'
+        run: echo 'MAKE_TOOLCHAIN=CC=clang-11' >> $GITHUB_ENV
+      - if: matrix.toolchain == 'llvm'
+        run: echo 'MAKE_TOOLCHAIN=LLVM=1' >> $GITHUB_ENV
+
+      - if: matrix.output == 'build'
+        run: |
+          echo 'MAKE_OUTPUT=O=build' >> $GITHUB_ENV
+          echo 'BUILD_DIR=build/' >> $GITHUB_ENV
+
+      - if: matrix.sysroot == 'custom'
+        run: |
+          echo 'RUSTC_SYSROOT=--sysroot=$HOME/sysroot' >> $GITHUB_ENV
+          echo "MAKE_SYSROOT=KRUSTCFLAGS=--sysroot=$HOME/sysroot" >> $GITHUB_ENV
+
+      # Setup: LLVM
+      - run: curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
       - run: sudo add-apt-repository 'deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main'
       - run: sudo apt-get update -y
-      - run: sudo apt-get install -y clang-11 libelf-dev qemu-system-x86 busybox-static
-      - run: rustup default nightly-2021-01-02
-      - run: rustup component add rustfmt
-      - run: rustup component add rust-src
+      - run: sudo apt-get install -y llvm-11 clang-11 lld-11
+      - run: echo $(llvm-config-11 --bindir) >> $GITHUB_PATH
+
+      # Setup: GCC
+      - if: matrix.arch == 'arm64'
+        run: sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      # Setup: libelf
+      - run: sudo apt-get install -y libelf-dev
+
+      # Setup: QEMU
+      - if: matrix.arch == 'x86_64'
+        run: sudo apt-get install -y qemu-system-x86
+      - if: matrix.arch == 'arm64'
+        run: sudo apt-get install -y qemu-system-arm
+
+      # Setup: rustc
+      - if: matrix.install == 'rustup'
+        run: |
+          rustup default nightly-${{ matrix.rustc }}
+          rustup component add rustfmt
+      - if: matrix.install == 'standalone'
+        run: |
+          curl https://static.rust-lang.org/dist/${{ matrix.rustc }}/rust-nightly-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          rust-nightly-x86_64-unknown-linux-gnu/install.sh --without=rust-docs --prefix=$HOME/rustc
+          echo $HOME/rustc/bin >> $GITHUB_PATH
+
+      # Setup: rustc native libs
+      - if: matrix.sysroot == 'custom'
+        run: |
+          mkdir $(rustc ${{ env.RUSTC_SYSROOT }} --print sysroot)
+          ln -s $(rustc --print sysroot)/lib $(rustc ${{ env.RUSTC_SYSROOT }} --print sysroot)/lib
+
+      # Setup: rustc source
+      - if: matrix.install == 'rustup' && matrix.sysroot == 'common'
+        run: rustup component add rust-src
+      - if: matrix.install != 'rustup' || matrix.sysroot != 'common'
+        run: |
+          git clone -n https://github.com/rust-lang/rust $(rustc ${{ env.RUSTC_SYSROOT }} --print sysroot)/lib/rustlib/src/rust
+          cd $(rustc ${{ env.RUSTC_SYSROOT }} --print sysroot)/lib/rustlib/src/rust
+          git checkout $(rustc -vV | grep -F 'commit-hash' | awk '{print $2}')
+          git submodule update --init library
+
+      # Setup: compiler-builtins source
+      - run: git clone --depth 1 -b 0.1.39 https://github.com/rust-lang/compiler-builtins.git $(rustc ${{ env.RUSTC_SYSROOT }} --print sysroot)/lib/rustlib/src/compiler-builtins
+
+      # Setup: bindgen
+      - run: cargo install --version 0.56.0 bindgen
+
+      # Setup: busybox
+      - run: git clone --depth 1 -b 1_30_1 https://github.com/mirror/busybox
+      - run: mv .github/workflows/busybox.config busybox/.config
+      - run: cd busybox && make ${{ env.MAKE_CROSS_COMPILE }} -j3
 
       # Build
-      - run: cp .github/workflows/kernel-${{ matrix.mode }}.config .config
+      - run: mv .github/workflows/kernel-${{ matrix.arch }}-${{ matrix.config }}.config .config
 
-      - if: matrix.module == 'loadable'
-        run: sed -i -E 's/^(CONFIG_RUST_EXAMPLE=)(y)$/\1m/g' .config
+      - if: matrix.output == 'build'
+        run: |
+          mkdir ${{ env.BUILD_DIR }}
+          mv .config ${{ env.BUILD_DIR }}.config
+          sed -i 's:drivers/:${{ env.BUILD_DIR }}drivers/:' .github/workflows/qemu-initramfs.desc
 
-      - if: matrix.outputdir == 'build'
-        run: mkdir build && mv .config build/.config
-
-      - if: matrix.outputdir == 'src'
-        run: make         CC=clang-11 LLVM_CONFIG_PATH=llvm-config-11 -j3
-      - if: matrix.outputdir == 'build'
-        run: make O=build CC=clang-11 LLVM_CONFIG_PATH=llvm-config-11 -j3
+      - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3
 
       # Run
-      - if: matrix.module == 'builtin'
-        run: sed -i '/rust_example/d' .github/workflows/qemu-initramfs.desc
+      - run: ${{ env.BUILD_DIR }}usr/gen_init_cpio .github/workflows/qemu-initramfs.desc > qemu-initramfs.img
 
-      - if: matrix.outputdir == 'build'
-        run: sed -i 's:drivers/:build/drivers/:' .github/workflows/qemu-initramfs.desc
-
-      - if: matrix.outputdir == 'src'
-        run:       usr/gen_init_cpio .github/workflows/qemu-initramfs.desc > qemu-initramfs.img
-      - if: matrix.outputdir == 'build'
-        run: build/usr/gen_init_cpio .github/workflows/qemu-initramfs.desc > qemu-initramfs.img
-
-      - if: matrix.outputdir == 'src'
-        run: qemu-system-x86_64 -kernel       arch/x86/boot/bzImage -initrd qemu-initramfs.img -cpu Cascadelake-Server -smp 2 -nographic -no-reboot -append "console=ttyS0 ${{ matrix.module == 'builtin' && 'rust_example.my_i32=123321' || '' }}" | tee qemu-stdout.log
-      - if: matrix.outputdir == 'build'
-        run: qemu-system-x86_64 -kernel build/arch/x86/boot/bzImage -initrd qemu-initramfs.img -cpu Cascadelake-Server -smp 2 -nographic -no-reboot -append "console=ttyS0 ${{ matrix.module == 'builtin' && 'rust_example.my_i32=123321' || '' }}" | tee qemu-stdout.log
+      - run: qemu-system-${{ env.QEMU_ARCH }} -kernel ${{ env.BUILD_DIR }}${{ env.IMAGE_PATH }} -initrd qemu-initramfs.img -M ${{ env.QEMU_MACHINE }} -cpu ${{ env.QEMU_CPU }} -smp 2 -nographic -no-reboot -append '${{ env.QEMU_APPEND }} rust_example.my_i32=123321 rust_example_2.my_i32=234432' | tee qemu-stdout.log
 
       # Check
-      - run: grep -F 'Rust Example (init)' qemu-stdout.log
-      - run: "grep 'my_i32: \\+123321' qemu-stdout.log"
-      - if: matrix.module == 'loadable'
-        run: grep -F 'Rust Example (exit)' qemu-stdout.log
+      - run: grep -F     '] Rust Example (init)' qemu-stdout.log
+      - run: grep -F '] [2] Rust Example (init)' qemu-stdout.log
+      - run: grep -F '] [3] Rust Example (init)' qemu-stdout.log
+      - run: grep -F '] [4] Rust Example (init)' qemu-stdout.log
+
+      - run: "grep -F     ']   my_i32:   123321' qemu-stdout.log"
+      - run: "grep -F '] [2]   my_i32:   234432' qemu-stdout.log"
+      - run: "grep -F '] [3]   my_i32:   345543' qemu-stdout.log"
+      - run: "grep -F '] [4]   my_i32:   456654' qemu-stdout.log"
+
+      - run: grep -F '] [3] Rust Example (exit)' qemu-stdout.log
+      - run: grep -F '] [4] Rust Example (exit)' qemu-stdout.log
 
       # Report
-      - if: matrix.outputdir == 'src' && matrix.module == 'loadable'
-        run: ls -l       drivers/char/rust_example/rust_example.ko
-      - if: matrix.outputdir == 'build' && matrix.module == 'loadable'
-        run: ls -l build/drivers/char/rust_example/rust_example.ko
-
-      - if: matrix.outputdir == 'src'
-        run: ls -l       vmlinux       arch/x86/boot/bzImage
-      - if: matrix.outputdir == 'build'
-        run: ls -l build/vmlinux build/arch/x86/boot/bzImage
-
-      - if: matrix.outputdir == 'src'
-        run: size        vmlinux
-      - if: matrix.outputdir == 'build'
-        run: size  build/vmlinux
+      - run: ls -l ${{ env.BUILD_DIR }}drivers/char/rust_example.o ${{ env.BUILD_DIR }}drivers/char/rust_example_3.ko ${{ env.BUILD_DIR }}rust/*.o ${{ env.BUILD_DIR }}vmlinux ${{ env.BUILD_DIR }}${{ env.IMAGE_PATH }}
+      - run: size  ${{ env.BUILD_DIR }}drivers/char/rust_example.o ${{ env.BUILD_DIR }}drivers/char/rust_example_3.ko ${{ env.BUILD_DIR }}rust/*.o ${{ env.BUILD_DIR }}vmlinux

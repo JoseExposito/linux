@@ -36,6 +36,7 @@
 *.o
 *.o.*
 *.patch
+*.rlib
 *.s
 *.so
 *.so.dbg
@@ -158,6 +159,3 @@ x509.genkey
 
 # Documentation toolchain
 sphinx_*/
-
-# Rust (cargo) compilation artifacts
-/target/

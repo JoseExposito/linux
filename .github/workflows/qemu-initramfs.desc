@@ -1,7 +1,8 @@
-dir     /bin                                                           0755 0 0
-dir     /sys                                                           0755 0 0
-dir     /dev                                                           0755 0 0
-file    /bin/busybox        /bin/busybox                               0755 0 0
-slink   /bin/sh             /bin/busybox                               0755 0 0
-file    /init               .github/workflows/qemu-init.sh             0755 0 0
-file    /rust_example.ko    drivers/char/rust_example/rust_example.ko  0755 0 0
+dir     /bin                                                0755 0 0
+dir     /sys                                                0755 0 0
+dir     /dev                                                0755 0 0
+file    /bin/busybox        busybox/busybox                 0755 0 0
+slink   /bin/sh             /bin/busybox                    0755 0 0
+file    /init               .github/workflows/qemu-init.sh  0755 0 0
+file    /rust_example_3.ko  drivers/char/rust_example_3.ko  0755 0 0
+file    /rust_example_4.ko  drivers/char/rust_example_4.ko  0755 0 0

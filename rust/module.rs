@@ -2,8 +2,6 @@
 
 //! Implements the `module!` macro magic
 
-extern crate proc_macro;
-
 use proc_macro::{token_stream, Delimiter, Group, TokenStream, TokenTree};
 
 fn expect_ident(it: &mut token_stream::IntoIter) -> String {

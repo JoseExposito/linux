@@ -7,7 +7,7 @@
 
 // Ensure conditional compilation based on the kernel configuration works;
 // otherwise we may silently break things like initcall handling.
-#[cfg(not(CONFIG_HAS_RUST))]
+#[cfg(not(CONFIG_RUST))]
 compile_error!("Missing kernel configuration for conditional compilation");
 
 extern crate alloc;

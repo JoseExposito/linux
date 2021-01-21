@@ -1155,9 +1155,7 @@ int conf_write_autoconf(int overwrite)
 	if (rename(".tmpconfig", autoconf_name))
 		return 1;
 
-	name = getenv("KCONFIG_RUSTC_CFG");
-	if (!name)
-		name = "include/generated/rustc_cfg";
+	name = "include/generated/rustc_cfg";
 	if (make_parent_dir(name))
 		return 1;
 	if (rename(".tmp_rustc_cfg", name))

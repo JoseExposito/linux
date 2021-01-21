@@ -211,10 +211,10 @@ static int klp_resolve_symbols(Elf64_Shdr *sechdrs, const char *strtab,
 	 * and KSYM_NAME_LEN have the values we expect them to have.
 	 *
 	 * Because the value of MODULE_NAME_LEN can differ among architectures,
-	 * we use the smallest/strictest upper bound possible (56, based on
+	 * we use the smallest/strictest upper bound possible (248, based on
 	 * the current definition of MODULE_NAME_LEN) to prevent overflows.
 	 */
-	BUILD_BUG_ON(MODULE_NAME_LEN < 56 || KSYM_NAME_LEN != 256);
+	BUILD_BUG_ON(MODULE_NAME_LEN < 248 || KSYM_NAME_LEN != 512);
 
 	relas = (Elf_Rela *) relasec->sh_addr;
 	/* For each rela in this klp relocation section */
@@ -228,7 +228,7 @@ static int klp_resolve_symbols(Elf64_Shdr *sechdrs, const char *strtab,
 
 		/* Format: .klp.sym.sym_objname.sym_name,sympos */
 		cnt = sscanf(strtab + sym->st_name,
-			     ".klp.sym.%55[^.].%255[^,],%lu",
+			     ".klp.sym.%247[^.].%511[^,],%lu",
 			     sym_objname, sym_name, &sympos);
 		if (cnt != 3) {
 			pr_err("symbol %s has an incorrectly formatted name\n",
