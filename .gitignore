@@ -36,7 +36,7 @@
 *.o
 *.o.*
 *.patch
-*.rlib
+*.rmeta
 *.s
 *.so
 *.so.dbg

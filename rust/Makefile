@@ -64,7 +64,7 @@ $(objtree)/rust/exports_kernel_generated.h: $(objtree)/rust/kernel.o FORCE
 
 quiet_cmd_rustc_procmacro = RUSTC P $@
       cmd_rustc_procmacro = \
-	$(RUSTC) $(rustc_flags) --edition 2018 --extern proc_macro \
+	$(RUSTC) $(rustc_flags) --emit=dep-info,link --edition 2018 --extern proc_macro \
 		--crate-type proc-macro --out-dir $(objtree)/rust/ \
 		--crate-name $(patsubst lib%.so,%,$(notdir $@)) $<; \
 	mv $(objtree)/rust/$(patsubst lib%.so,%,$(notdir $@)).d $(depfile); \
