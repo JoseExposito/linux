@@ -38,7 +38,7 @@ impl Builder {
         self
     }
 
-    pub fn build(self) -> KernelResult<Registration> {
+    pub fn build(self, this_module: &'static crate::ThisModule) -> KernelResult<Registration> {
         let mut dev: bindings::dev_t = 0;
         let res = unsafe {
             bindings::alloc_chrdev_region(
@@ -58,8 +58,7 @@ impl Builder {
         for (i, file_op) in self.file_ops.iter().enumerate() {
             unsafe {
                 bindings::cdev_init(&mut cdevs[i], *file_op);
-                // TODO: proper `THIS_MODULE` handling
-                cdevs[i].owner = core::ptr::null_mut();
+                cdevs[i].owner = this_module.0;
                 let rc = bindings::cdev_add(&mut cdevs[i], dev + i as bindings::dev_t, 1);
                 if rc != 0 {
                     // Clean up the ones that were allocated.

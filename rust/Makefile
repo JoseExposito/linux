@@ -38,7 +38,7 @@ quiet_cmd_bindgen = BINDGEN $@
       cmd_bindgen = \
 	$(BINDGEN) $< $(addprefix --opaque-type , $(bindgen_opaque_types)) \
 		--use-core --with-derive-default --ctypes-prefix c_types \
-		--size_t-is-usize -o $@ -- $(bindgen_c_flags)
+		--size_t-is-usize -o $@ -- $(bindgen_c_flags) -DMODULE
 
 $(objtree)/rust/bindings_generated.rs: $(srctree)/rust/kernel/bindings_helper.h FORCE
 	$(call if_changed_dep,bindgen)
