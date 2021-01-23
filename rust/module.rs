@@ -309,6 +309,11 @@ pub fn module(ts: TokenStream) -> TokenStream {
         "
             static mut __MOD: Option<{type_}> = None;
 
+            #[cfg(MODULE)]
+            static THIS_MODULE: kernel::ThisModule = unsafe {{ kernel::ThisModule::from_ptr(&kernel::bindings::__this_module as *const _ as *mut _) }};
+            #[cfg(not(MODULE))]
+            static THIS_MODULE: kernel::ThisModule = unsafe {{ kernel::ThisModule::from_ptr(core::ptr::null_mut()) }};
+
             // Loadable modules need to export the `{{init,cleanup}}_module` identifiers
             #[cfg(MODULE)]
             #[no_mangle]

@@ -44,6 +44,18 @@ pub trait KernelModule: Sized + Sync {
     fn init() -> KernelResult<Self>;
 }
 
+/// An instance equivalent to `THIS_MODULE` in C code.
+pub struct ThisModule(*mut bindings::module);
+
+// SAFETY: `THIS_MODULE` may be used from all threads within a module.
+unsafe impl Sync for ThisModule {}
+
+impl ThisModule {
+    pub const unsafe fn from_ptr(ptr: *mut bindings::module) -> ThisModule {
+        ThisModule(ptr)
+    }
+}
+
 extern "C" {
     fn rust_helper_BUG() -> !;
 }
