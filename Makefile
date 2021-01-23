@@ -502,10 +502,10 @@ KBUILD_CFLAGS   := -Wall -Wundef -Werror=strict-prototypes -Wno-trigraphs \
 		   -Werror=return-type -Wno-format-security \
 		   -std=gnu89
 KBUILD_CPPFLAGS := -D__KERNEL__
-KBUILD_RUSTCFLAGS := --emit=dep-info,obj,metadata -Zbinary_dep_depinfo=y \
+KBUILD_RUSTCFLAGS := --emit=dep-info,obj,metadata --edition=2018 \
 		     -Cpanic=abort -Cembed-bitcode=n -Clto=n -Crpath=n \
 		     -Cforce-unwind-tables=n -Ccodegen-units=1 \
-		     -Zsymbol-mangling-version=v0
+		     -Zbinary_dep_depinfo=y -Zsymbol-mangling-version=v0
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_RUSTCFLAGS_KERNEL :=

@@ -64,7 +64,7 @@ $(objtree)/rust/exports_kernel_generated.h: $(objtree)/rust/kernel.o FORCE
 
 quiet_cmd_rustc_procmacro = RUSTC P $@
       cmd_rustc_procmacro = \
-	$(RUSTC) $(rustc_flags) --emit=dep-info,link --edition 2018 --extern proc_macro \
+	$(RUSTC) $(rustc_flags) --emit=dep-info,link --extern proc_macro \
 		--crate-type proc-macro --out-dir $(objtree)/rust/ \
 		--crate-name $(patsubst lib%.so,%,$(notdir $@)) $<; \
 	mv $(objtree)/rust/$(patsubst lib%.so,%,$(notdir $@)).d $(depfile); \
@@ -86,27 +86,22 @@ quiet_cmd_rustc_library = RUSTC L $@
 # `$(rustc_flags)` is passed in case the user added `--sysroot`.
 rustc_sysroot = $(shell $(RUSTC) $(rustc_flags) --print sysroot)
 rustc_src = $(rustc_sysroot)/lib/rustlib/src/rust
-compiler_builtins_src = $(rustc_sysroot)/lib/rustlib/src/compiler-builtins
 
 .SECONDEXPANSION:
-$(objtree)/rust/core.o: rustc_target_flags = --edition 2018
 $(objtree)/rust/core.o: $$(rustc_src)/library/core/src/lib.rs FORCE
 	$(call if_changed_dep,rustc_library)
 
-$(objtree)/rust/compiler_builtins.o: rustc_objcopy = -w -W '__*' -W '!__rust*'
-$(objtree)/rust/compiler_builtins.o: rustc_target_flags = --edition 2015 \
-	--cfg 'feature="compiler-builtins"' --cfg 'feature="default"'
-$(objtree)/rust/compiler_builtins.o: $$(compiler_builtins_src)/src/lib.rs \
+$(objtree)/rust/compiler_builtins.o: rustc_objcopy = -w -W '__*'
+$(objtree)/rust/compiler_builtins.o: $(srctree)/rust/compiler_builtins.rs \
     $(objtree)/rust/core.o FORCE
 	$(call if_changed_dep,rustc_library)
 
-$(objtree)/rust/alloc.o: rustc_target_flags = --edition 2018
 $(objtree)/rust/alloc.o: $$(rustc_src)/library/alloc/src/lib.rs \
     $(objtree)/rust/compiler_builtins.o FORCE
 	$(call if_changed_dep,rustc_library)
 
 # ICE on `--extern module`: https://github.com/rust-lang/rust/issues/56935
-$(objtree)/rust/kernel.o: rustc_target_flags = --edition 2018 --extern alloc \
+$(objtree)/rust/kernel.o: rustc_target_flags = --extern alloc \
     --extern module=$(objtree)/rust/libmodule.so
 $(objtree)/rust/kernel.o: $(srctree)/rust/kernel/lib.rs $(objtree)/rust/alloc.o \
     $(objtree)/rust/libmodule.so $(objtree)/rust/bindings_generated.rs FORCE

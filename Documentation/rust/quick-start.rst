@@ -49,18 +49,6 @@ repository into the installation folder of your nightly toolchain::
     git clone --recurse-submodules https://github.com/rust-lang/rust $(rustc --print sysroot)/lib/rustlib/src/rust
 
 
-compiler-builtins source
-************************
-
-The source for ``compiler-builtins`` (a Rust port of LLVM's ``compiler-rt``)
-is required.
-
-The build system expects the sources alongside the Rust ones we just installed,
-so you can clone it into the installation folder of your nightly toolchain::
-
-    git clone https://github.com/rust-lang/compiler-builtins $(rustc --print sysroot)/lib/rustlib/src/compiler-builtins
-
-
 bindgen
 *******
 

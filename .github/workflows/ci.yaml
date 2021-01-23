@@ -131,9 +131,6 @@ jobs:
           git checkout $(rustc -vV | grep -F 'commit-hash' | awk '{print $2}')
           git submodule update --init library
 
-      # Setup: compiler-builtins source
-      - run: git clone --depth 1 -b 0.1.39 https://github.com/rust-lang/compiler-builtins.git $(rustc ${{ env.RUSTC_SYSROOT }} --print sysroot)/lib/rustlib/src/compiler-builtins
-
       # Setup: bindgen
       - run: cargo install --version 0.56.0 bindgen
 
