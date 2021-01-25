@@ -2,6 +2,7 @@
 
 #![no_std]
 #![feature(allocator_api, global_asm)]
+#![feature(test)]
 
 use alloc::boxed::Box;
 use core::pin::Pin;
@@ -51,6 +52,13 @@ impl KernelModule for RustExample {
         println!("Parameters:");
         println!("  my_bool:  {}", my_bool.read());
         println!("  my_i32:   {}", my_i32.read());
+
+        // Including this large variable on the stack will trigger
+        // stack probing on the supported archs.
+        // This will verify that stack probing does not lead to
+        // any errors if we need to link `__rust_probestack`.
+        let x: [u64; 1028] = core::hint::black_box([5; 1028]);
+        println!("Large array has length: {}", x.len());
 
         Ok(RustExample {
             message: "on the heap!".to_owned(),
