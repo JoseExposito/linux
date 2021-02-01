@@ -26,6 +26,11 @@ module! {
             permissions: 0o644,
             description: b"Example of i32",
         },
+        my_str: str {
+            default: b"default str val",
+            permissions: 0o644,
+            description: b"Example of a string param",
+        },
     },
 }
 
@@ -49,9 +54,16 @@ impl KernelModule for RustExample {
     fn init() -> KernelResult<Self> {
         println!("Rust Example (init)");
         println!("Am I built-in? {}", !cfg!(MODULE));
-        println!("Parameters:");
-        println!("  my_bool:  {}", my_bool.read());
-        println!("  my_i32:   {}", my_i32.read());
+        {
+            let lock = THIS_MODULE.kernel_param_lock();
+            println!("Parameters:");
+            println!("  my_bool:    {}", my_bool.read());
+            println!("  my_i32:     {}", my_i32.read(&lock));
+            println!(
+                "  my_str:     {}",
+                core::str::from_utf8(my_str.read(&lock))?
+            );
+        }
 
         // Including this large variable on the stack will trigger
         // stack probing on the supported archs.
