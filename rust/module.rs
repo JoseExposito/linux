@@ -282,7 +282,10 @@ pub fn module(ts: TokenStream) -> TokenStream {
                 #[used]
                 static __{name}_{param_name}_struct: __{name}_{param_name}_RacyKernelParam = __{name}_{param_name}_RacyKernelParam(kernel::bindings::kernel_param {{
                     name: __{name}_{param_name}_name,
-                    // TODO: `THIS_MODULE`
+                    // SAFETY: `__this_module` is constructed by the kernel at load time and will not be freed until the module is unloaded.
+                    #[cfg(MODULE)]
+                    mod_: unsafe {{ &kernel::bindings::__this_module as *const _ as *mut _ }},
+                    #[cfg(not(MODULE))]
                     mod_: core::ptr::null_mut(),
                     ops: unsafe {{ &kernel::bindings::param_ops_{param_kernel_type} }} as *const kernel::bindings::kernel_param_ops,
                     perm: {permissions},
@@ -309,6 +312,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
         "
             static mut __MOD: Option<{type_}> = None;
 
+            // SAFETY: `__this_module` is constructed by the kernel at load time and will not be freed until the module is unloaded.
             #[cfg(MODULE)]
             static THIS_MODULE: kernel::ThisModule = unsafe {{ kernel::ThisModule::from_ptr(&kernel::bindings::__this_module as *const _ as *mut _) }};
             #[cfg(not(MODULE))]
