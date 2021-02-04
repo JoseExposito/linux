@@ -54,10 +54,14 @@ pub use c::*;
 
 /// Reads string until null byte is reached and returns slice excluding the terminating null.
 ///
-/// SAFETY: The data from the pointer until the null terminator must be valid for reads and
-/// not mutated for all of `'a`. The length of the string must also be less than `isize::MAX`.
-/// See the documentation on [`from_raw_parts`](https://doc.rust-lang.org/core/slice/fn.from_raw_parts.html)
-/// for further details on safety of converting a pointer to a slice.
+/// # Safety
+///
+/// The data from the pointer until the null terminator must be valid for reads
+/// and not mutated for all of `'a`. The length of the string must also be less
+/// than `isize::MAX`. See the documentation on [`from_raw_parts`] for further
+/// details on safety of converting a pointer to a slice.
+///
+/// [`from_raw_parts`]: https://doc.rust-lang.org/core/slice/fn.from_raw_parts.html
 pub unsafe fn c_string_bytes<'a>(ptr: *const crate::c_types::c_char) -> &'a [u8] {
     let length = crate::bindings::strlen(ptr) as usize;
     &core::slice::from_raw_parts(ptr as *const u8, length)
