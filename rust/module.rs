@@ -229,6 +229,9 @@ fn permissions_are_readonly(perms: &str) -> bool {
 /// - `u64`     - Corresponds to C `ullong` param type.
 /// - `str`     - Corresponds to C `charp` param type.
 ///               Reading the param returns a `&[u8]`.
+///
+/// `invbool` is unsupported: it was only ever used in a few modules.
+/// Consider using a `bool` inverting the logic instead.
 #[proc_macro]
 pub fn module(ts: TokenStream) -> TokenStream {
     let mut it = ts.into_iter();
