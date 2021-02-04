@@ -176,7 +176,7 @@ fn permissions_are_readonly(perms: &str) -> bool {
 /// The `type` argument should be a type which implements the [`KernelModule`] trait.
 /// Also accepts various forms of kernel metadata.
 ///
-/// ## Example
+/// # Examples
 /// ```rust,no_run
 /// use kernel::prelude::*;
 ///
