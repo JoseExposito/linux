@@ -218,7 +218,7 @@ fn permissions_are_readonly(perms: &str) -> bool {
 /// }
 /// ```
 ///
-/// ## Suported Parameter Types
+/// # Supported Parameter Types
 ///
 /// - `bool`    - Corresponds to C `bool` param type.
 /// - `u8`      - Corresponds to C `char` param type.
