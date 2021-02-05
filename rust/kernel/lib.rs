@@ -54,6 +54,30 @@ impl ThisModule {
     pub const unsafe fn from_ptr(ptr: *mut bindings::module) -> ThisModule {
         ThisModule(ptr)
     }
+
+    pub fn kernel_param_lock(&self) -> KParamGuard<'_> {
+        // SAFETY: `kernel_param_lock` will check if the pointer is null and use the built-in mutex
+        // in that case.
+        #[cfg(CONFIG_SYSFS)]
+        unsafe { bindings::kernel_param_lock(self.0) }
+
+        KParamGuard { this_module: self }
+    }
+}
+
+/// Scoped lock on the kernel parameters of `ThisModule`. Lock will be released
+/// when this struct is dropped.
+pub struct KParamGuard<'a> {
+    this_module: &'a ThisModule
+}
+
+#[cfg(CONFIG_SYSFS)]
+impl<'a> Drop for KParamGuard<'a> {
+    fn drop(&mut self) {
+        // SAFETY: `kernel_param_lock` will check if the pointer is null and use the built-in mutex
+        // in that case. The existance of `self` guarantees that the lock is held.
+        unsafe { bindings::kernel_param_unlock(self.this_module.0) }
+    }
 }
 
 extern "C" {

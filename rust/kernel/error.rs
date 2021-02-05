@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 
 use core::num::TryFromIntError;
+use core::str::Utf8Error;
 
 use alloc::alloc::AllocError;
 
@@ -27,6 +28,12 @@ impl Error {
 
 impl From<TryFromIntError> for Error {
     fn from(_: TryFromIntError) -> Error {
+        Error::EINVAL
+    }
+}
+
+impl From<Utf8Error> for Error {
+    fn from(_: Utf8Error) -> Error {
         Error::EINVAL
     }
 }

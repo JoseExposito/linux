@@ -155,12 +155,28 @@ fn build_modinfo_string_param(module: &str, field: &str, param: &str, content: &
         + &__build_modinfo_string_base(module, field, &content, &variable, false)
 }
 
+fn permissions_are_readonly(perms: &str) -> bool {
+    let (radix, digits) = if let Some(n) = perms.strip_prefix("0x") {
+        (16, n)
+    } else if let Some(n) = perms.strip_prefix("0o") {
+        (8, n)
+    } else if let Some(n) = perms.strip_prefix("0b") {
+        (2, n)
+    } else {
+        (10, perms)
+    };
+    match u32::from_str_radix(digits, radix) {
+        Ok(perms) => perms & 0o222 == 0,
+        Err(_) => false
+    }
+}
+
 /// Declares a kernel module.
 ///
 /// The `type` argument should be a type which implements the [`KernelModule`] trait.
 /// Also accepts various forms of kernel metadata.
 ///
-/// Example:
+/// # Examples
 /// ```rust,no_run
 /// use kernel::prelude::*;
 ///
@@ -170,17 +186,52 @@ fn build_modinfo_string_param(module: &str, field: &str, param: &str, content: &
 ///     author: b"Rust for Linux Contributors",
 ///     description: b"My very own kernel module!",
 ///     license: b"GPL v2",
-///     params: {},
+///     params: {
+///        my_i32: i32 {
+///            default: 42,
+///            permissions: 0o000,
+///            description: b"Example of i32",
+///        },
+///        writeable_i32: i32 {
+///            default: 42,
+///            permissions: 0o644,
+///            description: b"Example of i32",
+///        },
+///    },
 /// }
 ///
 /// struct MyKernelModule;
 ///
 /// impl KernelModule for MyKernelModule {
 ///     fn init() -> KernelResult<Self> {
+///         // If the parameter is writeable, then the kparam lock must be
+///         // taken to read the parameter:
+///         {
+///             let lock = THIS_MODULE.kernel_param_lock();
+///             println!("i32 param is:  {}", writeable_i32.read(&lock));
+///         }
+///         // If the parameter is read only, it can be read without locking
+///         // the kernel parameters:
+///         println!("i32 param is:  {}", my_i32.read());
 ///         Ok(MyKernelModule)
 ///     }
 /// }
 /// ```
+///
+/// # Supported Parameter Types
+///
+/// - `bool`    - Corresponds to C `bool` param type.
+/// - `u8`      - Corresponds to C `char` param type.
+/// - `i16`     - Corresponds to C `short` param type.
+/// - `u16`     - Corresponds to C `ushort` param type.
+/// - `i32`     - Corresponds to C `int` param type.
+/// - `u32`     - Corresponds to C `uint` param type.
+/// - `u64`     - Corresponds to C `ullong` param type.
+/// - `str`     - Corresponds to C `charp` param type.
+///               Reading the param returns a `&[u8]`.
+///
+/// `invbool` is unsupported: it was only ever used in a few modules.
+/// Consider using a `bool` inverting the logic instead.
 #[proc_macro]
 pub fn module(ts: TokenStream) -> TokenStream {
     let mut it = ts.into_iter();
@@ -215,10 +266,10 @@ pub fn module(ts: TokenStream) -> TokenStream {
         assert_eq!(group.delimiter(), Delimiter::Brace);
 
         let mut param_it = group.stream().into_iter();
-        let param_default = if param_type == "bool" {
-            get_ident(&mut param_it, "default")
-        } else {
-            get_literal(&mut param_it, "default")
+        let param_default = match param_type.as_ref() {
+            "bool" => get_ident(&mut param_it, "default"),
+            "str" => get_byte_string(&mut param_it, "default"),
+            _ => get_literal(&mut param_it, "default"),
         };
         let param_permissions = get_literal(&mut param_it, "permissions");
         let param_description = get_byte_string(&mut param_it, "description");
@@ -228,7 +279,13 @@ pub fn module(ts: TokenStream) -> TokenStream {
         // TODO: other kinds: arrays, unsafes, etc.
         let param_kernel_type = match param_type.as_ref() {
             "bool" => "bool",
+            "u8" => "char",
+            "i16" => "short",
+            "u16" => "ushort",
             "i32" => "int",
+            "u32" => "uint",
+            "u64" => "ullong",
+            "str" => "charp",
             t => panic!("Unrecognized type {}", t),
         };
 
@@ -244,18 +301,83 @@ pub fn module(ts: TokenStream) -> TokenStream {
             &param_name,
             &param_description,
         ));
+        let param_type_internal = match param_type.as_ref() {
+            "str" => "*mut kernel::c_types::c_char",
+            _ => &param_type,
+        };
+        let param_default = match param_type.as_ref() {
+            "str" => format!("b\"{}\0\" as *const _ as *mut kernel::c_types::c_char", param_default),
+            _ => param_default,
+        };
+        let read_func = match (param_type.as_ref(), permissions_are_readonly(&param_permissions)) {
+            ("str", false) => format!(
+                "
+                    fn read<'lck>(&self, lock: &'lck kernel::KParamGuard) -> &'lck [u8] {{
+                        // SAFETY: The pointer is provided either in `param_default` when building the module,
+                        // or by the kernel through `param_set_charp`. Both will be valid C strings.
+                        // Parameters are locked by `KParamGuard`.
+                        unsafe {{
+                            kernel::c_types::c_string_bytes(__{name}_{param_name}_value)
+                        }}
+                    }}
+                ",
+                name = name,
+                param_name = param_name,
+            ),
+            ("str", true) => format!(
+                "
+                    fn read(&self) -> &[u8] {{
+                        // SAFETY: The pointer is provided either in `param_default` when building the module,
+                        // or by the kernel through `param_set_charp`. Both will be valid C strings.
+                        // Parameters do not need to be locked because they are read only or sysfs is not enabled.
+                        unsafe {{
+                            kernel::c_types::c_string_bytes(__{name}_{param_name}_value)
+                        }}
+                    }}
+                ",
+                name = name,
+                param_name = param_name,
+            ),
+            (_, false) => format!(
+                "
+                    // SAFETY: Parameters are locked by `KParamGuard`.
+                    fn read<'lck>(&self, lock: &'lck kernel::KParamGuard) -> &'lck {param_type_internal} {{
+                        unsafe {{ &__{name}_{param_name}_value }}
+                    }}
+                ",
+                name = name,
+                param_name = param_name,
+                param_type_internal = param_type_internal,
+            ),
+            (_, true) => format!(
+                "
+                    // SAFETY: Parameters do not need to be locked because they are read only or sysfs is not enabled.
+                    fn read(&self) -> &{param_type_internal} {{
+                        unsafe {{ &__{name}_{param_name}_value }}
+                    }}
+                ",
+                name = name,
+                param_name = param_name,
+                param_type_internal = param_type_internal,
+            ),
+        };
+        let kparam = format!(
+            "
+                kernel::bindings::kernel_param__bindgen_ty_1 {{
+                    arg: unsafe {{ &__{name}_{param_name}_value }} as *const _ as *mut kernel::c_types::c_void,
+                }},
+            ",
+            name = name,
+            param_name = param_name,
+        );
         params_modinfo.push_str(
             &format!(
                 "
-                static mut __{name}_{param_name}_value: {param_type} = {param_default};
+                static mut __{name}_{param_name}_value: {param_type_internal} = {param_default};
 
                 struct __{name}_{param_name};
 
-                impl __{name}_{param_name} {{
-                    fn read(&self) -> {param_type} {{
-                        unsafe {{ __{name}_{param_name}_value }}
-                    }}
-                }}
+                impl __{name}_{param_name} {{ {read_func} }}
 
                 const {param_name}: __{name}_{param_name} = __{name}_{param_name};
 
@@ -282,23 +404,26 @@ pub fn module(ts: TokenStream) -> TokenStream {
                 #[used]
                 static __{name}_{param_name}_struct: __{name}_{param_name}_RacyKernelParam = __{name}_{param_name}_RacyKernelParam(kernel::bindings::kernel_param {{
                     name: __{name}_{param_name}_name,
-                    // TODO: `THIS_MODULE`
+                    // SAFETY: `__this_module` is constructed by the kernel at load time and will not be freed until the module is unloaded.
+                    #[cfg(MODULE)]
+                    mod_: unsafe {{ &kernel::bindings::__this_module as *const _ as *mut _ }},
+                    #[cfg(not(MODULE))]
                     mod_: core::ptr::null_mut(),
                     ops: unsafe {{ &kernel::bindings::param_ops_{param_kernel_type} }} as *const kernel::bindings::kernel_param_ops,
                     perm: {permissions},
                     level: -1,
                     flags: 0,
-                    __bindgen_anon_1: kernel::bindings::kernel_param__bindgen_ty_1 {{
-                        arg: unsafe {{ &__{name}_{param_name}_value }} as *const _ as *mut kernel::c_types::c_void,
-                    }},
+                    __bindgen_anon_1: {kparam}
                 }});
                 ",
                 name = name,
-                param_type = param_type,
+                param_type_internal = param_type_internal,
+                read_func = read_func,
                 param_kernel_type = param_kernel_type,
                 param_default = param_default,
                 param_name = param_name,
                 permissions = param_permissions,
+                kparam = kparam,
             )
         );
     }
@@ -309,6 +434,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
         "
             static mut __MOD: Option<{type_}> = None;
 
+            // SAFETY: `__this_module` is constructed by the kernel at load time and will not be freed until the module is unloaded.
             #[cfg(MODULE)]
             static THIS_MODULE: kernel::ThisModule = unsafe {{ kernel::ThisModule::from_ptr(&kernel::bindings::__this_module as *const _ as *mut _) }};
             #[cfg(not(MODULE))]
