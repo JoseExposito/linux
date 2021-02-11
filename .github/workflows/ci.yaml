@@ -27,7 +27,7 @@ jobs:
           - arch: x86_64
             toolchain: gcc
             config: debug
-            rustc: 2021-01-24
+            rustc: 2021-01-31
             output: build
             install: rustup
             sysroot: custom
@@ -35,7 +35,7 @@ jobs:
           - arch: arm64
             toolchain: clang
             config: release
-            rustc: 2021-01-24
+            rustc: 2021-02-07
             output: build
             install: standalone
             sysroot: common
@@ -43,7 +43,7 @@ jobs:
           - arch: x86_64
             toolchain: llvm
             config: debug
-            rustc: 2021-01-24
+            rustc: 2021-02-11
             output: build
             install: standalone
             sysroot: custom
