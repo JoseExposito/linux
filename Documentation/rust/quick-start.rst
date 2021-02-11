@@ -21,7 +21,7 @@ rustc
 *****
 
 A recent *nightly* Rust toolchain (with, at least, ``rustc``) is required,
-e.g. ``nightly-2021-01-21``. Our goal is to use a stable toolchain as soon
+e.g. ``nightly-2021-01-24``. Our goal is to use a stable toolchain as soon
 as possible, but for the moment we depend on a handful of nightly features.
 
 If you are using ``rustup``, run::
