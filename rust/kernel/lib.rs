@@ -10,8 +10,6 @@
 #[cfg(not(CONFIG_RUST))]
 compile_error!("Missing kernel configuration for conditional compilation");
 
-extern crate alloc;
-
 use core::panic::PanicInfo;
 
 mod allocator;
