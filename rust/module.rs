@@ -291,7 +291,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
         // TODO: more primitive types
         // TODO: other kinds: arrays, unsafes, etc.
         let (param_kernel_type, ops) = match param_type.as_ref() {
-            "bool" => ("bool", "kernel::bindings::param_ops_bool"),
+            "bool" => ("bool", "kernel::module_param::PARAM_OPS_BOOL"),
             "i8" => ("i8", "kernel::module_param::PARAM_OPS_I8"),
             "u8" => ("u8", "kernel::module_param::PARAM_OPS_U8"),
             "i16" => ("i16", "kernel::module_param::PARAM_OPS_I16"),

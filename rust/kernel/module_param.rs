@@ -4,14 +4,21 @@ use core::fmt::Write;
 /// Note that displaying the type in `sysfs` will fail if `to_string` returns
 /// more than `kernel::PAGE_SIZE` bytes (including an additional null terminator).
 pub trait ModuleParam : core::fmt::Display + core::marker::Sized {
-    fn try_from_param_arg(arg: &[u8]) -> Option<Self>;
+    /// Setting this to `true` allows the parameter to be passed without an
+    /// argument (e.g. just `module.param` instead of `module.param=foo`).
+    const NOARG_ALLOWED: bool;
+
+    /// `arg == None` indicates that the parameter was passed without an
+    /// argument. If `NOARG_ALLOWED` is set to `false` then `arg` is guaranteed
+    /// to always be `Some(_)`.
+    fn try_from_param_arg(arg: Option<&[u8]>) -> Option<Self>;
 
     /// # Safety
     ///
-    /// `val` must point to a valid null-terminated string. The `arg` field of
-    /// `param` must be an instance of `Self`.
+    /// If `val` is non-null then it must point to a valid null-terminated
+    /// string. The `arg` field of `param` must be an instance of `Self`.
     unsafe extern "C" fn set_param(val: *const crate::c_types::c_char, param: *const crate::bindings::kernel_param) -> crate::c_types::c_int {
-        let arg = crate::c_types::c_string_bytes(val);
+        let arg = if val.is_null() { None } else { Some(crate::c_types::c_string_bytes(val)) };
         match Self::try_from_param_arg(arg) {
             Some(new_value) => {
                 let old_value = (*param).__bindgen_anon_1.arg as *mut Self;
@@ -107,23 +114,45 @@ impl_parse_int!(u64);
 impl_parse_int!(isize);
 impl_parse_int!(usize);
 
-macro_rules! make_param_ops {
-    ($ops:ident, $ty:ident) => {
+macro_rules! impl_module_param {
+    ($ty:ident) => {
         impl ModuleParam for $ty {
-            fn try_from_param_arg(arg: &[u8]) -> Option<Self> {
-                let utf8 = core::str::from_utf8(arg).ok()?;
+            const NOARG_ALLOWED: bool = false;
+
+            fn try_from_param_arg(arg: Option<&[u8]>) -> Option<Self> {
+                let bytes = arg?;
+                let utf8 = core::str::from_utf8(bytes).ok()?;
                 <$ty as crate::module_param::ParseInt>::from_str(utf8)
             }
         }
+    }
+}
 
+macro_rules! make_param_ops {
+    ($ops:ident, $ty:ident) => {
         pub static $ops: crate::bindings::kernel_param_ops = crate::bindings::kernel_param_ops {
-            flags: 0,
+            flags: if <$ty as crate::module_param::ModuleParam>::NOARG_ALLOWED {
+                crate::bindings::KERNEL_PARAM_OPS_FL_NOARG
+            } else {
+                0
+            },
             set: Some(<$ty as crate::module_param::ModuleParam>::set_param),    
             get: Some(<$ty as crate::module_param::ModuleParam>::get_param),
             free: Some(<$ty as crate::module_param::ModuleParam>::free),
         };
     }
 }
+
+impl_module_param!(i8);
+impl_module_param!(u8);
+impl_module_param!(i16);
+impl_module_param!(u16);
+impl_module_param!(i32);
+impl_module_param!(u32);
+impl_module_param!(i64);
+impl_module_param!(u64);
+impl_module_param!(isize);
+impl_module_param!(usize);
 
 make_param_ops!(PARAM_OPS_I8, i8);
 make_param_ops!(PARAM_OPS_U8, u8);
@@ -135,3 +164,18 @@ make_param_ops!(PARAM_OPS_I64, i64);
 make_param_ops!(PARAM_OPS_U64, u64);
 make_param_ops!(PARAM_OPS_ISIZE, isize);
 make_param_ops!(PARAM_OPS_USIZE, usize);
+
+impl ModuleParam for bool {
+    const NOARG_ALLOWED: bool = true;
+
+    fn try_from_param_arg(arg: Option<&[u8]>) -> Option<Self> {
+        match arg {
+            None => Some(true),
+            Some(b"y") | Some(b"Y") | Some(b"1") | Some(b"true") => Some(true),
+            Some(b"n") | Some(b"N") | Some(b"0") | Some(b"false") => Some(false),
+            _ => None,
+        }
+    }
+}
+
+make_param_ops!(PARAM_OPS_BOOL, bool);
