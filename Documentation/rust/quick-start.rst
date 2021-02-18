@@ -21,7 +21,7 @@ rustc
 *****
 
 A recent *nightly* Rust toolchain (with, at least, ``rustc``) is required,
-e.g. ``nightly-2021-01-24``. Our goal is to use a stable toolchain as soon
+e.g. ``nightly-2021-02-20``. Our goal is to use a stable toolchain as soon
 as possible, but for the moment we depend on a handful of nightly features.
 
 If you are using ``rustup``, run::
@@ -78,6 +78,22 @@ the component manually::
     rustup component add rustfmt
 
 The standalone installers also come with ``rustfmt``.
+
+
+rustdoc
+*******
+
+Optionally, if you install the ``rustdoc`` tool, then you will be able
+to generate HTML documentation for Rust code, including for the libraries
+(crates) inside ``rust/`` that are used by the rest of the kernel.
+
+If you are using ``rustup``, its ``default`` profile already installs the tool,
+so you should be good to go. If you are using another profile, you can install
+the component manually::
+
+    rustup component add rustdoc
+
+The standalone installers also come with ``rustdoc``.
 
 
 Configuration
