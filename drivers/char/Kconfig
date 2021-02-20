@@ -525,20 +525,6 @@ config RUST_EXAMPLE_4
 
 	  If unsure, say N.
 
-# XXX: Only for GitHub -- do not commit into mainline
-config RUST_EXAMPLE_5
-	depends on RUST
-	tristate "Rust Example 5"
-	default n
-	help
-	  This option builds a fifth example module written in Rust.
-	  It is intended to test several Rust modules at the same time.
-
-	  To compile this as a module, choose M here:
-	  the module will be called rust_example_5.
-
-	  If unsure, say N.
-
 endmenu
 
 config RANDOM_TRUST_CPU
