@@ -7,7 +7,7 @@
 use alloc::boxed::Box;
 use core::pin::Pin;
 use kernel::prelude::*;
-use kernel::{cstr, file_operations::FileOperations, miscdev};
+use kernel::{chrdev, cstr, file_operations::FileOperations, miscdev};
 
 module! {
     type: RustExample,
@@ -47,6 +47,7 @@ impl FileOperations for RustFile {
 
 struct RustExample {
     message: String,
+    _chrdev: Pin<Box<chrdev::Registration<2>>>,
     _dev: Pin<Box<miscdev::Registration>>,
 }
 
@@ -72,9 +73,15 @@ impl KernelModule for RustExample {
         let x: [u64; 1028] = core::hint::black_box([5; 1028]);
         println!("Large array has length: {}", x.len());
 
+        let mut chrdev_reg = chrdev::Registration::new_pinned(
+            cstr!("rust_chrdev"), 0, &THIS_MODULE)?;
+        chrdev_reg.as_mut().register::<RustFile>()?;
+        chrdev_reg.as_mut().register::<RustFile>()?;
+
         Ok(RustExample {
             message: "on the heap!".to_owned(),
             _dev: miscdev::Registration::new_pinned::<RustFile>(cstr!("rust_miscdev"), None)?,
+            _chrdev: chrdev_reg,
         })
     }
 }
