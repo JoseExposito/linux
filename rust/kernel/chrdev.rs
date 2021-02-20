@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
+use alloc::boxed::Box;
 use core::convert::TryInto;
 use core::marker::PhantomPinned;
 use core::mem::MaybeUninit;
@@ -41,6 +42,13 @@ impl<const N: usize> Registration<{ N }> {
         }
     }
 
+    pub fn new_pinned(
+        name: CStr<'static>,
+        minors_start: u16,
+        this_module: &'static crate::ThisModule,
+    ) -> KernelResult<Pin<Box<Self>>> {
+        Ok(Pin::from(Box::try_new(Self::new(name, minors_start, this_module))?))
+    }
     /// Register a character device with this range. Call this once per device
     /// type (up to `N` times).
     pub fn register<T: file_operations::FileOperations>(self: Pin<&mut Self>) -> KernelResult<()> {
