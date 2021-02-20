@@ -3,6 +3,9 @@
 busybox insmod rust_minimal.ko
 busybox  rmmod rust_minimal.ko
 
+busybox insmod rust_print.ko
+busybox  rmmod rust_print.ko
+
 busybox insmod rust_module_parameters.ko
 busybox  rmmod rust_module_parameters.ko
 

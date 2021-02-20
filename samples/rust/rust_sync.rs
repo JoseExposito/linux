@@ -28,7 +28,7 @@ struct RustSync;
 
 impl KernelModule for RustSync {
     fn init() -> KernelResult<Self> {
-        println!("Rust synchronisation primitives sample (init)");
+        info!("Rust synchronisation primitives sample (init)");
 
         // Test mutexes.
         {
@@ -36,7 +36,7 @@ impl KernelModule for RustSync {
             let data = Pin::from(Box::try_new(unsafe { Mutex::new(0) })?);
             mutex_init!(data.as_ref(), "RustSync::init::data1");
             *data.lock() = 10;
-            println!("Value: {}", *data.lock());
+            info!("Value: {}", *data.lock());
 
             // SAFETY: `init` is called below.
             let cv = Pin::from(Box::try_new(unsafe { CondVar::new() })?);
@@ -58,7 +58,7 @@ impl KernelModule for RustSync {
             let data = Pin::from(Box::try_new(unsafe { SpinLock::new(0) })?);
             spinlock_init!(data.as_ref(), "RustSync::init::data2");
             *data.lock() = 10;
-            println!("Value: {}", *data.lock());
+            info!("Value: {}", *data.lock());
 
             // SAFETY: `init` is called below.
             let cv = Pin::from(Box::try_new(unsafe { CondVar::new() })?);
@@ -80,6 +80,6 @@ impl KernelModule for RustSync {
 
 impl Drop for RustSync {
     fn drop(&mut self) {
-        println!("Rust synchronisation primitives sample (exit)");
+        info!("Rust synchronisation primitives sample (exit)");
     }
 }

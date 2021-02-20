@@ -47,19 +47,19 @@ struct RustModuleParameters;
 
 impl KernelModule for RustModuleParameters {
     fn init() -> KernelResult<Self> {
-        println!("Rust module parameters sample (init)");
+        info!("Rust module parameters sample (init)");
 
         {
             let lock = THIS_MODULE.kernel_param_lock();
-            println!("Parameters:");
-            println!("  my_bool:    {}", my_bool.read());
-            println!("  my_i32:     {}", my_i32.read(&lock));
-            println!(
+            info!("Parameters:");
+            info!("  my_bool:    {}", my_bool.read());
+            info!("  my_i32:     {}", my_i32.read(&lock));
+            info!(
                 "  my_str:     {}",
                 core::str::from_utf8(my_str.read(&lock))?
             );
-            println!("  my_usize:   {}", my_usize.read(&lock));
-            println!("  my_array:   {:?}", my_array.read());
+            info!("  my_usize:   {}", my_usize.read(&lock));
+            info!("  my_array:   {:?}", my_array.read());
         }
 
         Ok(RustModuleParameters)
@@ -68,6 +68,6 @@ impl KernelModule for RustModuleParameters {
 
 impl Drop for RustModuleParameters {
     fn drop(&mut self) {
-        println!("Rust module parameters sample (exit)");
+        info!("Rust module parameters sample (exit)");
     }
 }

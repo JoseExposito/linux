@@ -6,6 +6,7 @@ slink   /bin/sh       /bin/busybox                    0755 0 0
 file    /init         .github/workflows/qemu-init.sh  0755 0 0
 
 file    /rust_minimal.ko            samples/rust/rust_minimal.ko            0755 0 0
+file    /rust_print.ko              samples/rust/rust_print.ko              0755 0 0
 file    /rust_module_parameters.ko  samples/rust/rust_module_parameters.ko  0755 0 0
 file    /rust_sync.ko               samples/rust/rust_sync.ko               0755 0 0
 file    /rust_chrdev.ko             samples/rust/rust_chrdev.ko             0755 0 0

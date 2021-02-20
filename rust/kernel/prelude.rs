@@ -15,4 +15,9 @@ pub use alloc::{borrow::ToOwned, string::String};
 
 pub use module::module;
 
-pub use super::{println, static_assert, KernelModule, KernelResult};
+pub use super::{alert, cont, crit, emerg, err, info, notice, warn};
+pub use super::{pr_alert, pr_cont, pr_crit, pr_emerg, pr_err, pr_info, pr_notice, pr_warn};
+
+pub use super::static_assert;
+
+pub use super::{KernelModule, KernelResult};

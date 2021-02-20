@@ -129,7 +129,7 @@ struct RustMiscdev {
 
 impl KernelModule for RustMiscdev {
     fn init() -> KernelResult<Self> {
-        println!("Rust miscellaneous device sample (init)");
+        info!("Rust miscellaneous device sample (init)");
 
         let state = SharedState::try_new()?;
 
@@ -141,6 +141,6 @@ impl KernelModule for RustMiscdev {
 
 impl Drop for RustMiscdev {
     fn drop(&mut self) {
-        println!("Rust miscellaneous device sample (exit)");
+        info!("Rust miscellaneous device sample (exit)");
     }
 }

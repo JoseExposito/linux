@@ -24,8 +24,8 @@ struct RustMinimal {
 
 impl KernelModule for RustMinimal {
     fn init() -> KernelResult<Self> {
-        println!("Rust minimal sample (init)");
-        println!("Am I built-in? {}", !cfg!(MODULE));
+        info!("Rust minimal sample (init)");
+        info!("Am I built-in? {}", !cfg!(MODULE));
 
         Ok(RustMinimal {
             message: "on the heap!".to_owned(),
@@ -35,7 +35,7 @@ impl KernelModule for RustMinimal {
 
 impl Drop for RustMinimal {
     fn drop(&mut self) {
-        println!("My message is {}", self.message);
-        println!("Rust minimal sample (exit)");
+        info!("My message is {}", self.message);
+        info!("Rust minimal sample (exit)");
     }
 }
