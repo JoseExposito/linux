@@ -62,9 +62,12 @@ $(objtree)/rust/exports_kernel_generated.h: exports_target_type := _RUST_GPL
 $(objtree)/rust/exports_kernel_generated.h: $(objtree)/rust/kernel.o FORCE
 	$(call if_changed,exports)
 
+# `-Cpanic=unwind -Cforce-unwind-tables=y` overrides `rustc_flags` in order to
+# avoid the https://github.com/rust-lang/rust/issues/82320 rustc crash.
 quiet_cmd_rustc_procmacro = RUSTC P $@
       cmd_rustc_procmacro = \
 	$(RUSTC) $(rustc_flags) --emit=dep-info,link --extern proc_macro \
+		-Cpanic=unwind -Cforce-unwind-tables=y \
 		--crate-type proc-macro --out-dir $(objtree)/rust/ \
 		--crate-name $(patsubst lib%.so,%,$(notdir $@)) $<; \
 	mv $(objtree)/rust/$(patsubst lib%.so,%,$(notdir $@)).d $(depfile); \
