@@ -167,7 +167,7 @@ fn permissions_are_readonly(perms: &str) -> bool {
     };
     match u32::from_str_radix(digits, radix) {
         Ok(perms) => perms & 0o222 == 0,
-        Err(_) => false
+        Err(_) => false,
     }
 }
 
@@ -306,7 +306,10 @@ pub fn module(ts: TokenStream) -> TokenStream {
             _ => &param_type,
         };
         let param_default = match param_type.as_ref() {
-            "str" => format!("b\"{}\0\" as *const _ as *mut kernel::c_types::c_char", param_default),
+            "str" => format!(
+                "b\"{}\0\" as *const _ as *mut kernel::c_types::c_char",
+                param_default
+            ),
             _ => param_default,
         };
         let read_func = match (param_type.as_ref(), permissions_are_readonly(&param_permissions)) {

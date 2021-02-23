@@ -60,7 +60,9 @@ impl ThisModule {
         // SAFETY: `kernel_param_lock` will check if the pointer is null and use the built-in mutex
         // in that case.
         #[cfg(CONFIG_SYSFS)]
-        unsafe { bindings::kernel_param_lock(self.0) }
+        unsafe {
+            bindings::kernel_param_lock(self.0)
+        }
 
         KParamGuard { this_module: self }
     }
@@ -69,7 +71,7 @@ impl ThisModule {
 /// Scoped lock on the kernel parameters of `ThisModule`. Lock will be released
 /// when this struct is dropped.
 pub struct KParamGuard<'a> {
-    this_module: &'a ThisModule
+    this_module: &'a ThisModule,
 }
 
 #[cfg(CONFIG_SYSFS)]

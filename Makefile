@@ -264,7 +264,7 @@ no-dot-config-targets := $(clean-targets) \
 			 cscope gtags TAGS tags help% %docs check% coccicheck \
 			 $(version_h) headers headers_% archheaders archscripts \
 			 %asm-generic kernelversion %src-pkg dt_binding_check \
-			 outputmakefile
+			 outputmakefile rustfmt rustfmtcheck
 no-sync-config-targets := $(no-dot-config-targets) %install kernelrelease
 single-targets := %.a %.i %.ko %.lds %.ll %.lst %.mod %.o %.s %.symtypes %/
 
@@ -445,6 +445,7 @@ READELF		= $(CROSS_COMPILE)readelf
 STRIP		= $(CROSS_COMPILE)strip
 endif
 RUSTC		= rustc
+RUSTFMT		= rustfmt
 BINDGEN		= bindgen
 PAHOLE		= pahole
 RESOLVE_BTFIDS	= $(objtree)/tools/bpf/resolve_btfids/resolve_btfids
@@ -1651,6 +1652,13 @@ help:
 	@echo  '  kselftest-merge   - Merge all the config dependencies of'
 	@echo  '		      kselftest to existing .config.'
 	@echo  ''
+	@echo  'Rust targets:'
+	@echo  '  rustfmt	  - Reformat all the Rust code in the kernel.'
+	@echo  '  rustfmtcheck	  - Checks if all the Rust code in the kernel'
+	@echo  '		    is formatted, printing a diff otherwise.'
+	@echo  '  rustdoc	  - Generate Rust documentation'
+	@echo  '		    (requires kernel .config)'
+	@echo  ''
 	@$(if $(dtstree), \
 		echo 'Devicetree:'; \
 		echo '* dtbs             - Build device tree blobs for enabled boards'; \
@@ -1668,9 +1676,6 @@ help:
 	@echo  ''
 	@echo  'Documentation targets:'
 	@$(MAKE) -f $(srctree)/Documentation/Makefile dochelp
-	@echo  ''
-	@echo  '  rustdoc	  - Generate Rust documentation'
-	@echo  '		    (requires kernel .config)'
 	@echo  ''
 	@echo  'Architecture specific targets ($(SRCARCH)):'
 	@$(if $(archhelp),$(archhelp),\
@@ -1726,13 +1731,24 @@ $(DOC_TARGETS):
 	$(Q)$(MAKE) $(build)=Documentation $@
 
 
-# Rust documentation target
+# Rust targets
 # ---------------------------------------------------------------------------
 
+# Documentation target
+#
 # Using the singular to avoid running afoul of `no-dot-config-targets`.
 PHONY += rustdoc
 rustdoc: prepare0
 	$(Q)$(MAKE) $(build)=rust $@
+
+# Formatting targets
+PHONY += rustfmt rustfmtcheck
+
+rustfmt:
+	find -name '*.rs' | xargs $(RUSTFMT)
+
+rustfmtcheck:
+	find -name '*.rs' | xargs $(RUSTFMT) --check
 
 
 # Misc

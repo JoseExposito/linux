@@ -47,7 +47,11 @@ impl<const N: usize> Registration<{ N }> {
         minors_start: u16,
         this_module: &'static crate::ThisModule,
     ) -> KernelResult<Pin<Box<Self>>> {
-        Ok(Pin::from(Box::try_new(Self::new(name, minors_start, this_module))?))
+        Ok(Pin::from(Box::try_new(Self::new(
+            name,
+            minors_start,
+            this_module,
+        ))?))
     }
     /// Register a character device with this range. Call this once per device
     /// type (up to `N` times).
@@ -57,7 +61,7 @@ impl<const N: usize> Registration<{ N }> {
         if this.inner.is_none() {
             let mut dev: bindings::dev_t = 0;
             // SAFETY: Calling unsafe function. `this.name` has 'static
-            // lifetime 
+            // lifetime
             let res = unsafe {
                 bindings::alloc_chrdev_region(
                     &mut dev,

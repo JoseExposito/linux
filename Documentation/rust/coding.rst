@@ -9,8 +9,37 @@ This document describes how to write Rust code in the kernel.
 Coding style
 ------------
 
-For the moment, we are following the idiomatic Rust style. For instance,
-we use 4 spaces for indentation rather than tabs.
+The code is automatically formatted using the ``rustfmt`` tool. This is very
+good news!
+
+- If you contribute from time to time to the kernel, you do not need to learn
+  and remember one more style guide. You will also need less patch roundtrips
+  to land a change.
+
+- If you are a reviewer or a maintainer, you will not need to spend time on
+  pointing out style issues anymore.
+
+.. note:: Conventions on comments and documentation are not checked by
+  ``rustfmt``. Thus we still need to take care of those: please see
+   :ref:`Documentation/rust/docs.rst <rust_docs>`.
+
+We use the tool's default settings. This means we are following the idiomatic
+Rust style. For instance, we use 4 spaces for indentation rather than tabs.
+
+Typically, you will want to instruct your editor/IDE to format while you type,
+when you save or at commit time. However, if for some reason you want
+to reformat the entire kernel Rust sources at some point, you may run::
+
+	make rustfmt
+
+To check if everything is formatted (printing a diff otherwise), e.g. if you
+have configured a CI for a tree as a maintainer, you may run::
+
+	make rustfmtcheck
+
+Like ``clang-format`` for the rest of the kernel, ``rustfmt`` works on
+individual files, and does not require a kernel configuration. Sometimes it may
+even work with broken code.
 
 
 Abstractions vs. bindings
