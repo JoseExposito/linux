@@ -13,7 +13,10 @@ compile_error!("Missing kernel configuration for conditional compilation");
 use core::panic::PanicInfo;
 
 mod allocator;
+
+#[doc(hidden)]
 pub mod bindings;
+
 pub mod c_types;
 pub mod chrdev;
 mod error;

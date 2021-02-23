@@ -58,6 +58,7 @@ iptables               1.4.2            iptables -V
 openssl & libcrypto    1.0.0            openssl version
 bc                     1.06.95          bc --version
 Sphinx\ [#f1]_	       1.3		sphinx-build --version
+rustdoc (optional)     nightly          rustdoc --version
 ====================== ===============  ========================================
 
 .. [#f1] Sphinx is needed only to build the Kernel documentation
@@ -331,6 +332,12 @@ Sphinx
 
 Please see :ref:`sphinx_install` in :ref:`Documentation/doc-guide/sphinx.rst <sphinxdoc>`
 for details about Sphinx requirements.
+
+rustdoc
+-------
+
+``rustdoc`` is used to generate Rust documentation. Please see
+:ref:`Documentation/rust/docs.rst <rust_docs>` for more information.
 
 Getting updated software
 ========================

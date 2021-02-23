@@ -6,6 +6,30 @@ extra-$(CONFIG_RUST) += bindings_generated.rs libmodule.so
 extra-$(CONFIG_RUST) += exports_core_generated.h exports_alloc_generated.h
 extra-$(CONFIG_RUST) += exports_kernel_generated.h
 
+RUSTDOC = rustdoc
+
+rustdoc_flags = $(filter-out --emit=% --out-dir=%, $(rustc_flags))
+
+quiet_cmd_rustdoc = RUSTDOC $<
+      cmd_rustdoc = \
+	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
+	$(RUSTDOC) $(rustdoc_flags) $(rustdoc_target_flags) -L $(objtree)/rust/ \
+		--output $(objtree)/rust/doc --crate-name $(subst rustdoc-,,$@) \
+		-Wmissing-docs @$(objtree)/include/generated/rustc_cfg $<
+
+rustdoc: rustdoc-module rustdoc-kernel
+
+rustdoc-module: rustdoc_target_flags = --crate-type proc-macro \
+    --extern proc_macro
+rustdoc-module: $(srctree)/rust/module.rs FORCE
+	$(call if_changed,rustdoc)
+
+rustdoc-kernel: rustdoc_target_flags = --extern alloc \
+    --extern module=$(objtree)/rust/libmodule.so
+rustdoc-kernel: $(srctree)/rust/kernel/lib.rs rustdoc-module \
+    $(objtree)/rust/libmodule.so $(objtree)/rust/bindings_generated.rs FORCE
+	$(call if_changed,rustdoc)
+
 ifdef CONFIG_CC_IS_CLANG
 bindgen_c_flags = $(c_flags)
 else

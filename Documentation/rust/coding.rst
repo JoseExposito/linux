@@ -39,3 +39,8 @@ configuration:
 	#[cfg(CONFIG_X="m")]  // `CONFIG_X` is enabled as a module   (`m`)
 	#[cfg(not(CONFIG_X))] // `CONFIG_X` is disabled
 
+
+Documentation
+-------------
+
+Please see :ref:`Documentation/rust/docs.rst <rust_docs>`.

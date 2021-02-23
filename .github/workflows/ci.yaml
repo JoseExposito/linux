@@ -13,7 +13,7 @@ jobs:
         arch: [x86_64, arm64]
         toolchain: [gcc, clang, llvm]
         config: [debug, release]
-        rustc: [2021-01-24]
+        rustc: [2021-02-20]
         output: [src] # [src, build]
         install: [rustup] # [rustup, standalone]
         sysroot: [common] # [common, custom]
@@ -27,7 +27,7 @@ jobs:
           - arch: x86_64
             toolchain: gcc
             config: debug
-            rustc: 2021-01-31
+            rustc: 2021-02-20
             output: build
             install: rustup
             sysroot: custom
@@ -35,7 +35,7 @@ jobs:
           - arch: arm64
             toolchain: clang
             config: release
-            rustc: 2021-02-07
+            rustc: 2021-02-20
             output: build
             install: standalone
             sysroot: common
@@ -43,7 +43,7 @@ jobs:
           - arch: x86_64
             toolchain: llvm
             config: debug
-            rustc: 2021-02-11
+            rustc: 2021-02-20
             output: build
             install: standalone
             sysroot: custom
@@ -177,3 +177,6 @@ jobs:
       # Report
       - run: ls -l ${{ env.BUILD_DIR }}drivers/char/rust_example.o ${{ env.BUILD_DIR }}drivers/char/rust_example_3.ko ${{ env.BUILD_DIR }}rust/*.o ${{ env.BUILD_DIR }}vmlinux ${{ env.BUILD_DIR }}${{ env.IMAGE_PATH }}
       - run: size  ${{ env.BUILD_DIR }}drivers/char/rust_example.o ${{ env.BUILD_DIR }}drivers/char/rust_example_3.ko ${{ env.BUILD_DIR }}rust/*.o ${{ env.BUILD_DIR }}vmlinux
+
+      # Docs
+      - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 rustdoc

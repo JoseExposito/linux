@@ -9,6 +9,7 @@ read the :ref:`Documentation/rust/quick-start.rst <rust_quick_start>` guide.
 
     quick-start
     coding
+    docs
     arch-support
 
 .. only::  subproject and html
