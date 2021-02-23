@@ -67,9 +67,8 @@ the kernel with ``CC=clang`` or ``LLVM=1``.
 rustfmt
 *******
 
-Optionally, if you install the ``rustfmt`` tool, then the generated C bindings
-will be automatically formatted. It is also useful to have the tool to format
-your own code, too.
+The ``rustfmt`` tool is used to automatically format all the Rust kernel code,
+including the generated C bindings.
 
 If you are using ``rustup``, its ``default`` profile already installs the tool,
 so you should be good to go. If you are using another profile, you can install

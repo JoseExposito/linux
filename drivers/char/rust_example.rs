@@ -73,8 +73,8 @@ impl KernelModule for RustExample {
         let x: [u64; 1028] = core::hint::black_box([5; 1028]);
         println!("Large array has length: {}", x.len());
 
-        let mut chrdev_reg = chrdev::Registration::new_pinned(
-            cstr!("rust_chrdev"), 0, &THIS_MODULE)?;
+        let mut chrdev_reg =
+            chrdev::Registration::new_pinned(cstr!("rust_chrdev"), 0, &THIS_MODULE)?;
         chrdev_reg.as_mut().register::<RustFile>()?;
         chrdev_reg.as_mut().register::<RustFile>()?;
 
