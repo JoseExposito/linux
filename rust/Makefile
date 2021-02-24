@@ -8,23 +8,22 @@ extra-$(CONFIG_RUST) += exports_kernel_generated.h
 
 RUSTDOC = rustdoc
 
-rustdoc_flags = $(filter-out --emit=% --out-dir=%, $(rustc_flags))
-
 quiet_cmd_rustdoc = RUSTDOC $<
       cmd_rustdoc = \
 	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
-	$(RUSTDOC) $(rustdoc_flags) $(rustdoc_target_flags) -L $(objtree)/rust/ \
+	$(RUSTDOC) $(filter-out --emit=%, $(rustc_flags)) \
+		$(rustdoc_target_flags) -L $(objtree)/rust/ \
 		--output $(objtree)/rust/doc --crate-name $(subst rustdoc-,,$@) \
 		-Wmissing-docs @$(objtree)/include/generated/rustc_cfg $<
 
 rustdoc: rustdoc-module rustdoc-kernel
 
-rustdoc-module: rustdoc_target_flags = --crate-type proc-macro \
+rustdoc-module: private rustdoc_target_flags = --crate-type proc-macro \
     --extern proc_macro
 rustdoc-module: $(srctree)/rust/module.rs FORCE
 	$(call if_changed,rustdoc)
 
-rustdoc-kernel: rustdoc_target_flags = --extern alloc \
+rustdoc-kernel: private rustdoc_target_flags = --extern alloc \
     --extern module=$(objtree)/rust/libmodule.so
 rustdoc-kernel: $(srctree)/rust/kernel/lib.rs rustdoc-module \
     $(objtree)/rust/libmodule.so $(objtree)/rust/bindings_generated.rs FORCE
@@ -74,23 +73,23 @@ quiet_cmd_exports = EXPORTS $@
 		| xargs -n1 -Isymbol \
 		echo 'EXPORT_SYMBOL$(exports_target_type)(symbol);' > $@
 
-$(objtree)/rust/exports_core_generated.h: exports_target_type := _RUST
+$(objtree)/rust/exports_core_generated.h: private exports_target_type := _RUST
 $(objtree)/rust/exports_core_generated.h: $(objtree)/rust/core.o FORCE
 	$(call if_changed,exports)
 
-$(objtree)/rust/exports_alloc_generated.h: exports_target_type := _RUST
+$(objtree)/rust/exports_alloc_generated.h: private exports_target_type := _RUST
 $(objtree)/rust/exports_alloc_generated.h: $(objtree)/rust/alloc.o FORCE
 	$(call if_changed,exports)
 
-$(objtree)/rust/exports_kernel_generated.h: exports_target_type := _RUST_GPL
+$(objtree)/rust/exports_kernel_generated.h: private exports_target_type := _RUST_GPL
 $(objtree)/rust/exports_kernel_generated.h: $(objtree)/rust/kernel.o FORCE
 	$(call if_changed,exports)
 
 # `-Cpanic=unwind -Cforce-unwind-tables=y` overrides `rustc_flags` in order to
 # avoid the https://github.com/rust-lang/rust/issues/82320 rustc crash.
-quiet_cmd_rustc_procmacro = RUSTC P $@
+quiet_cmd_rustc_procmacro = RUSTC P $(CLIPPY_QUIET_TAG)$@
       cmd_rustc_procmacro = \
-	$(RUSTC) $(rustc_flags) --emit=dep-info,link --extern proc_macro \
+	$(CLIPPY_DRIVER) $(RUSTC) $(rustc_flags) --emit=dep-info,link --extern proc_macro \
 		-Cpanic=unwind -Cforce-unwind-tables=y \
 		--crate-type proc-macro --out-dir $(objtree)/rust/ \
 		--crate-name $(patsubst lib%.so,%,$(notdir $@)) $<; \
@@ -100,10 +99,11 @@ quiet_cmd_rustc_procmacro = RUSTC P $@
 $(objtree)/rust/libmodule.so: $(srctree)/rust/module.rs FORCE
 	$(call if_changed_dep,rustc_procmacro)
 
-quiet_cmd_rustc_library = RUSTC L $@
+quiet_cmd_rustc_library = RUSTC L $(if $(skip_clippy),,$(CLIPPY_QUIET_TAG))$@
       cmd_rustc_library = \
 	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
-	$(RUSTC) $(rustc_flags) $(rustc_cross_flags) $(rustc_target_flags) \
+	$(if $(skip_clippy),,$(CLIPPY_DRIVER)) $(RUSTC) $(rustc_flags) \
+		$(rustc_cross_flags) $(rustc_target_flags) \
 		--crate-type rlib --out-dir $(objtree)/rust/ -L $(objtree)/rust/ \
 		--crate-name $(patsubst %.o,%,$(notdir $@)) $<; \
 	mv $(objtree)/rust/$(patsubst %.o,%,$(notdir $@)).d $(depfile); \
@@ -115,20 +115,22 @@ rustc_sysroot = $(shell $(RUSTC) $(rustc_flags) --print sysroot)
 rustc_src = $(rustc_sysroot)/lib/rustlib/src/rust
 
 .SECONDEXPANSION:
+$(objtree)/rust/core.o: private skip_clippy = 1
 $(objtree)/rust/core.o: $$(rustc_src)/library/core/src/lib.rs FORCE
 	$(call if_changed_dep,rustc_library)
 
-$(objtree)/rust/compiler_builtins.o: rustc_objcopy = -w -W '__*'
+$(objtree)/rust/compiler_builtins.o: private rustc_objcopy = -w -W '__*'
 $(objtree)/rust/compiler_builtins.o: $(srctree)/rust/compiler_builtins.rs \
     $(objtree)/rust/core.o FORCE
 	$(call if_changed_dep,rustc_library)
 
+$(objtree)/rust/alloc.o: private skip_clippy = 1
 $(objtree)/rust/alloc.o: $$(rustc_src)/library/alloc/src/lib.rs \
     $(objtree)/rust/compiler_builtins.o FORCE
 	$(call if_changed_dep,rustc_library)
 
 # ICE on `--extern module`: https://github.com/rust-lang/rust/issues/56935
-$(objtree)/rust/kernel.o: rustc_target_flags = --extern alloc \
+$(objtree)/rust/kernel.o: private rustc_target_flags = --extern alloc \
     --extern module=$(objtree)/rust/libmodule.so
 $(objtree)/rust/kernel.o: $(srctree)/rust/kernel/lib.rs $(objtree)/rust/alloc.o \
     $(objtree)/rust/libmodule.so $(objtree)/rust/bindings_generated.rs FORCE

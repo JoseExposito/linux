@@ -42,6 +42,23 @@ individual files, and does not require a kernel configuration. Sometimes it may
 even work with broken code.
 
 
+Extra lints
+-----------
+
+While ``rustc`` is a very helpful compiler, some extra lints and analysis are
+available via ``clippy``, a Rust linter. To enable it, pass ``CLIPPY=1`` to
+the same invocation you use for compilation, e.g.::
+
+	make ARCH=... CROSS_COMPILE=... CC=... -j... CLIPPY=1
+
+At the moment, we do not enforce a "clippy-free" compilation, so you can treat
+the output the same way as the extra warning levels for C, e.g. like ``W=2``.
+Still, we use the default configuration, which is relatively conservative, so
+it is a good idea to read any output it may produce from time to time and fix
+the pointed out issues. The list of enabled lists will be likely tweaked over
+time, and extra levels may end up being introduced, e.g. ``CLIPPY=2``.
+
+
 Abstractions vs. bindings
 -------------------------
 

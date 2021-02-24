@@ -301,10 +301,10 @@ $(obj)/%.lst: $(src)/%.c FORCE
 
 rustc_cross_flags := --target=$(srctree)/arch/$(SRCARCH)/rust/target.json
 
-quiet_cmd_rustc_o_rs = RUSTC $(quiet_modtag) $@
+quiet_cmd_rustc_o_rs = RUSTC $(CLIPPY_QUIET_TAG)$(quiet_modtag) $@
       cmd_rustc_o_rs = \
 	RUST_MODFILE=$(modfile) \
-	$(RUSTC) $(rustc_flags) $(rustc_cross_flags) \
+	$(CLIPPY_DRIVER) $(RUSTC) $(rustc_flags) $(rustc_cross_flags) \
 		--extern alloc --extern kernel \
 		--crate-type rlib --out-dir $(obj) -L $(objtree)/rust/ \
 		--crate-name $(patsubst %.o,%,$(notdir $@)) $<; \

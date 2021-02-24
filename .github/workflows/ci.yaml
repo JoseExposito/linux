@@ -131,6 +131,9 @@ jobs:
           git checkout $(rustc -vV | grep -F 'commit-hash' | awk '{print $2}')
           git submodule update --init library
 
+      # Setup: clippy
+      - run: rustup component add clippy
+
       # Setup: bindgen
       - run: cargo install --version 0.56.0 bindgen
 
@@ -177,6 +180,9 @@ jobs:
       # Report
       - run: ls -l ${{ env.BUILD_DIR }}drivers/char/rust_example.o ${{ env.BUILD_DIR }}drivers/char/rust_example_3.ko ${{ env.BUILD_DIR }}rust/*.o ${{ env.BUILD_DIR }}vmlinux ${{ env.BUILD_DIR }}${{ env.IMAGE_PATH }}
       - run: size  ${{ env.BUILD_DIR }}drivers/char/rust_example.o ${{ env.BUILD_DIR }}drivers/char/rust_example_3.ko ${{ env.BUILD_DIR }}rust/*.o ${{ env.BUILD_DIR }}vmlinux
+
+      # Clippy
+      - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 CLIPPY=1
 
       # Docs
       - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 rustdoc

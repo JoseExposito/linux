@@ -4,13 +4,13 @@ Quick Start
 ===========
 
 This document describes how to get started with kernel development in Rust.
-
-
-Requirements
-------------
-
-This section explains how to fetch the requirements to work with Rust.
 If you have worked previously with Rust, this will only take a moment.
+
+
+Requirements: Building
+----------------------
+
+This section explains how to fetch the tools needed for building.
 
 Some of these requirements might be available from your Linux distribution
 under names like ``rustc``, ``rust-src``, ``rust-bindgen``, etc. However,
@@ -64,11 +64,19 @@ which means you will need a recent LLVM installed; like when you compile
 the kernel with ``CC=clang`` or ``LLVM=1``.
 
 
+Requirements: Developing
+------------------------
+
+This section explains how to fetch the tools needed for developing. That is,
+if you only want to build the kernel, you do not need them.
+
+
 rustfmt
 *******
 
 The ``rustfmt`` tool is used to automatically format all the Rust kernel code,
-including the generated C bindings.
+including the generated C bindings (for details, please see
+:ref:`Documentation/rust/coding.rst <rust_coding>`).
 
 If you are using ``rustup``, its ``default`` profile already installs the tool,
 so you should be good to go. If you are using another profile, you can install
@@ -79,12 +87,29 @@ the component manually::
 The standalone installers also come with ``rustfmt``.
 
 
+clippy
+******
+
+``clippy`` is a Rust linter. Installing it allows you to get extra warnings
+for Rust code passing ``CLIPPY=1`` to ``make`` (for details, please see
+:ref:`Documentation/rust/coding.rst <rust_coding>`).
+
+If you are using ``rustup``, its ``default`` profile already installs the tool,
+so you should be good to go. If you are using another profile, you can install
+the component manually::
+
+    rustup component add clippy
+
+The standalone installers also come with ``clippy``.
+
+
 rustdoc
 *******
 
-Optionally, if you install the ``rustdoc`` tool, then you will be able
-to generate HTML documentation for Rust code, including for the libraries
-(crates) inside ``rust/`` that are used by the rest of the kernel.
+If you install the ``rustdoc`` tool, then you will be able to generate pretty
+HTML documentation for Rust code, including for the libraries (crates) inside
+``rust/`` that are used by the rest of the kernel (for details, please see
+:ref:`Documentation/rust/docs.rst <rust_docs>`).
 
 If you are using ``rustup``, its ``default`` profile already installs the tool,
 so you should be good to go. If you are using another profile, you can install
