@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 
+//! Rust example module
+
 #![no_std]
 #![feature(allocator_api, global_asm)]
 #![feature(test)]

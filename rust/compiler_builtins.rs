@@ -1,22 +1,25 @@
 // SPDX-License-Identifier: GPL-2.0
 
-//! Our `compiler_builtins`.
+//! Our own `compiler_builtins`.
 //!
-//! Rust provides `compiler_builtins` as a port of LLVM's `compiler-rt`.
-//! Since we don't need the vast majority of them, we avoid the dependency
+//! Rust provides [`compiler_builtins`] as a port of LLVM's [`compiler-rt`].
+//! Since we do not need the vast majority of them, we avoid the dependency
 //! by providing this file.
 //!
-//! At the moment, some builtins are required that shouldn't be. For instance,
-//! `core` has floating-point functionality which we shouldn't be compiling in.
-//! For the moment, we define them to `panic!` at runtime for simplicity.
+//! At the moment, some builtins are required that should not be. For instance,
+//! [`core`] has floating-point functionality which we should not be compiling
+//! in. For the moment, we define them to [`panic!`] at runtime for simplicity.
 //! These are actually a superset of the ones we actually need to define,
 //! but it seems simpler to ban entire categories at once. In the future,
-//! we might be able to remove all this by providing our own custom `core` etc.,
-//! or perhaps `core` itself might provide `cfg` options to disable enough
-//! functionality to avoid requiring some of these.
+//! we might be able to remove all this by providing our own custom [`core`]
+//! etc., or perhaps [`core`] itself might provide `cfg` options to disable
+//! enough functionality to avoid requiring some of these.
 //!
-//! In any case, all these symbols are weakened to ensure we don't override
+//! In any case, all these symbols are weakened to ensure we do not override
 //! those that may be provided by the rest of the kernel.
+//!
+//! [`compiler_builtins`]: https://github.com/rust-lang/compiler-builtins
+//! [`compiler-rt`]: https://compiler-rt.llvm.org/
 
 #![feature(compiler_builtins)]
 #![compiler_builtins]
@@ -26,6 +29,7 @@
 macro_rules! define_panicking_intrinsics(
     ($reason: tt, { $($ident: ident, )* }) => {
         $(
+            #[doc(hidden)]
             #[no_mangle]
             pub extern "C" fn $ident() {
                 panic!($reason);

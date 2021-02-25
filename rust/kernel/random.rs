@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0
 
+//! Random numbers.
+//!
+//! C header: [`include/linux/random.h`](../../../../include/linux/random.h)
+
 use core::convert::TryInto;
 
 use crate::{bindings, c_types, error};
 
-/// Fills `dest` with random bytes generated from the kernel's CSPRNG. Ensures
-/// that the CSPRNG has been seeded before generating any random bytes, and
-/// will block until it's ready.
+/// Fills a byte slice with random bytes generated from the kernel's CSPRNG.
+///
+/// Ensures that the CSPRNG has been seeded before generating any random bytes,
+/// and will block until it is ready.
 pub fn getrandom(dest: &mut [u8]) -> error::KernelResult<()> {
     let res = unsafe { bindings::wait_for_random_bytes() };
     if res != 0 {
@@ -22,8 +27,9 @@ pub fn getrandom(dest: &mut [u8]) -> error::KernelResult<()> {
     Ok(())
 }
 
-/// Fills `dest` with random bytes generated from the kernel's CSPRNG. If the
-/// CSPRNG is not yet seeded, returns an `Err(EAGAIN)` immediately.
+/// Fills a byte slice with random bytes generated from the kernel's CSPRNG.
+///
+/// If the CSPRNG is not yet seeded, returns an `Err(EAGAIN)` immediately.
 pub fn getrandom_nonblock(dest: &mut [u8]) -> error::KernelResult<()> {
     if !unsafe { bindings::rng_is_initialized() } {
         return Err(error::Error::EAGAIN);
@@ -31,8 +37,9 @@ pub fn getrandom_nonblock(dest: &mut [u8]) -> error::KernelResult<()> {
     getrandom(dest)
 }
 
-/// Contributes the contents of `data` to the kernel's entropy pool. Does _not_
-/// credit the kernel entropy counter though.
+/// Contributes the contents of a byte slice to the kernel's entropy pool.
+///
+/// Does *not* credit the kernel entropy counter though.
 pub fn add_randomness(data: &[u8]) {
     unsafe {
         bindings::add_device_randomness(

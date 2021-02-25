@@ -1,5 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0
 
+//! System control.
+//!
+//! C header: [`include/linux/sysctl.h`](../../../../include/linux/sysctl.h)
+//!
+//! Reference: <https://www.kernel.org/doc/Documentation/sysctl/README>
+
 use alloc::boxed::Box;
 use alloc::vec;
 use core::mem;
@@ -12,8 +18,12 @@ use crate::error;
 use crate::types;
 use crate::user_ptr::{UserSlicePtr, UserSlicePtrWriter};
 
+/// Sysctl storage.
 pub trait SysctlStorage: Sync {
+    /// Writes a byte slice.
     fn store_value(&self, data: &[u8]) -> (usize, error::KernelResult<()>);
+
+    /// Reads via a [`UserSlicePtrWriter`].
     fn read_value(&self, data: &mut UserSlicePtrWriter) -> (usize, error::KernelResult<()>);
 }
 
@@ -70,15 +80,16 @@ impl SysctlStorage for atomic::AtomicBool {
     }
 }
 
+/// Holds a single `sysctl` entry (and its table).
 pub struct Sysctl<T: SysctlStorage> {
     inner: Box<T>,
-    // Responsible for keeping the ctl_table alive.
+    // Responsible for keeping the `ctl_table` alive.
     _table: Box<[bindings::ctl_table]>,
     header: *mut bindings::ctl_table_header,
 }
 
-// This is safe because the only public method we have is get(), which returns
-// &T, and T: Sync. Any new methods must adhere to this requirement.
+// SAFETY: The only public method we have is `get()`, which returns `&T`, and
+// `T: Sync`. Any new methods must adhere to this requirement.
 unsafe impl<T: SysctlStorage> Sync for Sysctl<T> {}
 
 unsafe extern "C" fn proc_handler<T: SysctlStorage>(
@@ -88,7 +99,7 @@ unsafe extern "C" fn proc_handler<T: SysctlStorage>(
     len: *mut usize,
     ppos: *mut bindings::loff_t,
 ) -> c_types::c_int {
-    // If we're reading from some offset other than the beginning of the file,
+    // If we are reading from some offset other than the beginning of the file,
     // return an empty read to signal EOF.
     if *ppos != 0 && write == 0 {
         *len = 0;
@@ -119,6 +130,7 @@ unsafe extern "C" fn proc_handler<T: SysctlStorage>(
 }
 
 impl<T: SysctlStorage> Sysctl<T> {
+    /// Registers a single entry in `sysctl`.
     pub fn register(
         path: types::CStr<'static>,
         name: types::CStr<'static>,
@@ -160,6 +172,7 @@ impl<T: SysctlStorage> Sysctl<T> {
         })
     }
 
+    /// Gets the storage.
     pub fn get(&self) -> &T {
         &self.inner
     }
