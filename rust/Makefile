@@ -90,9 +90,10 @@ $(objtree)/rust/exports_kernel_generated.h: $(objtree)/rust/kernel.o FORCE
 
 # `-Cpanic=unwind -Cforce-unwind-tables=y` overrides `rustc_flags` in order to
 # avoid the https://github.com/rust-lang/rust/issues/82320 rustc crash.
-quiet_cmd_rustc_procmacro = RUSTC P $(CLIPPY_QUIET_TAG)$@
+quiet_cmd_rustc_procmacro = $(RUSTC_OR_CLIPPY_QUIET) P $@
       cmd_rustc_procmacro = \
-	$(CLIPPY_DRIVER) $(RUSTC) $(rustc_flags) --emit=dep-info,link --extern proc_macro \
+	$(RUSTC_OR_CLIPPY) $(rustc_flags) \
+		--emit=dep-info,link --extern proc_macro \
 		-Cpanic=unwind -Cforce-unwind-tables=y \
 		--crate-type proc-macro --out-dir $(objtree)/rust/ \
 		--crate-name $(patsubst lib%.so,%,$(notdir $@)) $<; \
@@ -102,11 +103,11 @@ quiet_cmd_rustc_procmacro = RUSTC P $(CLIPPY_QUIET_TAG)$@
 $(objtree)/rust/libmodule.so: $(srctree)/rust/module.rs FORCE
 	$(call if_changed_dep,rustc_procmacro)
 
-quiet_cmd_rustc_library = RUSTC L $(if $(skip_clippy),,$(CLIPPY_QUIET_TAG))$@
+quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L $@
       cmd_rustc_library = \
 	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
-	$(if $(skip_clippy),,$(CLIPPY_DRIVER)) $(RUSTC) $(rustc_flags) \
-		$(rustc_cross_flags) $(rustc_target_flags) \
+	$(if $(skip_clippy),$(RUSTC),$(RUSTC_OR_CLIPPY)) \
+		$(rustc_flags) $(rustc_cross_flags) $(rustc_target_flags) \
 		--crate-type rlib --out-dir $(objtree)/rust/ -L $(objtree)/rust/ \
 		--crate-name $(patsubst %.o,%,$(notdir $@)) $<; \
 	mv $(objtree)/rust/$(patsubst %.o,%,$(notdir $@)).d $(depfile); \
