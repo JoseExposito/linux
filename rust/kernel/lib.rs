@@ -50,6 +50,7 @@ pub mod user_ptr;
 pub use crate::error::{Error, KernelResult};
 pub use crate::types::{CStr, Mode};
 
+/// Page size defined in terms of the `PAGE_SHIFT` macro from C.
 pub const PAGE_SIZE: usize = 1 << bindings::PAGE_SHIFT;
 
 /// The top level entrypoint to implementing a kernel module.

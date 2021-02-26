@@ -1,3 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0
+
+//! Types for module parameters.
+//!
+//! C header: [`include/linux/moduleparam.h`](../../../include/linux/moduleparam.h)
+
 use core::fmt::Write;
 
 /// Types that can be used for module parameters.
@@ -130,6 +136,7 @@ macro_rules! impl_module_param {
 
 macro_rules! make_param_ops {
     ($ops:ident, $ty:ident) => {
+        /// Generated param ops.
         pub static $ops: crate::bindings::kernel_param_ops = crate::bindings::kernel_param_ops {
             flags: if <$ty as crate::module_param::ModuleParam>::NOARG_ALLOWED {
                 crate::bindings::KERNEL_PARAM_OPS_FL_NOARG
