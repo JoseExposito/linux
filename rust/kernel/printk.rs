@@ -33,7 +33,6 @@ pub struct LogLineWriter {
     pos: usize,
 }
 
-#[allow(clippy::new_without_default)]
 impl LogLineWriter {
     /// Creates a new [`LogLineWriter`].
     pub fn new() -> LogLineWriter {
@@ -46,6 +45,12 @@ impl LogLineWriter {
     /// Returns the internal buffer as a byte slice.
     pub fn as_bytes(&self) -> &[u8] {
         &self.data[..self.pos]
+    }
+}
+
+impl Default for LogLineWriter {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

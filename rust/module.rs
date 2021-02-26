@@ -4,6 +4,11 @@
 //!
 //! C header: [`include/linux/moduleparam.h`](../../../include/linux/moduleparam.h)
 
+#![deny(clippy::complexity)]
+#![deny(clippy::correctness)]
+#![deny(clippy::perf)]
+#![deny(clippy::style)]
+
 use proc_macro::{token_stream, Delimiter, Group, TokenStream, TokenTree};
 
 fn expect_ident(it: &mut token_stream::IntoIter) -> String {
@@ -39,8 +44,7 @@ fn expect_group(it: &mut token_stream::IntoIter) -> Group {
 }
 
 fn expect_end(it: &mut token_stream::IntoIter) {
-    if let None = it.next() {
-    } else {
+    if it.next().is_some() {
         panic!("Expected end");
     }
 }
@@ -73,7 +77,7 @@ fn get_byte_string(it: &mut token_stream::IntoIter, expected_name: &str) -> Stri
     let byte_string = get_literal(it, expected_name);
 
     assert!(byte_string.starts_with("b\""));
-    assert!(byte_string.ends_with("\""));
+    assert!(byte_string.ends_with('\"'));
 
     byte_string[2..byte_string.len() - 1].to_string()
 }
