@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 
+//! Allocator support.
+
 use core::alloc::{GlobalAlloc, Layout};
 use core::ptr;
 
@@ -10,8 +12,8 @@ pub struct KernelAllocator;
 
 unsafe impl GlobalAlloc for KernelAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        // krealloc is used instead of kmalloc because kmalloc is an inline function and can't be
-        // bound to as a result
+        // `krealloc()` is used instead of `kmalloc()` because the latter is
+        // an inline function and cannot be bound to as a result.
         bindings::krealloc(ptr::null(), layout.size(), bindings::GFP_KERNEL) as *mut u8
     }
 

@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0
 
+//! File operations.
+//!
+//! C header: [`include/linux/fs.h`](../../../../include/linux/fs.h)
+
 use core::convert::{TryFrom, TryInto};
 use core::{marker, mem, ptr};
 
@@ -11,6 +15,7 @@ use crate::c_types;
 use crate::error::{Error, KernelResult};
 use crate::user_ptr::{UserSlicePtr, UserSlicePtrReader, UserSlicePtrWriter};
 
+/// Wraps the kernel's `struct file`.
 pub struct File {
     ptr: *const bindings::file,
 }
@@ -20,15 +25,23 @@ impl File {
         File { ptr }
     }
 
+    /// Returns the current seek/cursor/pointer position (`struct file::f_pos`).
     pub fn pos(&self) -> u64 {
         unsafe { (*self.ptr).f_pos as u64 }
     }
 }
 
-// Matches std::io::SeekFrom in the Rust stdlib
+/// Equivalent to [`std::io::SeekFrom`].
+///
+/// [`std::io::SeekFrom`]: https://doc.rust-lang.org/std/io/enum.SeekFrom.html
 pub enum SeekFrom {
+    /// Equivalent to C's `SEEK_SET`.
     Start(u64),
+
+    /// Equivalent to C's `SEEK_END`.
     End(i64),
+
+    /// Equivalent to C's `SEEK_CUR`.
     Current(i64),
 }
 
@@ -71,8 +84,8 @@ unsafe extern "C" fn read_callback<T: FileOperations>(
     from_kernel_result! {
         let mut data = UserSlicePtr::new(buf as *mut c_types::c_void, len)?.writer();
         let f = &*((*file).private_data as *const T);
-        // No FMODE_UNSIGNED_OFFSET support, so offset must be in [0, 2^63).
-        // See discussion in #113
+        // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
+        // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
         T::READ.unwrap()(f, &File::from_ptr(file), &mut data, (*offset).try_into()?)?;
         let written = len - data.len();
         (*offset) += bindings::loff_t::try_from(written).unwrap();
@@ -89,8 +102,8 @@ unsafe extern "C" fn write_callback<T: FileOperations>(
     from_kernel_result! {
         let mut data = UserSlicePtr::new(buf as *mut c_types::c_void, len)?.reader();
         let f = &*((*file).private_data as *const T);
-        // No FMODE_UNSIGNED_OFFSET support, so offset must be in [0, 2^63).
-        // See discussion in #113
+        // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
+        // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
         T::WRITE.unwrap()(f, &mut data, (*offset).try_into()?)?;
         let read = len - data.len();
         (*offset) += bindings::loff_t::try_from(read).unwrap();
@@ -197,50 +210,81 @@ impl<T: FileOperations> FileOperationsVtable<T> {
     };
 }
 
+/// `read` file operation function type.
 pub type ReadFn<T> = Option<fn(&T, &File, &mut UserSlicePtrWriter, u64) -> KernelResult<()>>;
+
+/// `write` file operation function type.
 pub type WriteFn<T> = Option<fn(&T, &mut UserSlicePtrReader, u64) -> KernelResult<()>>;
+
+/// `seek` file operation function type.
 pub type SeekFn<T> = Option<fn(&T, &File, SeekFrom) -> KernelResult<u64>>;
+
+/// `fsync` file operation function type.
 pub type FSync<T> = Option<fn(&T, &File, u64, u64, bool) -> KernelResult<u32>>;
 
-/// `FileOperations` corresponds to the kernel's `struct file_operations`. You
-/// implement this trait whenever you'd create a `struct file_operations`.
-/// File descriptors may be used from multiple threads (or processes)
-/// concurrently, so your type must be `Sync`.
+/// Corresponds to the kernel's `struct file_operations`.
+///
+/// You implement this trait whenever you would create a
+/// `struct file_operations`.
+///
+/// File descriptors may be used from multiple threads/processes concurrently,
+/// so your type must be [`Sync`].
 pub trait FileOperations: Sync + Sized {
+    /// The pointer type that will be used to hold ourselves.
     type Wrapper: PointerWrapper<Self>;
 
-    /// Creates a new instance of this file. Corresponds to the `open` function
-    /// pointer in `struct file_operations`.
+    /// Creates a new instance of this file.
+    ///
+    /// Corresponds to the `open` function pointer in `struct file_operations`.
     fn open() -> KernelResult<Self::Wrapper>;
 
-    /// Cleans up after the last reference to the file goes away. Note that the object is moved, so
-    /// it will be freed automatically unless the implemention moves it elsewhere. Corresponds to
-    /// the `release` function pointer in `struct file_operations`.
+    /// Cleans up after the last reference to the file goes away.
+    ///
+    /// Note that the object is moved, so it will be freed automatically unless
+    /// the implemention moves it elsewhere.
+    ///
+    /// Corresponds to the `release` function pointer in
+    /// `struct file_operations`.
     fn release(_obj: Self::Wrapper, _file: &File) {}
 
-    /// Reads data from this file to userspace. Corresponds to the `read`
-    /// function pointer in `struct file_operations`.
+    /// Reads data from this file to userspace.
+    ///
+    /// Corresponds to the `read` function pointer in `struct file_operations`.
     const READ: ReadFn<Self> = None;
 
-    /// Writes data from userspace o this file. Corresponds to the `write`
-    /// function pointer in `struct file_operations`.
+    /// Writes data from userspace to this file.
+    ///
+    /// Corresponds to the `write` function pointer in `struct file_operations`.
     const WRITE: WriteFn<Self> = None;
 
-    /// Changes the position of the file. Corresponds to the `llseek` function
-    /// pointer in `struct file_operations`.
+    /// Changes the position of the file.
+    ///
+    /// Corresponds to the `llseek` function pointer in
+    /// `struct file_operations`.
     const SEEK: SeekFn<Self> = None;
 
-    /// Syncs pending changes to this file. Corresponds to the `fsync` function
-    /// pointer in the `struct file_operations`.
+    /// Syncs pending changes to this file.
+    ///
+    /// Corresponds to the `fsync` function pointer in
+    /// `struct file_operations`.
     const FSYNC: FSync<Self> = None;
 }
 
-/// `PointerWrapper` is used to convert an object into a raw pointer that represents it. It can
-/// eventually be converted back into the object. This is used to store objects as pointers in
-/// kernel data structures, for example, an implementation of `FileOperations` in `struct
-/// file::private_data`.
+/// Used to convert an object into a raw pointer that represents it.
+///
+/// It can eventually be converted back into the object. This is used to store
+/// objects as pointers in kernel data structures, for example, an
+/// implementation of `FileOperations` in `struct file::private_data`.
 pub trait PointerWrapper<T> {
+    /// Returns the raw pointer.
     fn into_pointer(self) -> *const T;
+
+    /// Returns the instance back from the raw pointer.
+    ///
+    /// # Safety
+    ///
+    /// The passed pointer must come from a previous call to
+    /// [`PointerWrapper::into_pointer()`].
     unsafe fn from_pointer(ptr: *const T) -> Self;
 }
 

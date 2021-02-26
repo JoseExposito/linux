@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0
 
+//! Bindings
+//!
+//! Imports the generated bindings by `bindgen`.
+
 #[allow(
     clippy::all,
     non_camel_case_types,

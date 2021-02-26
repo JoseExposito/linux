@@ -1,5 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0
 
+//! Character devices.
+//!
+//! Also called "char devices", `chrdev`, `cdev`.
+//!
+//! C header: [`include/linux/cdev.h`](../../../../include/linux/cdev.h)
+//!
+//! Reference: <https://www.kernel.org/doc/html/latest/core-api/kernel-api.html#char-devices>
+
 use alloc::boxed::Box;
 use core::convert::TryInto;
 use core::marker::PhantomPinned;
@@ -19,8 +27,9 @@ struct RegistrationInner<const N: usize> {
     _pin: PhantomPinned,
 }
 
-/// chrdev registration. May contain up to a fixed number (`N`) of devices.
-/// Must be pinned.
+/// Character device registration.
+///
+/// May contain up to a fixed number (`N`) of devices. Must be pinned.
 pub struct Registration<const N: usize> {
     name: CStr<'static>,
     minors_start: u16,
@@ -29,6 +38,15 @@ pub struct Registration<const N: usize> {
 }
 
 impl<const N: usize> Registration<{ N }> {
+    /// Creates a [`Registration`] object for a character device.
+    ///
+    /// This does *not* register the device: see [`Self::register()`].
+    ///
+    /// This associated function is intended to be used when you need to avoid
+    /// a memory allocation, e.g. when the [`Registration`] is a member of
+    /// a bigger structure inside your [`crate::KernelModule`] instance. If you
+    /// are going to pin the registration right away, call
+    /// [`Self::new_pinned()`] instead.
     pub fn new(
         name: CStr<'static>,
         minors_start: u16,
@@ -42,6 +60,9 @@ impl<const N: usize> Registration<{ N }> {
         }
     }
 
+    /// Creates a pinned [`Registration`] object for a character device.
+    ///
+    /// This does *not* register the device: see [`Self::register()`].
     pub fn new_pinned(
         name: CStr<'static>,
         minors_start: u16,
@@ -53,15 +74,17 @@ impl<const N: usize> Registration<{ N }> {
             this_module,
         ))?))
     }
-    /// Register a character device with this range. Call this once per device
-    /// type (up to `N` times).
+
+    /// Registers a character device.
+    ///
+    /// You may call this once per device type, up to `N` times.
     pub fn register<T: file_operations::FileOperations>(self: Pin<&mut Self>) -> KernelResult<()> {
-        // SAFETY: we must ensure that we never move out of `this`.
+        // SAFETY: We must ensure that we never move out of `this`.
         let this = unsafe { self.get_unchecked_mut() };
         if this.inner.is_none() {
             let mut dev: bindings::dev_t = 0;
-            // SAFETY: Calling unsafe function. `this.name` has 'static
-            // lifetime
+            // SAFETY: Calling unsafe function. `this.name` has `'static`
+            // lifetime.
             let res = unsafe {
                 bindings::alloc_chrdev_region(
                     &mut dev,
@@ -86,7 +109,8 @@ impl<const N: usize> Registration<{ N }> {
             return Err(Error::EINVAL);
         }
         let cdev = inner.cdevs[inner.used].as_mut_ptr();
-        // SAFETY: calling unsafe functions and manipulating MaybeUninit ptr.
+        // SAFETY: Calling unsafe functions and manipulating `MaybeUninit`
+        // pointer.
         unsafe {
             bindings::cdev_init(cdev, &file_operations::FileOperationsVtable::<T>::VTABLE);
             (*cdev).owner = this.this_module.0;
@@ -100,14 +124,14 @@ impl<const N: usize> Registration<{ N }> {
     }
 }
 
-// SAFETY: `Registration` doesn't expose any of its state across threads (it's
-// fine for multiple threads to have a shared reference to it).
+// SAFETY: `Registration` does not expose any of its state across threads
+// (it is fine for multiple threads to have a shared reference to it).
 unsafe impl<const N: usize> Sync for Registration<{ N }> {}
 
 impl<const N: usize> Drop for Registration<{ N }> {
     fn drop(&mut self) {
         if let Some(inner) = self.inner.as_mut() {
-            // SAFETY: calling unsafe functions, `0..inner.used` of
+            // SAFETY: Calling unsafe functions, `0..inner.used` of
             // `inner.cdevs` are initialized in `Registration::register`.
             unsafe {
                 for i in 0..inner.used {

@@ -14,13 +14,16 @@ quiet_cmd_rustdoc = RUSTDOC $<
 	$(RUSTDOC) $(filter-out --emit=%, $(rustc_flags)) \
 		$(rustdoc_target_flags) -L $(objtree)/rust/ \
 		--output $(objtree)/rust/doc --crate-name $(subst rustdoc-,,$@) \
-		-Wmissing-docs @$(objtree)/include/generated/rustc_cfg $<
+		-Fmissing-docs @$(objtree)/include/generated/rustc_cfg $<
 
-rustdoc: rustdoc-module rustdoc-kernel
+rustdoc: rustdoc-module rustdoc-compiler_builtins rustdoc-kernel
 
 rustdoc-module: private rustdoc_target_flags = --crate-type proc-macro \
     --extern proc_macro
 rustdoc-module: $(srctree)/rust/module.rs FORCE
+	$(call if_changed,rustdoc)
+
+rustdoc-compiler_builtins: $(srctree)/rust/compiler_builtins.rs FORCE
 	$(call if_changed,rustdoc)
 
 rustdoc-kernel: private rustdoc_target_flags = --extern alloc \

@@ -1,6 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0
 
-//! The `kernel` prelude
+//! The `kernel` prelude.
+//!
+//! These are most common items used by Rust code in the kernel, intended to
+//! be imported by all Rust code, for convenience.
+//!
+//! # Examples
+//!
+//! ```rust,no_run
+//! use kernel::prelude::*;
+//! ```
 
 pub use alloc::{borrow::ToOwned, string::String};
 

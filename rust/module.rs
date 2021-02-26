@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 
-//! Implements the `module!` macro magic
+//! Proc macro crate implementing the [`module!`] magic.
+//!
+//! C header: [`include/linux/moduleparam.h`](../../../include/linux/moduleparam.h)
 
 use proc_macro::{token_stream, Delimiter, Group, TokenStream, TokenTree};
 
@@ -84,7 +86,7 @@ fn __build_modinfo_string_base(
     builtin: bool,
 ) -> String {
     let string = if builtin {
-        // Built-in modules prefix their modinfo strings by `module.`
+        // Built-in modules prefix their modinfo strings by `module.`.
         format!(
             "{module}.{field}={content}",
             module = module,
@@ -92,7 +94,7 @@ fn __build_modinfo_string_base(
             content = content
         )
     } else {
-        // Loadable modules' modinfo strings go as-is
+        // Loadable modules' modinfo strings go as-is.
         format!("{field}={content}", field = field, content = content)
     };
 
@@ -173,10 +175,13 @@ fn permissions_are_readonly(perms: &str) -> bool {
 
 /// Declares a kernel module.
 ///
-/// The `type` argument should be a type which implements the [`KernelModule`] trait.
-/// Also accepts various forms of kernel metadata.
+/// The `type` argument should be a type which implements the [`KernelModule`]
+/// trait. Also accepts various forms of kernel metadata.
+///
+/// [`KernelModule`]: ../kernel/trait.KernelModule.html
 ///
 /// # Examples
+///
 /// ```rust,no_run
 /// use kernel::prelude::*;
 ///
@@ -218,20 +223,20 @@ fn permissions_are_readonly(perms: &str) -> bool {
 /// }
 /// ```
 ///
-/// # Supported Parameter Types
+/// # Supported parameter types
 ///
-/// - `bool`    - Corresponds to C `bool` param type.
-/// - `u8`      - Corresponds to C `char` param type.
-/// - `i16`     - Corresponds to C `short` param type.
-/// - `u16`     - Corresponds to C `ushort` param type.
-/// - `i32`     - Corresponds to C `int` param type.
-/// - `u32`     - Corresponds to C `uint` param type.
-/// - `u64`     - Corresponds to C `ullong` param type.
-/// - `str`     - Corresponds to C `charp` param type.
-///               Reading the param returns a `&[u8]`.
+///   - `bool`: Corresponds to C `bool` param type.
+///   - `u8`: Corresponds to C `char` param type.
+///   - `i16`: Corresponds to C `short` param type.
+///   - `u16`: Corresponds to C `ushort` param type.
+///   - `i32`: Corresponds to C `int` param type.
+///   - `u32`: Corresponds to C `uint` param type.
+///   - `u64`: Corresponds to C `ullong` param type.
+///   - `str`: Corresponds to C `charp` param type. Reading returns a byte
+///     slice.
 ///
 /// `invbool` is unsupported: it was only ever used in a few modules.
-/// Consider using a `bool` inverting the logic instead.
+/// Consider using a `bool` and inverting the logic instead.
 #[proc_macro]
 pub fn module(ts: TokenStream) -> TokenStream {
     let mut it = ts.into_iter();
