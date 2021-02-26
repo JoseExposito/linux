@@ -7,10 +7,7 @@ pub struct Buffer<'a> {
 
 impl<'a> Buffer<'a> {
     pub fn new(slice: &'a mut [u8]) -> Self {
-        Buffer {
-            slice,
-            pos: 0,
-        }
+        Buffer { slice, pos: 0 }
     }
 
     pub fn bytes_written(&self) -> usize {
