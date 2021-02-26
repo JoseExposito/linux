@@ -160,17 +160,17 @@ impl<T: FileOperations> FileOperationsVtable<T> {
     pub(crate) const VTABLE: bindings::file_operations = bindings::file_operations {
         open: Some(open_callback::<T>),
         release: Some(release_callback::<T>),
-        read: if let Some(_) = T::READ {
+        read: if T::READ.is_some() {
             Some(read_callback::<T>)
         } else {
             None
         },
-        write: if let Some(_) = T::WRITE {
+        write: if T::WRITE.is_some() {
             Some(write_callback::<T>)
         } else {
             None
         },
-        llseek: if let Some(_) = T::SEEK {
+        llseek: if T::SEEK.is_some() {
             Some(llseek_callback::<T>)
         } else {
             None
@@ -184,7 +184,7 @@ impl<T: FileOperations> FileOperationsVtable<T> {
         fasync: None,
         flock: None,
         flush: None,
-        fsync: if let Some(_) = T::FSYNC {
+        fsync: if T::FSYNC.is_some() {
             Some(fsync_callback::<T>)
         } else {
             None

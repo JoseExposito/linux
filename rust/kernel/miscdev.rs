@@ -73,6 +73,12 @@ impl Registration {
     }
 }
 
+impl Default for Registration {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // SAFETY: The only method is `register()`, which requires a (pinned) mutable
 // `Registration`, so it is safe to pass `&Registration` to multiple threads
 // because it offers no interior mutability.
