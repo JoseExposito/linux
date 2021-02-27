@@ -1,15 +1,30 @@
+// SPDX-License-Identifier: GPL-2.0
+
+//! Struct for writing to a pre-allocated buffer with the [`write!`] macro.
+//!
+//! [`write!`]: https://doc.rust-lang.org/core/macro.write.html
+
 use core::fmt;
 
+/// A pre-allocated buffer that implements [`core::fmt::Write`].
+///
+/// Consequtive writes will append to what has already been written.
+/// Writes that don't fit in the buffer will fail.
+///
+/// [`core::fmt::Write`]: https://doc.rust-lang.org/core/fmt/trait.Write.html
 pub struct Buffer<'a> {
     slice: &'a mut [u8],
     pos: usize,
 }
 
 impl<'a> Buffer<'a> {
+    /// Create a new buffer from an existing array.
     pub fn new(slice: &'a mut [u8]) -> Self {
         Buffer { slice, pos: 0 }
     }
 
+    /// Number of bytes that have already been written to the buffer.
+    /// This will always be less than the length of the original array.
     pub fn bytes_written(&self) -> usize {
         self.pos
     }

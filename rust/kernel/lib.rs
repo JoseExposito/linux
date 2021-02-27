@@ -30,7 +30,7 @@ mod allocator;
 #[doc(hidden)]
 pub mod bindings;
 
-mod buffer;
+pub mod buffer;
 pub mod c_types;
 pub mod chrdev;
 mod error;
