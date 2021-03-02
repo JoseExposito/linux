@@ -10,8 +10,10 @@ use core::fmt::Write;
 ///
 /// Note that displaying the type in `sysfs` will fail if
 /// [`alloc::string::ToString::to_string`] (as implemented through the
-/// [`core::fmt::Display`] trait) writes more than `kernel::PAGE_SIZE`
+/// [`core::fmt::Display`] trait) writes more than [`PAGE_SIZE`]
 /// bytes (including an additional null terminator).
+///
+/// [`PAGE_SIZE`]: `crate::PAGE_SIZE`
 pub trait ModuleParam: core::fmt::Display + core::marker::Sized {
     /// Whether the parameter is allowed to be set without an argument.
     ///
