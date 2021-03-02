@@ -51,6 +51,8 @@ pub use crate::error::{Error, KernelResult};
 pub use crate::types::{CStr, Mode};
 
 /// Page size defined in terms of the `PAGE_SHIFT` macro from C.
+///
+/// [`PAGE_SHIFT`]: ../../../include/asm-generic/page.h
 pub const PAGE_SIZE: usize = 1 << bindings::PAGE_SHIFT;
 
 /// The top level entrypoint to implementing a kernel module.
