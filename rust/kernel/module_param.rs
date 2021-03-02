@@ -12,9 +12,6 @@ use core::fmt::Write;
 /// [`alloc::string::ToString::to_string`] (as implemented through the
 /// [`core::fmt::Display`] trait) writes more than `kernel::PAGE_SIZE`
 /// bytes (including an additional null terminator).
-///
-/// [`alloc::string::ToString::to_string`]: https://doc.rust-lang.org/alloc/string/trait.ToString.html#tymethod.to_string
-/// [`core::fmt::Display`]: https://doc.rust-lang.org/core/fmt/trait.Display.html
 pub trait ModuleParam: core::fmt::Display + core::marker::Sized {
     /// Whether the parameter is allowed to be set without an argument.
     ///
