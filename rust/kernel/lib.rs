@@ -30,11 +30,13 @@ mod allocator;
 #[doc(hidden)]
 pub mod bindings;
 
+pub mod buffer;
 pub mod c_types;
 pub mod chrdev;
 mod error;
 pub mod file_operations;
 pub mod miscdev;
+pub mod module_param;
 pub mod prelude;
 pub mod printk;
 pub mod random;
@@ -47,6 +49,11 @@ pub mod user_ptr;
 
 pub use crate::error::{Error, KernelResult};
 pub use crate::types::{CStr, Mode};
+
+/// Page size defined in terms of the `PAGE_SHIFT` macro from C.
+///
+/// [`PAGE_SHIFT`]: ../../../include/asm-generic/page.h
+pub const PAGE_SIZE: usize = 1 << bindings::PAGE_SHIFT;
 
 /// The top level entrypoint to implementing a kernel module.
 ///
