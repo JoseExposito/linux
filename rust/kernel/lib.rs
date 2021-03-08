@@ -40,6 +40,7 @@ pub mod module_param;
 pub mod prelude;
 pub mod printk;
 pub mod random;
+mod static_assert;
 
 #[cfg(CONFIG_SYSCTL)]
 pub mod sysctl;
