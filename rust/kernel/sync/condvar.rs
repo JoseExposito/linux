@@ -64,8 +64,8 @@ impl CondVar {
     /// [`CondVar::notify_all`], or when the thread receives a signal.
     ///
     /// Returns whether there is a signal pending.
-    pub fn wait<L: Lock>(&self, g: &Guard<L>) -> bool {
-        let l = g.lock;
+    pub fn wait<L: Lock>(&self, guard: &Guard<L>) -> bool {
+        let lock = guard.lock;
         let mut wait = MaybeUninit::<bindings::wait_queue_entry>::uninit();
 
         // SAFETY: `wait` points to valid memory.
@@ -81,12 +81,12 @@ impl CondVar {
         }
 
         // SAFETY: The guard is evidence that the caller owns the lock.
-        unsafe { l.unlock() };
+        unsafe { lock.unlock() };
 
         // SAFETY: No arguments, switches to another thread.
         unsafe { bindings::schedule() };
 
-        l.lock_noguard();
+        lock.lock_noguard();
 
         // SAFETY: Both `wait` and `wait_list` point to valid memory.
         unsafe { bindings::finish_wait(self.wait_list.get(), wait.as_mut_ptr()) };
