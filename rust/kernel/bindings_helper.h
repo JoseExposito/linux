@@ -9,6 +9,7 @@
 #include <linux/uaccess.h>
 #include <linux/version.h>
 #include <linux/miscdevice.h>
+#include <linux/poll.h>
 
 // `bindgen` gets confused at certain things
 const gfp_t BINDINGS_GFP_KERNEL = GFP_KERNEL;

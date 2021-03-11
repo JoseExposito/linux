@@ -10,10 +10,10 @@ use alloc::boxed::Box;
 use core::pin::Pin;
 use kernel::prelude::*;
 use kernel::{
-    chrdev, cstr,
+    chrdev, condvar_init, cstr,
     file_operations::FileOperations,
     miscdev, mutex_init, spinlock_init,
-    sync::{Mutex, SpinLock},
+    sync::{CondVar, Mutex, SpinLock},
 };
 
 module! {
@@ -86,6 +86,20 @@ impl KernelModule for RustExample {
             mutex_init!(data.as_ref(), "RustExample::init::data1");
             *data.lock() = 10;
             println!("Value: {}", *data.lock());
+
+            // SAFETY: `init` is called below.
+            let cv = Pin::from(Box::try_new(unsafe { CondVar::new() })?);
+            condvar_init!(cv.as_ref(), "RustExample::init::cv1");
+            {
+                let guard = data.lock();
+                #[allow(clippy::while_immutable_condition)]
+                while *guard != 10 {
+                    cv.wait(&guard);
+                }
+            }
+            cv.notify_one();
+            cv.notify_all();
+            cv.free_waiters();
         }
 
         // Test spinlocks.
@@ -95,13 +109,27 @@ impl KernelModule for RustExample {
             spinlock_init!(data.as_ref(), "RustExample::init::data2");
             *data.lock() = 10;
             println!("Value: {}", *data.lock());
+
+            // SAFETY: `init` is called below.
+            let cv = Pin::from(Box::try_new(unsafe { CondVar::new() })?);
+            condvar_init!(cv.as_ref(), "RustExample::init::cv2");
+            {
+                let guard = data.lock();
+                #[allow(clippy::while_immutable_condition)]
+                while *guard != 10 {
+                    cv.wait(&guard);
+                }
+            }
+            cv.notify_one();
+            cv.notify_all();
+            cv.free_waiters();
         }
 
         // Including this large variable on the stack will trigger
         // stack probing on the supported archs.
         // This will verify that stack probing does not lead to
         // any errors if we need to link `__rust_probestack`.
-        let x: [u64; 1028] = core::hint::black_box([5; 1028]);
+        let x: [u64; 514] = core::hint::black_box([5; 514]);
         println!("Large array has length: {}", x.len());
 
         let mut chrdev_reg =
