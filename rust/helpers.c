@@ -24,6 +24,29 @@ unsigned long rust_helper_copy_to_user(void __user *to, const void *from, unsign
 	return copy_to_user(to, from, n);
 }
 
+void rust_helper_spin_lock_init(spinlock_t *lock, const char *name,
+				struct lock_class_key *key)
+{
+#ifdef CONFIG_DEBUG_SPINLOCK
+	__spin_lock_init(lock, name, key);
+#else
+	spin_lock_init(lock);
+#endif
+}
+EXPORT_SYMBOL(rust_helper_spin_lock_init);
+
+void rust_helper_spin_lock(spinlock_t *lock)
+{
+	spin_lock(lock);
+}
+EXPORT_SYMBOL(rust_helper_spin_lock);
+
+void rust_helper_spin_unlock(spinlock_t *lock)
+{
+	spin_unlock(lock);
+}
+EXPORT_SYMBOL(rust_helper_spin_unlock);
+
 // See https://github.com/rust-lang/rust-bindgen/issues/1671
 static_assert(__builtin_types_compatible_p(size_t, uintptr_t),
 	"size_t must match uintptr_t, what architecture is this??");
