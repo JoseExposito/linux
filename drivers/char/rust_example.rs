@@ -9,7 +9,7 @@
 use alloc::boxed::Box;
 use core::pin::Pin;
 use kernel::prelude::*;
-use kernel::{chrdev, cstr, file_operations::FileOperations, miscdev};
+use kernel::{chrdev, cstr, file_operations::FileOperations, miscdev, mutex_init, sync::Mutex};
 
 module! {
     type: RustExample,
@@ -72,6 +72,15 @@ impl KernelModule for RustExample {
                 core::str::from_utf8(my_str.read(&lock))?
             );
             println!("  my_usize:   {}", my_usize.read(&lock));
+        }
+
+        // Test mutexes.
+        {
+            // SAFETY: `init` is called below.
+            let data = Pin::from(Box::try_new(unsafe { Mutex::new(0) })?);
+            mutex_init!(data.as_ref(), "RustExample::init::data");
+            *data.lock() = 10;
+            println!("Value: {}", *data.lock());
         }
 
         // Including this large variable on the stack will trigger
