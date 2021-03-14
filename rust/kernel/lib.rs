@@ -41,6 +41,7 @@ pub mod prelude;
 pub mod printk;
 pub mod random;
 mod static_assert;
+pub mod sync;
 
 #[cfg(CONFIG_SYSCTL)]
 pub mod sysctl;
