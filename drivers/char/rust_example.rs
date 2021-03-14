@@ -9,7 +9,12 @@
 use alloc::boxed::Box;
 use core::pin::Pin;
 use kernel::prelude::*;
-use kernel::{chrdev, cstr, file_operations::FileOperations, miscdev, mutex_init, sync::Mutex};
+use kernel::{
+    chrdev, cstr,
+    file_operations::FileOperations,
+    miscdev, mutex_init, spinlock_init,
+    sync::{Mutex, SpinLock},
+};
 
 module! {
     type: RustExample,
@@ -78,7 +83,16 @@ impl KernelModule for RustExample {
         {
             // SAFETY: `init` is called below.
             let data = Pin::from(Box::try_new(unsafe { Mutex::new(0) })?);
-            mutex_init!(data.as_ref(), "RustExample::init::data");
+            mutex_init!(data.as_ref(), "RustExample::init::data1");
+            *data.lock() = 10;
+            println!("Value: {}", *data.lock());
+        }
+
+        // Test spinlocks.
+        {
+            // SAFETY: `init` is called below.
+            let data = Pin::from(Box::try_new(unsafe { SpinLock::new(0) })?);
+            spinlock_init!(data.as_ref(), "RustExample::init::data2");
             *data.lock() = 10;
             println!("Value: {}", *data.lock());
         }

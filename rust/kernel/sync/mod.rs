@@ -22,12 +22,15 @@ use core::pin::Pin;
 
 mod guard;
 mod mutex;
+mod spinlock;
 
 pub use guard::{Guard, Lock};
 pub use mutex::Mutex;
+pub use spinlock::SpinLock;
 
 /// Safely initialises an object that has an `init` function that takes a name and a lock class as
-/// arguments, for example, [`Mutex`].
+/// arguments, examples of these are [`Mutex`] and [`SpinLock`]. Each of them also provides a more
+/// specialised name that uses this macro.
 #[doc(hidden)]
 #[macro_export]
 macro_rules! init_with_lockdep {
