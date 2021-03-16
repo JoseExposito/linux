@@ -20,10 +20,12 @@
 use crate::{bindings, CStr};
 use core::pin::Pin;
 
+mod condvar;
 mod guard;
 mod mutex;
 mod spinlock;
 
+pub use condvar::CondVar;
 pub use guard::{Guard, Lock};
 pub use mutex::Mutex;
 pub use spinlock::SpinLock;
