@@ -25,7 +25,7 @@ macro_rules! condvar_init {
 // TODO: `bindgen` is not generating this constant. Figure out why.
 const POLLFREE: u32 = 0x4000;
 
-/// Exposes the kernel's [`struct wait_queue_head`] as a condition variable. It allows to caller to
+/// Exposes the kernel's [`struct wait_queue_head`] as a condition variable. It allows the caller to
 /// atomically release the given lock and go to sleep. It reacquires the lock when it wakes up. And
 /// it wakes up when notified by another thread (via [`CondVar::notify_one`] or
 /// [`CondVar::notify_all`]) or because the thread received a signal.
