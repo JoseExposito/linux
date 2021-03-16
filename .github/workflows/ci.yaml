@@ -165,7 +165,11 @@ jobs:
             -smp 2 \
             -nographic \
             -no-reboot \
-            -append '${{ env.QEMU_APPEND }} rust_example.my_i32=123321 rust_example.my_str=🦀mod rust_example_2.my_i32=234432' \
+            -append '${{ env.QEMU_APPEND }} \
+              rust_example.my_i32=123321 \
+              rust_example.my_str=🦀mod \
+              rust_example_2.my_i32=234432 \
+              rust_example_2.my_array=1,2,3' \
             | sed s:$'\r'$:: \
             | tee qemu-stdout.log
 
@@ -190,6 +194,11 @@ jobs:
           grep '] \[2]   my_str:     default str val$' qemu-stdout.log
           grep '] \[3]   my_str:     🦀mod$'           qemu-stdout.log
           grep '] \[4]   my_str:     default str val$' qemu-stdout.log
+
+          grep      ']   my_array:   \[0, 1]$'    qemu-stdout.log
+          grep '] \[2]   my_array:   \[1, 2, 3]$' qemu-stdout.log
+          grep '] \[3]   my_array:   \[0, 1]$'    qemu-stdout.log
+          grep '] \[4]   my_array:   \[1, 2, 3]$' qemu-stdout.log
 
           grep '] \[3] Rust Example (exit)$' qemu-stdout.log
           grep '] \[4] Rust Example (exit)$' qemu-stdout.log
