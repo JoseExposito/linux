@@ -86,7 +86,7 @@ unsafe extern "C" fn read_callback<T: FileOperations>(
         let f = &*((*file).private_data as *const T);
         // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
         // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
-        T::READ.unwrap()(f, &File::from_ptr(file), &mut data, (*offset).try_into()?)?;
+        T::read(f, &File::from_ptr(file), &mut data, (*offset).try_into()?)?;
         let written = len - data.len();
         (*offset) += bindings::loff_t::try_from(written).unwrap();
         Ok(written.try_into().unwrap())
@@ -104,7 +104,7 @@ unsafe extern "C" fn write_callback<T: FileOperations>(
         let f = &*((*file).private_data as *const T);
         // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
         // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
-        T::WRITE.unwrap()(f, &mut data, (*offset).try_into()?)?;
+        T::write(f, &mut data, (*offset).try_into()?)?;
         let read = len - data.len();
         (*offset) += bindings::loff_t::try_from(read).unwrap();
         Ok(read.try_into().unwrap())
@@ -133,7 +133,7 @@ unsafe extern "C" fn llseek_callback<T: FileOperations>(
             _ => return Err(Error::EINVAL),
         };
         let f = &*((*file).private_data as *const T);
-        let off = T::SEEK.unwrap()(f, &File::from_ptr(file), off)?;
+        let off = T::seek(f, &File::from_ptr(file), off)?;
         Ok(off as bindings::loff_t)
     }
 }
@@ -149,7 +149,7 @@ unsafe extern "C" fn fsync_callback<T: FileOperations>(
         let end = end.try_into()?;
         let datasync = datasync != 0;
         let f = &*((*file).private_data as *const T);
-        let res = T::FSYNC.unwrap()(f, &File::from_ptr(file), start, end, datasync)?;
+        let res = T::fsync(f, &File::from_ptr(file), start, end, datasync)?;
         Ok(res.try_into().unwrap())
     }
 }
@@ -160,17 +160,17 @@ impl<T: FileOperations> FileOperationsVtable<T> {
     pub(crate) const VTABLE: bindings::file_operations = bindings::file_operations {
         open: Some(open_callback::<T>),
         release: Some(release_callback::<T>),
-        read: if T::READ.is_some() {
+        read: if T::TO_USE.read {
             Some(read_callback::<T>)
         } else {
             None
         },
-        write: if T::WRITE.is_some() {
+        write: if T::TO_USE.write {
             Some(write_callback::<T>)
         } else {
             None
         },
-        llseek: if T::SEEK.is_some() {
+        llseek: if T::TO_USE.seek {
             Some(llseek_callback::<T>)
         } else {
             None
@@ -184,7 +184,7 @@ impl<T: FileOperations> FileOperationsVtable<T> {
         fasync: None,
         flock: None,
         flush: None,
-        fsync: if T::FSYNC.is_some() {
+        fsync: if T::TO_USE.fsync {
             Some(fsync_callback::<T>)
         } else {
             None
@@ -210,26 +210,55 @@ impl<T: FileOperations> FileOperationsVtable<T> {
     };
 }
 
-/// `read` file operation function type.
-pub type ReadFn<T> = Option<fn(&T, &File, &mut UserSlicePtrWriter, u64) -> KernelResult<()>>;
+/// Represents which fields of [`struct file_operations`] should be populated with pointers.
+pub struct ToUse {
+    /// The `read` field of [`struct file_operations`].
+    pub read: bool,
 
-/// `write` file operation function type.
-pub type WriteFn<T> = Option<fn(&T, &mut UserSlicePtrReader, u64) -> KernelResult<()>>;
+    /// The `write` field of [`struct file_operations`].
+    pub write: bool,
 
-/// `seek` file operation function type.
-pub type SeekFn<T> = Option<fn(&T, &File, SeekFrom) -> KernelResult<u64>>;
+    /// The `llseek` field of [`struct file_operations`].
+    pub seek: bool,
 
-/// `fsync` file operation function type.
-pub type FSync<T> = Option<fn(&T, &File, u64, u64, bool) -> KernelResult<u32>>;
+    /// The `fsync` field of [`struct file_operations`].
+    pub fsync: bool,
+}
+
+/// A constant version where all values are to set to `false`, that is, all supported fields will
+/// be set to null pointers.
+pub const USE_NONE: ToUse = ToUse {
+    read: false,
+    write: false,
+    seek: false,
+    fsync: false,
+};
+
+/// Defines the [`FileOperations::TO_USE`] field based on a list of fields to be populated.
+#[macro_export]
+macro_rules! declare_file_operations {
+    () => {
+        const TO_USE: $crate::file_operations::ToUse = $crate::file_operations::USE_NONE;
+    };
+    ($($i:ident),+) => {
+        const TO_USE: kernel::file_operations::ToUse =
+            $crate::file_operations::ToUse {
+                $($i: true),+ ,
+                ..$crate::file_operations::USE_NONE
+            };
+    };
+}
 
 /// Corresponds to the kernel's `struct file_operations`.
 ///
-/// You implement this trait whenever you would create a
-/// `struct file_operations`.
+/// You implement this trait whenever you would create a `struct file_operations`.
 ///
-/// File descriptors may be used from multiple threads/processes concurrently,
-/// so your type must be [`Sync`].
+/// File descriptors may be used from multiple threads/processes concurrently, so your type must be
+/// [`Sync`].
 pub trait FileOperations: Sync + Sized {
+    /// The methods to use to populate [`struct file_operations`].
+    const TO_USE: ToUse;
+
     /// The pointer type that will be used to hold ourselves.
     type Wrapper: PointerWrapper<Self>;
 
@@ -240,41 +269,46 @@ pub trait FileOperations: Sync + Sized {
 
     /// Cleans up after the last reference to the file goes away.
     ///
-    /// Note that the object is moved, so it will be freed automatically unless
-    /// the implemention moves it elsewhere.
+    /// Note that the object is moved, so it will be freed automatically unless the implementation
+    /// moves it elsewhere.
     ///
-    /// Corresponds to the `release` function pointer in
-    /// `struct file_operations`.
+    /// Corresponds to the `release` function pointer in `struct file_operations`.
     fn release(_obj: Self::Wrapper, _file: &File) {}
 
     /// Reads data from this file to userspace.
     ///
     /// Corresponds to the `read` function pointer in `struct file_operations`.
-    const READ: ReadFn<Self> = None;
+    fn read(&self, _file: &File, _data: &mut UserSlicePtrWriter, _offset: u64) -> KernelResult<()> {
+        Err(Error::EINVAL)
+    }
 
     /// Writes data from userspace to this file.
     ///
     /// Corresponds to the `write` function pointer in `struct file_operations`.
-    const WRITE: WriteFn<Self> = None;
+    fn write(&self, _data: &mut UserSlicePtrReader, _offset: u64) -> KernelResult<isize> {
+        Err(Error::EINVAL)
+    }
 
     /// Changes the position of the file.
     ///
-    /// Corresponds to the `llseek` function pointer in
-    /// `struct file_operations`.
-    const SEEK: SeekFn<Self> = None;
+    /// Corresponds to the `llseek` function pointer in `struct file_operations`.
+    fn seek(&self, _file: &File, _offset: SeekFrom) -> KernelResult<u64> {
+        Err(Error::EINVAL)
+    }
 
     /// Syncs pending changes to this file.
     ///
-    /// Corresponds to the `fsync` function pointer in
-    /// `struct file_operations`.
-    const FSYNC: FSync<Self> = None;
+    /// Corresponds to the `fsync` function pointer in `struct file_operations`.
+    fn fsync(&self, _file: &File, _start: u64, _end: u64, _datasync: bool) -> KernelResult<u32> {
+        Err(Error::EINVAL)
+    }
 }
 
 /// Used to convert an object into a raw pointer that represents it.
 ///
-/// It can eventually be converted back into the object. This is used to store
-/// objects as pointers in kernel data structures, for example, an
-/// implementation of `FileOperations` in `struct file::private_data`.
+/// It can eventually be converted back into the object. This is used to store objects as pointers
+/// in kernel data structures, for example, an implementation of [`FileOperations`] in `struct
+/// file::private_data`.
 pub trait PointerWrapper<T> {
     /// Returns the raw pointer.
     fn into_pointer(self) -> *const T;
@@ -283,8 +317,7 @@ pub trait PointerWrapper<T> {
     ///
     /// # Safety
     ///
-    /// The passed pointer must come from a previous call to
-    /// [`PointerWrapper::into_pointer()`].
+    /// The passed pointer must come from a previous call to [`PointerWrapper::into_pointer()`].
     unsafe fn from_pointer(ptr: *const T) -> Self;
 }
 
