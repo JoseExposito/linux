@@ -12,6 +12,7 @@ use core::{num::TryFromIntError, str::Utf8Error};
 ///
 /// The kernel defines a set of integer generic error codes based on C and
 /// POSIX ones. These codes may have a more specific meaning in some contexts.
+#[derive(Debug)]
 pub struct Error(c_types::c_int);
 
 impl Error {
