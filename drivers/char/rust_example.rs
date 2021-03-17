@@ -51,6 +51,8 @@ struct RustFile;
 impl FileOperations for RustFile {
     type Wrapper = Box<Self>;
 
+    kernel::declare_file_operations!();
+
     fn open() -> KernelResult<Self::Wrapper> {
         println!("rust file was opened!");
         Ok(Box::try_new(Self)?)
