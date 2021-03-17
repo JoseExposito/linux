@@ -4,8 +4,9 @@
 //!
 //! C header: [`include/linux/uaccess.h`](../../../../include/linux/uaccess.h)
 
-use crate::{c_types, error};
+use crate::{c_types, error, KernelResult};
 use alloc::vec::Vec;
+use core::mem::{size_of, MaybeUninit};
 
 extern "C" {
     fn rust_helper_access_ok(addr: *const c_types::c_void, len: c_types::c_ulong)
@@ -23,6 +24,30 @@ extern "C" {
         n: c_types::c_ulong,
     ) -> c_types::c_ulong;
 }
+
+/// Specifies that a type is safely readable from byte slices.
+///
+/// Not all types can be safely read from byte slices; examples from
+/// <https://doc.rust-lang.org/reference/behavior-considered-undefined.html> include `bool`
+/// that must be either `0` or `1`, and `char` that cannot be a surrogate or above `char::MAX`.
+///
+/// # Safety
+///
+/// Implementers must ensure that the type is made up only of types that can be safely read from
+/// arbitrary byte sequences (e.g., `u32`, `u64`, etc.).
+pub unsafe trait ReadableFromBytes {}
+
+// SAFETY: All bit patterns are acceptable values of the types below.
+unsafe impl ReadableFromBytes for u8 {}
+unsafe impl ReadableFromBytes for u16 {}
+unsafe impl ReadableFromBytes for u32 {}
+unsafe impl ReadableFromBytes for u64 {}
+unsafe impl ReadableFromBytes for usize {}
+unsafe impl ReadableFromBytes for i8 {}
+unsafe impl ReadableFromBytes for i16 {}
+unsafe impl ReadableFromBytes for i32 {}
+unsafe impl ReadableFromBytes for i64 {}
+unsafe impl ReadableFromBytes for isize {}
 
 /// A reference to an area in userspace memory, which can be either
 /// read-only or read-write.
@@ -64,14 +89,18 @@ impl UserSlicePtr {
     /// appropriate permissions. Those checks are handled in the read
     /// and write methods.
     ///
+    /// # Safety
+    ///
     /// This is `unsafe` because if it is called within `set_fs(KERNEL_DS)`
     /// context then `access_ok` will not do anything. As a result the only
     /// place you can safely use this is with a `__user` pointer that was
     /// provided by the kernel.
-    pub(crate) unsafe fn new(
-        ptr: *mut c_types::c_void,
-        length: usize,
-    ) -> error::KernelResult<UserSlicePtr> {
+    ///
+    /// Callers must also be careful to avoid time-of-check-time-of-use
+    /// (TOCTOU) issues. The simplest way is to create a single instance of
+    /// [`UserSlicePtr`] per user memory block as it reads each byte at
+    /// most once.
+    pub unsafe fn new(ptr: *mut c_types::c_void, length: usize) -> KernelResult<UserSlicePtr> {
         if rust_helper_access_ok(ptr, length as c_types::c_ulong) == 0 {
             return Err(error::Error::EFAULT);
         }
@@ -82,7 +111,7 @@ impl UserSlicePtr {
     ///
     /// Returns `EFAULT` if the address does not currently point to
     /// mapped, readable memory.
-    pub fn read_all(self) -> error::KernelResult<Vec<u8>> {
+    pub fn read_all(self) -> KernelResult<Vec<u8>> {
         self.reader().read_all()
     }
 
@@ -97,13 +126,21 @@ impl UserSlicePtr {
     /// mapped, writable memory (in which case some data from before the
     /// fault may be written), or `data` is larger than the user slice
     /// (in which case no data is written).
-    pub fn write_all(self, data: &[u8]) -> error::KernelResult<()> {
-        self.writer().write(data)
+    pub fn write_all(self, data: &[u8]) -> KernelResult<()> {
+        self.writer().write_slice(data)
     }
 
     /// Constructs a [`UserSlicePtrWriter`].
     pub fn writer(self) -> UserSlicePtrWriter {
         UserSlicePtrWriter(self.0, self.1)
+    }
+
+    /// Constructs both a [`UserSlicePtrReader`] and a [`UserSlicePtrWriter`].
+    pub fn reader_writer(self) -> (UserSlicePtrReader, UserSlicePtrWriter) {
+        (
+            UserSlicePtrReader(self.0, self.1),
+            UserSlicePtrWriter(self.0, self.1),
+        )
     }
 }
 
@@ -133,7 +170,8 @@ impl UserSlicePtrReader {
         let mut data = Vec::<u8>::new();
         data.try_reserve_exact(self.1)?;
         data.resize(self.1, 0);
-        self.read(&mut data)?;
+        // SAFETY: The output buffer is valid as we just allocated it.
+        unsafe { self.read_raw(data.as_mut_ptr(), data.len())? };
         Ok(data)
     }
 
@@ -142,26 +180,39 @@ impl UserSlicePtrReader {
     /// Returns `EFAULT` if the byte slice is bigger than the remaining size
     /// of the user slice or if the address does not currently point to mapped,
     /// readable memory.
-    pub fn read(&mut self, data: &mut [u8]) -> error::KernelResult<()> {
-        if data.len() > self.1 || data.len() > u32::MAX as usize {
+    pub fn read_slice(&mut self, data: &mut [u8]) -> KernelResult<()> {
+        // SAFETY: The output buffer is valid as it's coming from a live reference.
+        unsafe { self.read_raw(data.as_mut_ptr(), data.len()) }
+    }
+
+    /// Reads raw data from the user slice into a raw kernel buffer.
+    ///
+    /// # Safety
+    ///
+    /// The output buffer must be valid.
+    pub unsafe fn read_raw(&mut self, out: *mut u8, len: usize) -> KernelResult<()> {
+        if len > self.1 || len > u32::MAX as usize {
             return Err(error::Error::EFAULT);
         }
-        let res = unsafe {
-            rust_helper_copy_from_user(
-                data.as_mut_ptr() as *mut c_types::c_void,
-                self.0,
-                data.len() as _,
-            )
-        };
+        let res = rust_helper_copy_from_user(out as _, self.0, len as _);
         if res != 0 {
             return Err(error::Error::EFAULT);
         }
         // Since this is not a pointer to a valid object in our program,
         // we cannot use `add`, which has C-style rules for defined
         // behavior.
-        self.0 = self.0.wrapping_add(data.len());
-        self.1 -= data.len();
+        self.0 = self.0.wrapping_add(len);
+        self.1 -= len;
         Ok(())
+    }
+
+    /// Reads the contents of a plain old data (POD) type from the user slice.
+    pub fn read<T: ReadableFromBytes>(&mut self) -> KernelResult<T> {
+        let mut out = MaybeUninit::<T>::uninit();
+        // SAFETY: The buffer is valid as it was just allocated.
+        unsafe { self.read_raw(out.as_mut_ptr() as _, size_of::<T>()) }?;
+        // SAFETY: We just initialised the data.
+        Ok(unsafe { out.assume_init() })
     }
 }
 
@@ -188,25 +239,29 @@ impl UserSlicePtrWriter {
     /// Returns `EFAULT` if the byte slice is bigger than the remaining size
     /// of the user slice or if the address does not currently point to mapped,
     /// writable memory.
-    pub fn write(&mut self, data: &[u8]) -> error::KernelResult<()> {
-        if data.len() > self.1 || data.len() > u32::MAX as usize {
+    pub fn write_slice(&mut self, data: &[u8]) -> KernelResult<()> {
+        // SAFETY: The input buffer is valid as it's coming from a live reference.
+        unsafe { self.write_raw(data.as_ptr(), data.len()) }
+    }
+
+    /// Writes raw data to the user slice from a raw kernel buffer.
+    ///
+    /// # Safety
+    ///
+    /// The input buffer must be valid.
+    unsafe fn write_raw(&mut self, data: *const u8, len: usize) -> KernelResult<()> {
+        if len > self.1 || len > u32::MAX as usize {
             return Err(error::Error::EFAULT);
         }
-        let res = unsafe {
-            rust_helper_copy_to_user(
-                self.0,
-                data.as_ptr() as *const c_types::c_void,
-                data.len() as _,
-            )
-        };
+        let res = rust_helper_copy_to_user(self.0, data as _, len as _);
         if res != 0 {
             return Err(error::Error::EFAULT);
         }
         // Since this is not a pointer to a valid object in our program,
         // we cannot use `add`, which has C-style rules for defined
         // behavior.
-        self.0 = self.0.wrapping_add(data.len());
-        self.1 -= data.len();
+        self.0 = self.0.wrapping_add(len);
+        self.1 -= len;
         Ok(())
     }
 }
