@@ -4,13 +4,9 @@
 //!
 //! C header: [`include/uapi/asm-generic/errno-base.h`](../../../include/uapi/asm-generic/errno-base.h)
 
-use core::num::TryFromIntError;
-use core::str::Utf8Error;
-
-use alloc::alloc::AllocError;
-
-use crate::bindings;
-use crate::c_types;
+use crate::{bindings, c_types};
+use alloc::{alloc::AllocError, collections::TryReserveError};
+use core::{num::TryFromIntError, str::Utf8Error};
 
 /// Generic integer kernel error.
 ///
@@ -69,6 +65,12 @@ impl From<TryFromIntError> for Error {
 impl From<Utf8Error> for Error {
     fn from(_: Utf8Error) -> Error {
         Error::EINVAL
+    }
+}
+
+impl From<TryReserveError> for Error {
+    fn from(_: TryReserveError) -> Error {
+        Error::ENOMEM
     }
 }
 

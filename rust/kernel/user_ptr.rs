@@ -4,12 +4,8 @@
 //!
 //! C header: [`include/linux/uaccess.h`](../../../../include/linux/uaccess.h)
 
-use alloc::vec;
+use crate::{c_types, error};
 use alloc::vec::Vec;
-use core::u32;
-
-use crate::c_types;
-use crate::error;
 
 extern "C" {
     fn rust_helper_access_ok(addr: *const c_types::c_void, len: c_types::c_ulong)
@@ -134,7 +130,9 @@ impl UserSlicePtrReader {
     /// Returns `EFAULT` if the address does not currently point to
     /// mapped, readable memory.
     pub fn read_all(&mut self) -> error::KernelResult<Vec<u8>> {
-        let mut data = vec![0; self.1];
+        let mut data = Vec::<u8>::new();
+        data.try_reserve_exact(self.1)?;
+        data.resize(self.1, 0);
         self.read(&mut data)?;
         Ok(data)
     }
