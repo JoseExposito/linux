@@ -2039,6 +2039,7 @@ config PROFILING
 config RUST
 	bool "Rust support"
 	depends on HAS_RUST
+	depends on !COMPILE_TEST
 	default n
 	help
 	  Enables Rust support in the kernel.

@@ -1208,7 +1208,11 @@ export MODORDER := $(extmod-prefix)modules.order
 export MODULES_NSDEPS := $(extmod-prefix)modules.nsdeps
 
 ifeq ($(KBUILD_EXTMOD),)
-core-y		+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/ block/ rust/
+core-y		+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/ block/
+
+ifdef CONFIG_RUST
+core-y		+= rust/
+endif
 
 vmlinux-dirs	:= $(patsubst %/,%,$(filter %/, \
 		     $(core-y) $(core-m) $(drivers-y) $(drivers-m) \
@@ -1310,7 +1314,9 @@ archprepare: outputmakefile archheaders archscripts scripts include/config/kerne
 prepare0: archprepare
 	$(Q)$(MAKE) $(build)=scripts/mod
 	$(Q)$(MAKE) $(build)=.
+ifdef CONFIG_RUST
 	$(Q)$(MAKE) $(build)=rust
+endif
 
 # All the preparing..
 prepare: prepare0 prepare-objtool prepare-resolve_btfids
