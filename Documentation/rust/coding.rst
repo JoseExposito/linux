@@ -21,7 +21,7 @@ good news!
 
 .. note:: Conventions on comments and documentation are not checked by
   ``rustfmt``. Thus we still need to take care of those: please see
-   :ref:`Documentation/rust/docs.rst <rust_docs>`.
+  :ref:`Documentation/rust/docs.rst <rust_docs>`.
 
 We use the tool's default settings. This means we are following the idiomatic
 Rust style. For instance, we use 4 spaces for indentation rather than tabs.
