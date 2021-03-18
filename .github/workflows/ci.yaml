@@ -156,35 +156,58 @@ jobs:
       # Run
       - run: ${{ env.BUILD_DIR }}usr/gen_init_cpio .github/workflows/qemu-initramfs.desc > qemu-initramfs.img
 
-      - run: qemu-system-${{ env.QEMU_ARCH }} -kernel ${{ env.BUILD_DIR }}${{ env.IMAGE_PATH }} -initrd qemu-initramfs.img -M ${{ env.QEMU_MACHINE }} -cpu ${{ env.QEMU_CPU }} -smp 2 -nographic -no-reboot -append '${{ env.QEMU_APPEND }} rust_example.my_i32=123321 rust_example.my_str=🦀mod rust_example_2.my_i32=234432' | tee qemu-stdout.log
+      - run: |
+          qemu-system-${{ env.QEMU_ARCH }} \
+            -kernel ${{ env.BUILD_DIR }}${{ env.IMAGE_PATH }} \
+            -initrd qemu-initramfs.img \
+            -M ${{ env.QEMU_MACHINE }} \
+            -cpu ${{ env.QEMU_CPU }} \
+            -smp 2 \
+            -nographic \
+            -no-reboot \
+            -append '${{ env.QEMU_APPEND }} rust_example.my_i32=123321 rust_example.my_str=🦀mod rust_example_2.my_i32=234432' \
+            | sed s:$'\r'$:: \
+            | tee qemu-stdout.log
 
       # Check
-      - run: grep -F     '] Rust Example (init)' qemu-stdout.log
-      - run: grep -F '] [2] Rust Example (init)' qemu-stdout.log
-      - run: grep -F '] [3] Rust Example (init)' qemu-stdout.log
-      - run: grep -F '] [4] Rust Example (init)' qemu-stdout.log
+      - run: |
+          grep      '] Rust Example (init)$' qemu-stdout.log
+          grep '] \[2] Rust Example (init)$' qemu-stdout.log
+          grep '] \[3] Rust Example (init)$' qemu-stdout.log
+          grep '] \[4] Rust Example (init)$' qemu-stdout.log
 
-      - run: "grep -F     ']   my_i32:     123321' qemu-stdout.log"
-      - run: "grep -F '] [2]   my_i32:     234432' qemu-stdout.log"
-      - run: "grep -F '] [3]   my_i32:     345543' qemu-stdout.log"
-      - run: "grep -F '] [4]   my_i32:     456654' qemu-stdout.log"
+          grep      ']   my_i32:     123321$' qemu-stdout.log
+          grep '] \[2]   my_i32:     234432$' qemu-stdout.log
+          grep '] \[3]   my_i32:     345543$' qemu-stdout.log
+          grep '] \[4]   my_i32:     456654$' qemu-stdout.log
 
-      - run: "grep -F     ']   my_usize:   42' qemu-stdout.log"
-      - run: "grep -F '] [2]   my_usize:   42' qemu-stdout.log"
-      - run: "grep -F '] [3]   my_usize:   42' qemu-stdout.log"
-      - run: "grep -F '] [4]   my_usize:   84' qemu-stdout.log"
+          grep      ']   my_usize:   42$' qemu-stdout.log
+          grep '] \[2]   my_usize:   42$' qemu-stdout.log
+          grep '] \[3]   my_usize:   42$' qemu-stdout.log
+          grep '] \[4]   my_usize:   84$' qemu-stdout.log
 
-      - run: "grep            '\\]   my_str:     🦀mod\\s*$'           qemu-stdout.log"
-      - run: "grep    '\\] \\[2\\]   my_str:     default str val\\s*$' qemu-stdout.log"
-      - run: "grep    '\\] \\[3\\]   my_str:     🦀mod\\s*$'           qemu-stdout.log"
-      - run: "grep    '\\] \\[4\\]   my_str:     default str val\\s*$' qemu-stdout.log"
+          grep      ']   my_str:     🦀mod$'           qemu-stdout.log
+          grep '] \[2]   my_str:     default str val$' qemu-stdout.log
+          grep '] \[3]   my_str:     🦀mod$'           qemu-stdout.log
+          grep '] \[4]   my_str:     default str val$' qemu-stdout.log
 
-      - run: grep -F '] [3] Rust Example (exit)' qemu-stdout.log
-      - run: grep -F '] [4] Rust Example (exit)' qemu-stdout.log
+          grep '] \[3] Rust Example (exit)$' qemu-stdout.log
+          grep '] \[4] Rust Example (exit)$' qemu-stdout.log
 
       # Report
-      - run: ls -l ${{ env.BUILD_DIR }}drivers/char/rust_example.o ${{ env.BUILD_DIR }}drivers/char/rust_example_3.ko ${{ env.BUILD_DIR }}rust/*.o ${{ env.BUILD_DIR }}vmlinux ${{ env.BUILD_DIR }}${{ env.IMAGE_PATH }}
-      - run: size  ${{ env.BUILD_DIR }}drivers/char/rust_example.o ${{ env.BUILD_DIR }}drivers/char/rust_example_3.ko ${{ env.BUILD_DIR }}rust/*.o ${{ env.BUILD_DIR }}vmlinux
+      - run: |
+          ls -l \
+            ${{ env.BUILD_DIR }}drivers/char/rust_example.o \
+            ${{ env.BUILD_DIR }}drivers/char/rust_example_3.ko \
+            ${{ env.BUILD_DIR }}rust/*.o \
+            ${{ env.BUILD_DIR }}vmlinux \
+            ${{ env.BUILD_DIR }}${{ env.IMAGE_PATH }}
+
+          size \
+            ${{ env.BUILD_DIR }}drivers/char/rust_example.o \
+            ${{ env.BUILD_DIR }}drivers/char/rust_example_3.ko \
+            ${{ env.BUILD_DIR }}rust/*.o \
+            ${{ env.BUILD_DIR }}vmlinux
 
       # Clippy
       - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 CLIPPY=1
