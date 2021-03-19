@@ -162,7 +162,9 @@ unsafe extern "C" fn unlocked_ioctl_callback<T: FileOperations>(
 ) -> c_types::c_long {
     from_kernel_result! {
         let f = &*((*file).private_data as *const T);
-        let ret = T::ioctl(f, &File::from_ptr(file), IoctlCommand(cmd as _), arg as _)?;
+        // SAFETY: This function is called by the kernel, so it must set `fs` appropriately.
+        let mut cmd = IoctlCommand::new(cmd as _, arg as _);
+        let ret = T::ioctl(f, &File::from_ptr(file), &mut cmd)?;
         Ok(ret as _)
     }
 }
@@ -174,7 +176,9 @@ unsafe extern "C" fn compat_ioctl_callback<T: FileOperations>(
 ) -> c_types::c_long {
     from_kernel_result! {
         let f = &*((*file).private_data as *const T);
-        let ret = T::compat_ioctl(f, &File::from_ptr(file), IoctlCommand(cmd as _), arg as _)?;
+        // SAFETY: This function is called by the kernel, so it must set `fs` appropriately.
+        let mut cmd = IoctlCommand::new(cmd as _, arg as _);
+        let ret = T::compat_ioctl(f, &File::from_ptr(file), &mut cmd)?;
         Ok(ret as _)
     }
 }
@@ -343,48 +347,66 @@ pub trait IoctlHandler: Sync {
 ///
 /// It can use the components of an ioctl command to dispatch ioctls using
 /// [`IoctlCommand::dispatch`].
-pub struct IoctlCommand(u32);
+pub struct IoctlCommand {
+    cmd: u32,
+    arg: usize,
+    user_slice: Option<UserSlicePtr>,
+}
 
 impl IoctlCommand {
+    /// Constructs a new [`IoctlCommand`].
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `fs` is compatible with `arg` and the original caller's
+    /// context. For example, if the original caller is from userland (e.g., through the ioctl
+    /// syscall), then `arg` is untrusted and `fs` should therefore be `USER_DS`.
+    unsafe fn new(cmd: u32, arg: usize) -> Self {
+        let user_slice = {
+            let dir = (cmd >> bindings::_IOC_DIRSHIFT) & bindings::_IOC_DIRMASK;
+            if dir == bindings::_IOC_NONE {
+                None
+            } else {
+                let size = (cmd >> bindings::_IOC_SIZESHIFT) & bindings::_IOC_SIZEMASK;
+
+                // SAFETY: We only create one instance of the user slice, so TOCTOU issues are not
+                // possible. The `set_fs` requirements are imposed on the caller.
+                UserSlicePtr::new(arg as _, size as _).ok()
+            }
+        };
+
+        Self {
+            cmd,
+            arg,
+            user_slice,
+        }
+    }
+
     /// Dispatches the given ioctl to the appropriate handler based on the value of the command. It
     /// also creates a [`UserSlicePtr`], [`UserSlicePtrReader`], or [`UserSlicePtrWriter`]
     /// depending on the direction of the buffer of the command.
     ///
     /// It is meant to be used in implementations of [`FileOperations::ioctl`] and
     /// [`FileOperations::compat_ioctl`].
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that `fs` is set to a value compatible with the pointer in `arg`.
-    /// This is because this function uses [`UserSlicePtr`], which calls `access_ok`.
-    pub unsafe fn dispatch<T: IoctlHandler>(
-        &self,
-        handler: &T,
-        file: &File,
-        arg: usize,
-    ) -> KernelResult<i32> {
-        let dir = (self.0 >> bindings::_IOC_DIRSHIFT) & bindings::_IOC_DIRMASK;
+    pub fn dispatch<T: IoctlHandler>(&mut self, handler: &T, file: &File) -> KernelResult<i32> {
+        let dir = (self.cmd >> bindings::_IOC_DIRSHIFT) & bindings::_IOC_DIRMASK;
         if dir == bindings::_IOC_NONE {
-            return T::pure(handler, file, self.0, arg);
+            return T::pure(handler, file, self.cmd, self.arg);
         }
 
-        let size = (self.0 >> bindings::_IOC_SIZESHIFT) & bindings::_IOC_SIZEMASK;
-
-        // SAFETY: We only create one instance of the user slice, so TOCTOU issues are not possible.
-        // The `set_fs` requirements are imposed on the caller.
-        let data = UserSlicePtr::new(arg as _, size as _)?;
+        let data = self.user_slice.take().ok_or(Error::EFAULT)?;
         const READ_WRITE: u32 = bindings::_IOC_READ | bindings::_IOC_WRITE;
         match dir {
-            bindings::_IOC_WRITE => T::write(handler, file, self.0, &mut data.reader()),
-            bindings::_IOC_READ => T::read(handler, file, self.0, &mut data.writer()),
-            READ_WRITE => T::read_write(handler, file, self.0, data),
+            bindings::_IOC_WRITE => T::write(handler, file, self.cmd, &mut data.reader()),
+            bindings::_IOC_READ => T::read(handler, file, self.cmd, &mut data.writer()),
+            READ_WRITE => T::read_write(handler, file, self.cmd, data),
             _ => Err(Error::EINVAL),
         }
     }
 
-    /// Returns the raw 32-bit value of the command.
-    pub fn raw(&self) -> u32 {
-        self.0
+    /// Returns the raw 32-bit value of the command and the ptr-sized argument.
+    pub fn raw(&self) -> (u32, usize) {
+        (self.cmd, self.arg)
     }
 }
 
@@ -438,14 +460,14 @@ pub trait FileOperations: Sync + Sized {
     /// Performs IO control operations that are specific to the file.
     ///
     /// Corresponds to the `unlocked_ioctl` function pointer in `struct file_operations`.
-    fn ioctl(&self, _file: &File, _cmd: IoctlCommand, _arg: usize) -> KernelResult<i32> {
+    fn ioctl(&self, _file: &File, _cmd: &mut IoctlCommand) -> KernelResult<i32> {
         Err(Error::EINVAL)
     }
 
     /// Performs 32-bit IO control operations on that are specific to the file on 64-bit kernels.
     ///
     /// Corresponds to the `compat_ioctl` function pointer in `struct file_operations`.
-    fn compat_ioctl(&self, _file: &File, _cmd: IoctlCommand, _arg: usize) -> KernelResult<i32> {
+    fn compat_ioctl(&self, _file: &File, _cmd: &mut IoctlCommand) -> KernelResult<i32> {
         Err(Error::EINVAL)
     }
 
