@@ -21,13 +21,25 @@ pub struct File {
 }
 
 impl File {
+    /// Constructors a new [`struct file`] wrapper.
+    ///
+    /// # Safety
+    ///
+    /// The pointer `ptr` must be non-null and valid for the lifetime of the object.
     unsafe fn from_ptr(ptr: *const bindings::file) -> File {
         File { ptr }
     }
 
     /// Returns the current seek/cursor/pointer position (`struct file::f_pos`).
     pub fn pos(&self) -> u64 {
+        // SAFETY: `File::ptr` is guaranteed to be valid by the constructor's requirement.
         unsafe { (*self.ptr).f_pos as u64 }
+    }
+
+    /// Returns whether the file is in blocking mode.
+    pub fn is_blocking(&self) -> bool {
+        // SAFETY: `File::ptr` is guaranteed to be valid by the constructor's requirement.
+        unsafe { (*self.ptr).f_flags & bindings::O_NONBLOCK == 0 }
     }
 }
 
@@ -138,6 +150,30 @@ unsafe extern "C" fn llseek_callback<T: FileOperations>(
     }
 }
 
+unsafe extern "C" fn unlocked_ioctl_callback<T: FileOperations>(
+    file: *mut bindings::file,
+    cmd: c_types::c_uint,
+    arg: c_types::c_ulong,
+) -> c_types::c_long {
+    from_kernel_result! {
+        let f = &*((*file).private_data as *const T);
+        let ret = T::ioctl(f, &File::from_ptr(file), cmd as _, arg as _)?;
+        Ok(ret as _)
+    }
+}
+
+unsafe extern "C" fn compat_ioctl_callback<T: FileOperations>(
+    file: *mut bindings::file,
+    cmd: c_types::c_uint,
+    arg: c_types::c_ulong,
+) -> c_types::c_long {
+    from_kernel_result! {
+        let f = &*((*file).private_data as *const T);
+        let ret = T::compat_ioctl(f, &File::from_ptr(file), cmd as _, arg as _)?;
+        Ok(ret as _)
+    }
+}
+
 unsafe extern "C" fn fsync_callback<T: FileOperations>(
     file: *mut bindings::file,
     start: bindings::loff_t,
@@ -177,7 +213,11 @@ impl<T: FileOperations> FileOperationsVtable<T> {
         },
 
         check_flags: None,
-        compat_ioctl: None,
+        compat_ioctl: if T::TO_USE.compat_ioctl {
+            Some(compat_ioctl_callback::<T>)
+        } else {
+            None
+        },
         copy_file_range: None,
         fallocate: None,
         fadvise: None,
@@ -205,7 +245,11 @@ impl<T: FileOperations> FileOperationsVtable<T> {
         show_fdinfo: None,
         splice_read: None,
         splice_write: None,
-        unlocked_ioctl: None,
+        unlocked_ioctl: if T::TO_USE.ioctl {
+            Some(unlocked_ioctl_callback::<T>)
+        } else {
+            None
+        },
         write_iter: None,
     };
 }
@@ -221,6 +265,12 @@ pub struct ToUse {
     /// The `llseek` field of [`struct file_operations`].
     pub seek: bool,
 
+    /// The `unlocked_ioctl` field of [`struct file_operations`].
+    pub ioctl: bool,
+
+    /// The `compat_ioctl` field of [`struct file_operations`].
+    pub compat_ioctl: bool,
+
     /// The `fsync` field of [`struct file_operations`].
     pub fsync: bool,
 }
@@ -231,6 +281,8 @@ pub const USE_NONE: ToUse = ToUse {
     read: false,
     write: false,
     seek: false,
+    ioctl: false,
+    compat_ioctl: false,
     fsync: false,
 };
 
@@ -247,6 +299,70 @@ macro_rules! declare_file_operations {
                 ..$crate::file_operations::USE_NONE
             };
     };
+}
+
+/// Allows the handling of ioctls defined with the `_IO`, `_IOR`, `_IOW`, and `_IOWR` macros.
+///
+/// For each macro, there is a handler function that takes the appropriate types as arguments.
+pub trait IoctlHandler: Sync {
+    /// Handles ioctls defined with the `_IO` macro, that is, with no buffer as argument.
+    fn pure(&self, _file: &File, _cmd: u32, _arg: usize) -> KernelResult<i32> {
+        Err(Error::EINVAL)
+    }
+
+    /// Handles ioctls defined with the `_IOR` macro, that is, with an output buffer provided as
+    /// argument.
+    fn read(&self, _file: &File, _cmd: u32, _writer: &mut UserSlicePtrWriter) -> KernelResult<i32> {
+        Err(Error::EINVAL)
+    }
+
+    /// Handles ioctls defined with the `_IOW` macro, that is, with an input buffer provided as
+    /// argument.
+    fn write(
+        &self,
+        _file: &File,
+        _cmd: u32,
+        _reader: &mut UserSlicePtrReader,
+    ) -> KernelResult<i32> {
+        Err(Error::EINVAL)
+    }
+
+    /// Handles ioctls defined with the `_IOWR` macro, that is, with a buffer for both input and
+    /// output provided as argument.
+    fn read_write(&self, _file: &File, _cmd: u32, _data: UserSlicePtr) -> KernelResult<i32> {
+        Err(Error::EINVAL)
+    }
+}
+
+/// Dispatches the given ioctl to the appropriate handler based on the value of `cmd`. It also
+/// creates a [`UserSlicePtr`], [`UserSlicePtrReader`], or [`UserSlicePtrWriter`] depending on the
+/// direction of the buffer of the command.
+///
+/// It is meant to be used in implementations of [`FileOperations::ioctl`] and
+/// [`FileOperations::compat_ioctl`].
+pub fn dispatch_ioctl<T: IoctlHandler>(
+    handler: &T,
+    file: &File,
+    cmd: u32,
+    arg: usize,
+) -> KernelResult<i32> {
+    let dir = (cmd >> bindings::_IOC_DIRSHIFT) & bindings::_IOC_DIRMASK;
+    if dir == bindings::_IOC_NONE {
+        return T::pure(handler, file, cmd, arg);
+    }
+
+    let size = (cmd >> bindings::_IOC_SIZESHIFT) & bindings::_IOC_SIZEMASK;
+
+    // SAFETY: The caller is reponsible for setting the appropriate `fs`. Additionally, we only
+    // create one instance of the user slice, so TOCTOU issues are not possible.
+    let data = unsafe { UserSlicePtr::new(arg as _, size as _) }?;
+    const READ_WRITE: u32 = bindings::_IOC_READ | bindings::_IOC_WRITE;
+    match dir {
+        bindings::_IOC_WRITE => T::write(handler, file, cmd, &mut data.reader()),
+        bindings::_IOC_READ => T::read(handler, file, cmd, &mut data.writer()),
+        READ_WRITE => T::read_write(handler, file, cmd, data),
+        _ => Err(Error::EINVAL),
+    }
 }
 
 /// Corresponds to the kernel's `struct file_operations`.
@@ -293,6 +409,20 @@ pub trait FileOperations: Sync + Sized {
     ///
     /// Corresponds to the `llseek` function pointer in `struct file_operations`.
     fn seek(&self, _file: &File, _offset: SeekFrom) -> KernelResult<u64> {
+        Err(Error::EINVAL)
+    }
+
+    /// Performs IO control operations that are specific to the file.
+    ///
+    /// Corresponds to the `unlocked_ioctl` function pointer in `struct file_operations`.
+    fn ioctl(&self, _file: &File, _cmd: u32, _arg: usize) -> KernelResult<i32> {
+        Err(Error::EINVAL)
+    }
+
+    /// Performs 32-bit IO control operations on that are specific to the file on 64-bit kernels.
+    ///
+    /// Corresponds to the `compat_ioctl` function pointer in `struct file_operations`.
+    fn compat_ioctl(&self, _file: &File, _cmd: u32, _arg: usize) -> KernelResult<i32> {
         Err(Error::EINVAL)
     }
 
