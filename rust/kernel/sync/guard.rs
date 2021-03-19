@@ -78,9 +78,5 @@ pub trait Lock {
     unsafe fn unlock(&self);
 
     /// Returns the data protected by the lock.
-    ///
-    /// # Safety
-    ///
-    /// It must only be called by the current owner of the lock.
-    unsafe fn locked_data(&self) -> &core::cell::UnsafeCell<Self::Inner>;
+    fn locked_data(&self) -> &core::cell::UnsafeCell<Self::Inner>;
 }
