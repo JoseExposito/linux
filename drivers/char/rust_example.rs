@@ -136,6 +136,8 @@ impl KernelModule for RustExample {
 
         let mut chrdev_reg =
             chrdev::Registration::new_pinned(cstr!("rust_chrdev"), 0, &THIS_MODULE)?;
+        // Register the same kind of device twice, we're just demonstrating
+        // that you can use multiple minors.
         chrdev_reg.as_mut().register::<RustFile>()?;
         chrdev_reg.as_mut().register::<RustFile>()?;
 
