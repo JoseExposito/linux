@@ -16,6 +16,10 @@ use crate::error::{Error, KernelResult};
 use crate::user_ptr::{UserSlicePtr, UserSlicePtrReader, UserSlicePtrWriter};
 
 /// Wraps the kernel's `struct file`.
+///
+/// # Invariants
+///
+/// The pointer [`File::ptr`] is non-null and valid.
 pub struct File {
     ptr: *const bindings::file,
 }
@@ -27,18 +31,19 @@ impl File {
     ///
     /// The pointer `ptr` must be non-null and valid for the lifetime of the object.
     unsafe fn from_ptr(ptr: *const bindings::file) -> File {
+        // INVARIANTS: the safety contract ensures the type invariant will hold.
         File { ptr }
     }
 
     /// Returns the current seek/cursor/pointer position (`struct file::f_pos`).
     pub fn pos(&self) -> u64 {
-        // SAFETY: `File::ptr` is guaranteed to be valid by the constructor's requirement.
+        // SAFETY: `File::ptr` is guaranteed to be valid by the type invariants.
         unsafe { (*self.ptr).f_pos as u64 }
     }
 
     /// Returns whether the file is in blocking mode.
     pub fn is_blocking(&self) -> bool {
-        // SAFETY: `File::ptr` is guaranteed to be valid by the constructor's requirement.
+        // SAFETY: `File::ptr` is guaranteed to be valid by the type invariants.
         unsafe { (*self.ptr).f_flags & bindings::O_NONBLOCK == 0 }
     }
 }
