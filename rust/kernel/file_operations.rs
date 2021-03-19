@@ -25,7 +25,7 @@ pub struct File {
 }
 
 impl File {
-    /// Constructors a new [`struct file`] wrapper.
+    /// Constructs a new [`struct file`] wrapper.
     ///
     /// # Safety
     ///
@@ -380,6 +380,11 @@ impl IoctlCommand {
             READ_WRITE => T::read_write(handler, file, self.0, data),
             _ => Err(Error::EINVAL),
         }
+    }
+
+    /// Returns the raw 32-bit value of the command.
+    pub fn raw(&self) -> u32 {
+        self.0
     }
 }
 
