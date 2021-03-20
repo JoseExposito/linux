@@ -12,7 +12,7 @@
 //! do so first instead of bypassing this crate.
 
 #![no_std]
-#![feature(allocator_api, alloc_error_handler)]
+#![feature(allocator_api, alloc_error_handler, const_fn, const_mut_refs)]
 #![deny(clippy::complexity)]
 #![deny(clippy::correctness)]
 #![deny(clippy::perf)]
@@ -36,7 +36,10 @@ pub mod chrdev;
 mod error;
 pub mod file_operations;
 pub mod miscdev;
+
+#[doc(hidden)]
 pub mod module_param;
+
 pub mod prelude;
 pub mod printk;
 pub mod random;
