@@ -92,9 +92,9 @@ impl From<TryReserveError> for Error {
 /// its error type.
 ///
 /// Note that even if a function does not return anything when it succeeds,
-/// it should still be modeled as returning a `KernelResult<()>` rather than
+/// it should still be modeled as returning a `KernelResult` rather than
 /// just an [`Error`].
-pub type KernelResult<T> = Result<T, Error>;
+pub type KernelResult<T = ()> = Result<T, Error>;
 
 impl From<AllocError> for Error {
     fn from(_: AllocError) -> Error {

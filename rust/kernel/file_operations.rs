@@ -439,7 +439,7 @@ pub trait FileOperations: Sync + Sized {
     /// Reads data from this file to userspace.
     ///
     /// Corresponds to the `read` function pointer in `struct file_operations`.
-    fn read(&self, _file: &File, _data: &mut UserSlicePtrWriter, _offset: u64) -> KernelResult<()> {
+    fn read(&self, _file: &File, _data: &mut UserSlicePtrWriter, _offset: u64) -> KernelResult {
         Err(Error::EINVAL)
     }
 

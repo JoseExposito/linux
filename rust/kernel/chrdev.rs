@@ -78,7 +78,7 @@ impl<const N: usize> Registration<{ N }> {
     /// Registers a character device.
     ///
     /// You may call this once per device type, up to `N` times.
-    pub fn register<T: file_operations::FileOperations>(self: Pin<&mut Self>) -> KernelResult<()> {
+    pub fn register<T: file_operations::FileOperations>(self: Pin<&mut Self>) -> KernelResult {
         // SAFETY: We must ensure that we never move out of `this`.
         let this = unsafe { self.get_unchecked_mut() };
         if this.inner.is_none() {

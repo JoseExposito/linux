@@ -51,7 +51,7 @@ impl Registration {
         self: Pin<&mut Self>,
         name: CStr<'static>,
         minor: Option<i32>,
-    ) -> KernelResult<()> {
+    ) -> KernelResult {
         // SAFETY: We must ensure that we never move out of `this`.
         let this = unsafe { self.get_unchecked_mut() };
         if this.mdev.is_some() {

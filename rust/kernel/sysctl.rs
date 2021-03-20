@@ -21,10 +21,10 @@ use crate::user_ptr::{UserSlicePtr, UserSlicePtrWriter};
 /// Sysctl storage.
 pub trait SysctlStorage: Sync {
     /// Writes a byte slice.
-    fn store_value(&self, data: &[u8]) -> (usize, error::KernelResult<()>);
+    fn store_value(&self, data: &[u8]) -> (usize, error::KernelResult);
 
     /// Reads via a [`UserSlicePtrWriter`].
-    fn read_value(&self, data: &mut UserSlicePtrWriter) -> (usize, error::KernelResult<()>);
+    fn read_value(&self, data: &mut UserSlicePtrWriter) -> (usize, error::KernelResult);
 }
 
 fn trim_whitespace(mut data: &[u8]) -> &[u8] {
@@ -45,17 +45,17 @@ impl<T> SysctlStorage for &T
 where
     T: SysctlStorage,
 {
-    fn store_value(&self, data: &[u8]) -> (usize, error::KernelResult<()>) {
+    fn store_value(&self, data: &[u8]) -> (usize, error::KernelResult) {
         (*self).store_value(data)
     }
 
-    fn read_value(&self, data: &mut UserSlicePtrWriter) -> (usize, error::KernelResult<()>) {
+    fn read_value(&self, data: &mut UserSlicePtrWriter) -> (usize, error::KernelResult) {
         (*self).read_value(data)
     }
 }
 
 impl SysctlStorage for atomic::AtomicBool {
-    fn store_value(&self, data: &[u8]) -> (usize, error::KernelResult<()>) {
+    fn store_value(&self, data: &[u8]) -> (usize, error::KernelResult) {
         let result = match trim_whitespace(data) {
             b"0" => {
                 self.store(false, atomic::Ordering::Relaxed);
@@ -70,7 +70,7 @@ impl SysctlStorage for atomic::AtomicBool {
         (data.len(), result)
     }
 
-    fn read_value(&self, data: &mut UserSlicePtrWriter) -> (usize, error::KernelResult<()>) {
+    fn read_value(&self, data: &mut UserSlicePtrWriter) -> (usize, error::KernelResult) {
         let value = if self.load(atomic::Ordering::Relaxed) {
             b"1\n"
         } else {
