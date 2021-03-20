@@ -34,6 +34,21 @@ impl Error {
     /// Try again.
     pub const EAGAIN: Self = Error(-(bindings::EAGAIN as i32));
 
+    /// Device or resource busy.
+    pub const EBUSY: Self = Error(-(bindings::EBUSY as i32));
+
+    /// Restart the system call.
+    pub const ERESTARTSYS: Self = Error(-(bindings::ERESTARTSYS as i32));
+
+    /// Operation not permitted.
+    pub const EPERM: Self = Error(-(bindings::EPERM as i32));
+
+    /// No such process.
+    pub const ESRCH: Self = Error(-(bindings::ESRCH as i32));
+
+    /// No such file or directory.
+    pub const ENOENT: Self = Error(-(bindings::ENOENT as i32));
+
     /// Creates an [`Error`] from a kernel error code.
     pub fn from_kernel_errno(errno: c_types::c_int) -> Error {
         Error(errno)
