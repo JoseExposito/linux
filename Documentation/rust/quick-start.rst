@@ -6,6 +6,9 @@ Quick Start
 This document describes how to get started with kernel development in Rust.
 If you have worked previously with Rust, this will only take a moment.
 
+Please note that, at the moment, a very restricted subset of architectures
+is supported, see :doc:`/rust/arch-support`.
+
 
 Requirements: Building
 ----------------------
@@ -49,6 +52,29 @@ repository into the installation folder of your nightly toolchain::
     git clone --recurse-submodules https://github.com/rust-lang/rust $(rustc --print sysroot)/lib/rustlib/src/rust
 
 
+libclang
+********
+
+``libclang`` (part of LLVM) is used by ``bindgen`` to understand the C code
+in the kernel, which means you will need a recent LLVM installed; like when
+you compile the kernel with ``CC=clang`` or ``LLVM=1``.
+
+Your Linux distribution is likely to have a suitable one available, so it is
+best if you check that first.
+
+There are also some binaries for several systems and architectures uploaded at:
+
+    https://releases.llvm.org/download.html
+
+For Debian-based distributions, you can also fetch them from:
+
+    https://apt.llvm.org
+
+Otherwise, building LLVM takes quite a while, but it is not a complex process:
+
+    https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm
+
+
 bindgen
 *******
 
@@ -57,11 +83,7 @@ the ``bindgen`` tool. A recent version should work, e.g. ``0.56.0``.
 
 Install it via (this will build the tool from source)::
 
-    cargo install --version 0.56.0 bindgen
-
-This tool uses ``libclang`` (LLVM) to understand the C code in the kernel,
-which means you will need a recent LLVM installed; like when you compile
-the kernel with ``CC=clang`` or ``LLVM=1``.
+    cargo install --locked --version 0.56.0 bindgen
 
 
 Requirements: Developing
