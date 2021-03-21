@@ -76,7 +76,7 @@ impl SysctlStorage for atomic::AtomicBool {
         } else {
             b"0\n"
         };
-        (value.len(), data.write(value))
+        (value.len(), data.write_slice(value))
     }
 }
 
