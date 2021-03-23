@@ -29,7 +29,10 @@ as possible, but for the moment we depend on a handful of nightly features.
 
 If you are using ``rustup``, run::
 
-    rustup toolchain install nightly
+    rustup default nightly-2021-02-20
+
+Please avoid the very latest nightlies (>= nightly-2021-03-05) until
+https://github.com/Rust-for-Linux/linux/issues/135 is resolved.
 
 Otherwise, fetch a standalone installer or install ``rustup`` from:
 
