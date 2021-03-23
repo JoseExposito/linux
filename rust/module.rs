@@ -42,7 +42,7 @@ fn expect_ident(it: &mut token_stream::IntoIter) -> String {
 }
 
 fn expect_punct(it: &mut token_stream::IntoIter) -> char {
-    if let TokenTree::Punct(punct) = it.next().unwrap() {
+    if let TokenTree::Punct(punct) = it.next().expect("Expected Punct") {
         punct.as_char()
     } else {
         panic!("Expected Punct");
@@ -54,7 +54,7 @@ fn expect_literal(it: &mut token_stream::IntoIter) -> String {
 }
 
 fn expect_group(it: &mut token_stream::IntoIter) -> Group {
-    if let TokenTree::Group(group) = it.next().unwrap() {
+    if let TokenTree::Group(group) = it.next().expect("Expected group") {
         group
     } else {
         panic!("Expected Group");
@@ -84,7 +84,7 @@ fn expect_array_fields(it: &mut token_stream::IntoIter) -> ParamType {
 }
 
 fn expect_type(it: &mut token_stream::IntoIter) -> ParamType {
-    if let TokenTree::Ident(ident) = it.next().unwrap() {
+    if let TokenTree::Ident(ident) = it.next().expect("Expected param type") {
         match ident.to_string().as_ref() {
             "ArrayParam" => expect_array_fields(it),
             _ => ParamType::Ident(ident.to_string()),
@@ -576,7 +576,8 @@ pub fn module(ts: TokenStream) -> TokenStream {
         ));
     }
 
-    let file = std::env::var("RUST_MODFILE").unwrap();
+    let file =
+        std::env::var("RUST_MODFILE").expect("Unable to fetch key for environmental variable");
 
     format!(
         "
@@ -672,5 +673,5 @@ pub fn module(ts: TokenStream) -> TokenStream {
         params_modinfo = params_modinfo,
         generated_array_types = generated_array_types,
         initcall_section = ".initcall6.init"
-    ).parse().unwrap()
+    ).parse().expect("Unable to return formatted string")
 }
