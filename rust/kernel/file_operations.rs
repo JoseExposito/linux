@@ -13,6 +13,7 @@ use alloc::sync::Arc;
 use crate::bindings;
 use crate::c_types;
 use crate::error::{Error, KernelResult};
+use crate::sync::{Ref, RefCounted};
 use crate::user_ptr::{UserSlicePtr, UserSlicePtrReader, UserSlicePtrWriter};
 
 /// Wraps the kernel's `struct file`.
@@ -503,6 +504,16 @@ impl<T> PointerWrapper<T> for Box<T> {
 
     unsafe fn from_pointer(ptr: *const T) -> Self {
         Box::<T>::from_raw(ptr as _)
+    }
+}
+
+impl<T: RefCounted> PointerWrapper<T> for Ref<T> {
+    fn into_pointer(self) -> *const T {
+        Ref::into_raw(self)
+    }
+
+    unsafe fn from_pointer(ptr: *const T) -> Self {
+        Ref::from_raw(ptr as _)
     }
 }
 
