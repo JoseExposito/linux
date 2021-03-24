@@ -48,6 +48,14 @@ jobs:
             install: standalone
             sysroot: custom
 
+          - arch: ppc64le
+            toolchain: clang
+            config: debug
+            rustc: 2021-02-20
+            output: src
+            install: rustup
+            sysroot: common
+
     steps:
       # Setup: checkout
       - uses: actions/checkout@v2
@@ -68,6 +76,14 @@ jobs:
           echo 'QEMU_ARCH=aarch64' >> $GITHUB_ENV
           echo 'QEMU_MACHINE=virt' >> $GITHUB_ENV
           echo 'QEMU_CPU=cortex-a72' >> $GITHUB_ENV
+      - if: matrix.arch == 'ppc64le'
+        run: |
+          echo 'MAKE_ARCH=ARCH=powerpc' >> $GITHUB_ENV
+          echo 'MAKE_CROSS_COMPILE=CROSS_COMPILE=powerpc64le-linux-gnu-' >> $GITHUB_ENV
+          echo 'IMAGE_PATH=vmlinux' >> $GITHUB_ENV
+          echo 'QEMU_ARCH=ppc64' >> $GITHUB_ENV
+          echo 'QEMU_MACHINE=pseries' >> $GITHUB_ENV
+          echo 'QEMU_CPU=POWER9' >> $GITHUB_ENV
 
       - if: matrix.toolchain == 'clang'
         run: echo 'MAKE_TOOLCHAIN=CC=clang-11' >> $GITHUB_ENV
@@ -94,6 +110,8 @@ jobs:
       # Setup: GCC
       - if: matrix.arch == 'arm64'
         run: sudo apt-get install -y gcc-aarch64-linux-gnu
+      - if: matrix.arch == 'ppc64le'
+        run: sudo apt-get install -y gcc-powerpc64le-linux-gnu
 
       # Setup: libelf
       - run: sudo apt-get install -y libelf-dev
@@ -103,6 +121,8 @@ jobs:
         run: sudo apt-get install -y qemu-system-x86
       - if: matrix.arch == 'arm64'
         run: sudo apt-get install -y qemu-system-arm
+      - if: matrix.arch == 'ppc64le'
+        run: sudo apt-get install -y qemu-system-ppc64
 
       # Setup: rustc
       - if: matrix.install == 'rustup'
@@ -164,6 +184,7 @@ jobs:
             -cpu ${{ env.QEMU_CPU }} \
             -smp 2 \
             -nographic \
+            -vga none \
             -no-reboot \
             -append '${{ env.QEMU_APPEND }} \
               rust_example.my_i32=123321 \
