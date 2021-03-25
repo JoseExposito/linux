@@ -6,14 +6,16 @@
 #![feature(allocator_api, global_asm)]
 #![feature(test)]
 
-use alloc::boxed::Box;
+use alloc::{boxed::Box, sync::Arc};
 use core::pin::Pin;
 use kernel::prelude::*;
 use kernel::{
     chrdev, condvar_init, cstr,
-    file_operations::{FileOpener, FileOperations},
+    file_operations::{File, FileOpener, FileOperations},
     miscdev, mutex_init, spinlock_init,
     sync::{CondVar, Mutex, SpinLock},
+    user_ptr::{UserSlicePtrReader, UserSlicePtrWriter},
+    Error,
 };
 
 module! {
@@ -51,6 +53,101 @@ module! {
     },
 }
 
+const MAX_TOKENS: usize = 3;
+
+struct SharedStateInner {
+    token_count: usize,
+}
+
+struct SharedState {
+    state_changed: CondVar,
+    inner: Mutex<SharedStateInner>,
+}
+
+impl SharedState {
+    fn try_new() -> KernelResult<Arc<Self>> {
+        let state = Arc::try_new(Self {
+            // SAFETY: `condvar_init!` is called below.
+            state_changed: unsafe { CondVar::new() },
+            // SAFETY: `mutex_init!` is called below.
+            inner: unsafe { Mutex::new(SharedStateInner { token_count: 0 }) },
+        })?;
+        // SAFETY: `state_changed` is pinned behind `Arc`.
+        let state_changed = unsafe { Pin::new_unchecked(&state.state_changed) };
+        kernel::condvar_init!(state_changed, "SharedState::state_changed");
+        // SAFETY: `inner` is pinned behind `Arc`.
+        let inner = unsafe { Pin::new_unchecked(&state.inner) };
+        kernel::mutex_init!(inner, "SharedState::inner");
+        Ok(state)
+    }
+}
+
+struct Token {
+    shared: Arc<SharedState>,
+}
+
+impl FileOpener<Arc<SharedState>> for Token {
+    fn open(shared: &Arc<SharedState>) -> KernelResult<Self::Wrapper> {
+        Ok(Box::try_new(Self {
+            shared: shared.clone(),
+        })?)
+    }
+}
+
+impl FileOperations for Token {
+    type Wrapper = Box<Self>;
+
+    kernel::declare_file_operations!(read, write);
+
+    fn read(&self, _: &File, data: &mut UserSlicePtrWriter, offset: u64) -> KernelResult<usize> {
+        // Succeed if the caller doesn't provide a buffer or if not at the start.
+        if data.is_empty() || offset != 0 {
+            return Ok(0);
+        }
+
+        {
+            let mut inner = self.shared.inner.lock();
+
+            // Wait until we are allowed to decrement the token count or a signal arrives.
+            while inner.token_count == 0 {
+                if self.shared.state_changed.wait(&mut inner) {
+                    return Err(Error::EINTR);
+                }
+            }
+
+            // Consume a token.
+            inner.token_count -= 1;
+        }
+
+        // Notify a possible writer waiting.
+        self.shared.state_changed.notify_all();
+
+        // Write a one-byte 1 to the reader.
+        data.write_slice(&[1u8; 1])?;
+        Ok(1)
+    }
+
+    fn write(&self, data: &mut UserSlicePtrReader, _offset: u64) -> KernelResult<usize> {
+        {
+            let mut inner = self.shared.inner.lock();
+
+            // Wait until we are allowed to increment the token count or a signal arrives.
+            while inner.token_count == MAX_TOKENS {
+                if self.shared.state_changed.wait(&mut inner) {
+                    return Err(Error::EINTR);
+                }
+            }
+
+            // Increment the number of token so that a reader can be released.
+            inner.token_count += 1;
+        }
+
+        // Notify a possible reader waiting.
+        self.shared.state_changed.notify_all();
+        Ok(data.len())
+    }
+}
+
 struct RustFile;
 
 impl FileOpener<()> for RustFile {
@@ -69,7 +166,7 @@ impl FileOperations for RustFile {
 struct RustExample {
     message: String,
     _chrdev: Pin<Box<chrdev::Registration<2>>>,
-    _dev: Pin<Box<miscdev::Registration>>,
+    _dev: Pin<Box<miscdev::Registration<Arc<SharedState>>>>,
 }
 
 impl KernelModule for RustExample {
@@ -148,9 +245,11 @@ impl KernelModule for RustExample {
         chrdev_reg.as_mut().register::<RustFile>()?;
         chrdev_reg.as_mut().register::<RustFile>()?;
 
+        let state = SharedState::try_new()?;
+
         Ok(RustExample {
             message: "on the heap!".to_owned(),
-            _dev: miscdev::Registration::new_pinned::<RustFile>(cstr!("rust_miscdev"), None, ())?,
+            _dev: miscdev::Registration::new_pinned::<Token>(cstr!("rust_miscdev"), None, state)?,
             _chrdev: chrdev_reg,
         })
     }

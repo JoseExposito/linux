@@ -45,6 +45,9 @@ impl Error {
     /// No such file or directory.
     pub const ENOENT: Self = Error(-(bindings::ENOENT as i32));
 
+    /// Interrupted system call.
+    pub const EINTR: Self = Error(-(bindings::EINTR as i32));
+
     /// Creates an [`Error`] from a kernel error code.
     pub fn from_kernel_errno(errno: c_types::c_int) -> Error {
         Error(errno)
