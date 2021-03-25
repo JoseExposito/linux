@@ -11,7 +11,7 @@ use core::pin::Pin;
 use kernel::prelude::*;
 use kernel::{
     chrdev, condvar_init, cstr,
-    file_operations::FileOperations,
+    file_operations::{FileOpener, FileOperations},
     miscdev, mutex_init, spinlock_init,
     sync::{CondVar, Mutex, SpinLock},
 };
@@ -53,15 +53,17 @@ module! {
 
 struct RustFile;
 
+impl FileOpener<()> for RustFile {
+    fn open(_ctx: &()) -> KernelResult<Self::Wrapper> {
+        println!("rust file was opened!");
+        Ok(Box::try_new(Self)?)
+    }
+}
+
 impl FileOperations for RustFile {
     type Wrapper = Box<Self>;
 
     kernel::declare_file_operations!();
-
-    fn open() -> KernelResult<Self::Wrapper> {
-        println!("rust file was opened!");
-        Ok(Box::try_new(Self)?)
-    }
 }
 
 struct RustExample {

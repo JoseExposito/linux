@@ -7,7 +7,7 @@
 //! Reference: <https://www.kernel.org/doc/html/latest/driver-api/misc_devices.html>
 
 use crate::error::{Error, KernelResult};
-use crate::file_operations::{FileOperations, FileOperationsVtable};
+use crate::file_operations::{FileOpenAdapter, FileOpener, FileOperationsVtable};
 use crate::{bindings, c_types, CStr};
 use alloc::boxed::Box;
 use core::marker::PhantomPinned;
@@ -19,7 +19,8 @@ pub struct Registration<T: Sync = ()> {
     mdev: bindings::miscdevice,
     _pin: PhantomPinned,
 
-    /// Context initialised on construction.
+    /// Context initialised on construction and made available to all file instances on
+    /// [`FileOpener::open`].
     pub context: T,
 }
 
@@ -39,7 +40,7 @@ impl<T: Sync> Registration<T> {
     /// Registers a miscellaneous device.
     ///
     /// Returns a pinned heap-allocated representation of the registration.
-    pub fn new_pinned<F: FileOperations>(
+    pub fn new_pinned<F: FileOpener<T>>(
         name: CStr<'static>,
         minor: Option<i32>,
         context: T,
@@ -53,7 +54,7 @@ impl<T: Sync> Registration<T> {
     ///
     /// It must be pinned because the memory block that represents the registration is
     /// self-referential. If a minor is not given, the kernel allocates a new one if possible.
-    pub fn register<F: FileOperations>(
+    pub fn register<F: FileOpener<T>>(
         self: Pin<&mut Self>,
         name: CStr<'static>,
         minor: Option<i32>,
@@ -65,7 +66,8 @@ impl<T: Sync> Registration<T> {
             return Err(Error::EINVAL);
         }
 
-        this.mdev.fops = FileOperationsVtable::<F>::build();
+        // SAFETY: The adapter is compatible with `misc_register`.
+        this.mdev.fops = unsafe { FileOperationsVtable::<Self, F>::build() };
         this.mdev.name = name.as_ptr() as *const c_types::c_char;
         this.mdev.minor = minor.unwrap_or(bindings::MISC_DYNAMIC_MINOR as i32);
 
@@ -75,6 +77,15 @@ impl<T: Sync> Registration<T> {
         }
         this.registered = true;
         Ok(())
+    }
+}
+
+impl<T: Sync> FileOpenAdapter for Registration<T> {
+    type Arg = T;
+
+    unsafe fn convert(_inode: *mut bindings::inode, file: *mut bindings::file) -> *const Self::Arg {
+        let reg = crate::container_of!((*file).private_data, Self, mdev);
+        &(*reg).context
     }
 }
 
