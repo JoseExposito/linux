@@ -126,7 +126,7 @@ impl UserSlicePtr {
     /// mapped, writable memory (in which case some data from before the
     /// fault may be written), or `data` is larger than the user slice
     /// (in which case no data is written).
-    pub fn write_all(self, data: &[u8]) -> KernelResult<()> {
+    pub fn write_all(self, data: &[u8]) -> KernelResult {
         self.writer().write_slice(data)
     }
 
@@ -180,7 +180,7 @@ impl UserSlicePtrReader {
     /// Returns `EFAULT` if the byte slice is bigger than the remaining size
     /// of the user slice or if the address does not currently point to mapped,
     /// readable memory.
-    pub fn read_slice(&mut self, data: &mut [u8]) -> KernelResult<()> {
+    pub fn read_slice(&mut self, data: &mut [u8]) -> KernelResult {
         // SAFETY: The output buffer is valid as it's coming from a live reference.
         unsafe { self.read_raw(data.as_mut_ptr(), data.len()) }
     }
@@ -190,7 +190,7 @@ impl UserSlicePtrReader {
     /// # Safety
     ///
     /// The output buffer must be valid.
-    pub unsafe fn read_raw(&mut self, out: *mut u8, len: usize) -> KernelResult<()> {
+    pub unsafe fn read_raw(&mut self, out: *mut u8, len: usize) -> KernelResult {
         if len > self.1 || len > u32::MAX as usize {
             return Err(error::Error::EFAULT);
         }
@@ -239,7 +239,7 @@ impl UserSlicePtrWriter {
     /// Returns `EFAULT` if the byte slice is bigger than the remaining size
     /// of the user slice or if the address does not currently point to mapped,
     /// writable memory.
-    pub fn write_slice(&mut self, data: &[u8]) -> KernelResult<()> {
+    pub fn write_slice(&mut self, data: &[u8]) -> KernelResult {
         // SAFETY: The input buffer is valid as it's coming from a live reference.
         unsafe { self.write_raw(data.as_ptr(), data.len()) }
     }
@@ -249,7 +249,7 @@ impl UserSlicePtrWriter {
     /// # Safety
     ///
     /// The input buffer must be valid.
-    unsafe fn write_raw(&mut self, data: *const u8, len: usize) -> KernelResult<()> {
+    unsafe fn write_raw(&mut self, data: *const u8, len: usize) -> KernelResult {
         if len > self.1 || len > u32::MAX as usize {
             return Err(error::Error::EFAULT);
         }
