@@ -104,10 +104,9 @@ unsafe extern "C" fn read_callback<T: FileOperations>(
         let f = &*((*file).private_data as *const T);
         // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
         // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
-        T::read(f, &File::from_ptr(file), &mut data, (*offset).try_into()?)?;
-        let written = len - data.len();
-        (*offset) += bindings::loff_t::try_from(written).unwrap();
-        Ok(written.try_into().unwrap())
+        let read = f.read(&File::from_ptr(file), &mut data, (*offset).try_into()?)?;
+        (*offset) += bindings::loff_t::try_from(read).unwrap();
+        Ok(read as _)
     }
 }
 
@@ -122,10 +121,9 @@ unsafe extern "C" fn write_callback<T: FileOperations>(
         let f = &*((*file).private_data as *const T);
         // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
         // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
-        T::write(f, &mut data, (*offset).try_into()?)?;
-        let read = len - data.len();
-        (*offset) += bindings::loff_t::try_from(read).unwrap();
-        Ok(read.try_into().unwrap())
+        let written = f.write(&mut data, (*offset).try_into()?)?;
+        (*offset) += bindings::loff_t::try_from(written).unwrap();
+        Ok(written as _)
     }
 }
 
@@ -441,14 +439,19 @@ pub trait FileOperations: Send + Sync + Sized {
     /// Reads data from this file to userspace.
     ///
     /// Corresponds to the `read` function pointer in `struct file_operations`.
-    fn read(&self, _file: &File, _data: &mut UserSlicePtrWriter, _offset: u64) -> KernelResult {
+    fn read(
+        &self,
+        _file: &File,
+        _data: &mut UserSlicePtrWriter,
+        _offset: u64,
+    ) -> KernelResult<usize> {
         Err(Error::EINVAL)
     }
 
     /// Writes data from userspace to this file.
     ///
     /// Corresponds to the `write` function pointer in `struct file_operations`.
-    fn write(&self, _data: &mut UserSlicePtrReader, _offset: u64) -> KernelResult<isize> {
+    fn write(&self, _data: &mut UserSlicePtrReader, _offset: u64) -> KernelResult<usize> {
         Err(Error::EINVAL)
     }
 
