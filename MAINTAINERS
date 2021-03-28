@@ -15550,6 +15550,7 @@ F:	drivers/infiniband/ulp/rtrs/
 RUST
 M:	Miguel Ojeda <ojeda@kernel.org>
 M:	Alex Gaynor <alex.gaynor@gmail.com>
+M:	Wedson Almeida Filho <wedsonaf@google.com>
 L:	rust-for-linux@vger.kernel.org
 S:	Maintained
 W:	https://github.com/Rust-for-Linux/linux
