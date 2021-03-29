@@ -415,8 +415,9 @@ impl IoctlCommand {
 /// You implement this trait whenever you would create a `struct file_operations`.
 ///
 /// File descriptors may be used from multiple threads/processes concurrently, so your type must be
-/// [`Sync`].
-pub trait FileOperations: Sync + Sized {
+/// [`Sync`]. It must also be [`Send`] because [`FileOperations::release`] will be called from the
+/// thread that decrements that associated file's refcount to zero.
+pub trait FileOperations: Send + Sync + Sized {
     /// The methods to use to populate [`struct file_operations`].
     const TO_USE: ToUse;
 
