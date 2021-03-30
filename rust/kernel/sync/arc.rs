@@ -51,8 +51,7 @@ impl<T: RefCounted> Ref<T> {
     pub fn try_new(contents: T) -> KernelResult<Self> {
         let boxed = Box::try_new(contents)?;
         boxed.get_count().count.store(1, Ordering::Relaxed);
-        let ptr = NonNull::from(boxed.deref());
-        Box::into_raw(boxed);
+        let ptr = NonNull::from(Box::leak(boxed));
         Ok(Ref { ptr })
     }
 }
