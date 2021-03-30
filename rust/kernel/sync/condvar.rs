@@ -64,6 +64,7 @@ impl CondVar {
     /// [`CondVar::notify_all`], or when the thread receives a signal.
     ///
     /// Returns whether there is a signal pending.
+    #[must_use = "wait returns if a signal is pending, so the caller must check the return value"]
     pub fn wait<L: Lock>(&self, guard: &Guard<L>) -> bool {
         let lock = guard.lock;
         let mut wait = MaybeUninit::<bindings::wait_queue_entry>::uninit();

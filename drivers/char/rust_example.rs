@@ -102,7 +102,7 @@ impl KernelModule for RustExample {
                 let guard = data.lock();
                 #[allow(clippy::while_immutable_condition)]
                 while *guard != 10 {
-                    cv.wait(&guard);
+                    let _ = cv.wait(&guard);
                 }
             }
             cv.notify_one();
@@ -125,7 +125,7 @@ impl KernelModule for RustExample {
                 let guard = data.lock();
                 #[allow(clippy::while_immutable_condition)]
                 while *guard != 10 {
-                    cv.wait(&guard);
+                    let _ = cv.wait(&guard);
                 }
             }
             cv.notify_one();
