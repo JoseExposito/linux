@@ -10,7 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        arch: [x86_64, arm64, ppc64le]
+        arch: [arm64, ppc64le, x86_64]
         toolchain: [gcc, clang, llvm]
         config: [debug, release]
         rustc: [2021-02-20]
@@ -29,7 +29,7 @@ jobs:
         #   - The other three (`install`, `sysroot`) combinations
         #     (they are interrelated, so the cross-product needs to be tested)
         include:
-          - arch: x86_64
+          - arch: arm64
             toolchain: gcc
             config: debug
             rustc: 2021-02-20
@@ -37,7 +37,7 @@ jobs:
             install: rustup
             sysroot: custom
 
-          - arch: arm64
+          - arch: ppc64le
             toolchain: clang
             config: release
             rustc: 2021-02-20
