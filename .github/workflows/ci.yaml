@@ -122,7 +122,7 @@ jobs:
       - if: matrix.arch == 'arm64'
         run: sudo apt-get install -y qemu-system-arm
       - if: matrix.arch == 'ppc64le'
-        run: sudo apt-get install -y qemu-system-ppc64
+        run: sudo apt-get install -y qemu-system-ppc
 
       # Setup: rustc
       - if: matrix.install == 'rustup'
