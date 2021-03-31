@@ -12,12 +12,18 @@ Below is a general summary of architectures that currently work. Level of
 support corresponds to ``S`` values in the ``MAINTAINERS`` file.
 
 .. list-table::
-   :widths: 10 10
+   :widths: 10 10 10
    :header-rows: 1
 
    * - Architecture
      - Level of support
-   * - arm64
+     - Constraints
+   * - ``arm64``
      - Maintained
-   * - x86_64
+     - None
+   * - ``powerpc``
      - Maintained
+     - ``ppc64le`` only, ``RUST_OPT_LEVEL >= 2``, Clang only
+   * - ``x86``
+     - Maintained
+     - ``x86_64`` only

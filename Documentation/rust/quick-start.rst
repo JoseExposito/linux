@@ -159,9 +159,17 @@ the example Rust driver ``Rust example`` (``CONFIG_RUST_EXAMPLE``).
 Building
 --------
 
-Building a x86_64 or arm64 kernel with either GCC, Clang or a complete LLVM
-toolchain should all work. However, please note that using GCC is more
-experimental at the moment.
+Building a kernel with Clang or a complete LLVM toolchain is the best supported
+setup at the moment. That is::
+
+    make ARCH=... CROSS_COMPILE=... CC=clang -j...
+
+or::
+
+    make ARCH=... CROSS_COMPILE=... LLVM=1 -j...
+
+Using GCC also works for some configurations, but it is *very* experimental at
+the moment.
 
 
 Hacking
