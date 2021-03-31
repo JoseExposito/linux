@@ -10,13 +10,18 @@ jobs:
 
     strategy:
       matrix:
-        arch: [x86_64, arm64]
+        arch: [x86_64, arm64, ppc64le]
         toolchain: [gcc, clang, llvm]
         config: [debug, release]
         rustc: [2021-02-20]
         output: [src] # [src, build]
         install: [rustup] # [rustup, standalone]
         sysroot: [common] # [common, custom]
+
+        # Exclude `LLVM=1` where not supported.
+        exclude:
+          - arch: ppc64le
+            toolchain: llvm
 
         # A few independent combinations to avoid exploding the matrix:
         #   - The other option for `output`.
@@ -47,14 +52,6 @@ jobs:
             output: build
             install: standalone
             sysroot: custom
-
-          - arch: ppc64le
-            toolchain: clang
-            config: debug
-            rustc: 2021-02-20
-            output: src
-            install: rustup
-            sysroot: common
 
     steps:
       # Setup: checkout

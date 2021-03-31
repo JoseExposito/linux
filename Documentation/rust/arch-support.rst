@@ -23,7 +23,7 @@ support corresponds to ``S`` values in the ``MAINTAINERS`` file.
      - None
    * - ``powerpc``
      - Maintained
-     - ``ppc64le`` only, ``RUST_OPT_LEVEL >= 2``, Clang only
+     - ``ppc64le`` only, ``RUST_OPT_LEVEL >= 2``
    * - ``x86``
      - Maintained
      - ``x86_64`` only
