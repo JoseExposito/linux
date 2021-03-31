@@ -81,7 +81,7 @@ impl UserSlicePtr {
     ///
     /// # Safety
     ///
-    /// Callers must also be careful to avoid time-of-check-time-of-use
+    /// Callers must be careful to avoid time-of-check-time-of-use
     /// (TOCTOU) issues. The simplest way is to create a single instance of
     /// [`UserSlicePtr`] per user memory block as it reads each byte at
     /// most once.
