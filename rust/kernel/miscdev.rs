@@ -15,7 +15,8 @@ use core::pin::Pin;
 
 /// A registration of a miscellaneous device.
 pub struct Registration {
-    mdev: Option<bindings::miscdevice>,
+    registered: bool,
+    mdev: bindings::miscdevice,
     _pin: PhantomPinned,
 }
 
@@ -25,7 +26,8 @@ impl Registration {
     /// It is allowed to move.
     pub fn new() -> Self {
         Self {
-            mdev: None,
+            registered: false,
+            mdev: bindings::miscdevice::default(),
             _pin: PhantomPinned,
         }
     }
@@ -44,9 +46,8 @@ impl Registration {
 
     /// Registers a miscellaneous device with the rest of the kernel.
     ///
-    /// It must be pinned because the memory block that represents the
-    /// registration is self-referential. If a minor is not given, the kernel
-    /// allocates a new one if possible.
+    /// It must be pinned because the memory block that represents the registration is
+    /// self-referential. If a minor is not given, the kernel allocates a new one if possible.
     pub fn register<T: FileOperations>(
         self: Pin<&mut Self>,
         name: CStr<'static>,
@@ -54,21 +55,20 @@ impl Registration {
     ) -> KernelResult {
         // SAFETY: We must ensure that we never move out of `this`.
         let this = unsafe { self.get_unchecked_mut() };
-        if this.mdev.is_some() {
+        if this.registered {
             // Already registered.
             return Err(Error::EINVAL);
         }
 
-        this.mdev = Some(bindings::miscdevice::default());
-        let dev = this.mdev.as_mut().unwrap();
-        dev.fops = FileOperationsVtable::<T>::build();
-        dev.name = name.as_ptr() as *const c_types::c_char;
-        dev.minor = minor.unwrap_or(bindings::MISC_DYNAMIC_MINOR as i32);
-        let ret = unsafe { bindings::misc_register(dev) };
+        this.mdev.fops = FileOperationsVtable::<T>::build();
+        this.mdev.name = name.as_ptr() as *const c_types::c_char;
+        this.mdev.minor = minor.unwrap_or(bindings::MISC_DYNAMIC_MINOR as i32);
+
+        let ret = unsafe { bindings::misc_register(&mut this.mdev) };
         if ret < 0 {
-            this.mdev = None;
             return Err(Error::from_kernel_errno(ret));
         }
+        this.registered = true;
         Ok(())
     }
 }
@@ -79,19 +79,15 @@ impl Default for Registration {
     }
 }
 
-// SAFETY: The only method is `register()`, which requires a (pinned) mutable
-// `Registration`, so it is safe to pass `&Registration` to multiple threads
-// because it offers no interior mutability.
+// SAFETY: The only method is `register()`, which requires a (pinned) mutable `Registration`, so it
+// is safe to pass `&Registration` to multiple threads because it offers no interior mutability.
 unsafe impl Sync for Registration {}
 
 impl Drop for Registration {
-    /// Removes the registration from the kernel if it has completed
-    /// successfully before.
+    /// Removes the registration from the kernel if it has completed successfully before.
     fn drop(&mut self) {
-        if let Some(ref mut dev) = self.mdev {
-            unsafe {
-                bindings::misc_deregister(dev);
-            }
+        if self.registered {
+            unsafe { bindings::misc_deregister(&mut self.mdev) }
         }
     }
 }
