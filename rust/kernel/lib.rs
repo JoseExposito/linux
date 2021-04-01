@@ -141,15 +141,34 @@ fn panic(_info: &PanicInfo) -> ! {
 }
 
 /// Calculates the offset of a field from the beginning of the struct it belongs to.
+///
+/// # Example
+///
+///```
+/// struct Test {
+///     a: u64,
+///     b: u32,
+/// }
+///
+/// fn test() {
+///     // This prints `8`.
+///     println!("{}", offset_of!(Test, b));
+/// }
+///```
 #[macro_export]
 macro_rules! offset_of {
     ($type:ty, $($f:tt)*) => {{
         let tmp = core::mem::MaybeUninit::<$type>::uninit();
-        let ptr = tmp.as_ptr();
+        let outer = tmp.as_ptr();
+        // To avoid warnings when nesting `unsafe` blocks.
         #[allow(unused_unsafe)]
-        let dev = unsafe { core::ptr::addr_of!((*ptr).$($f)*) as *const u8 };
+        // SAFETY: The pointer is valid and aligned, just not initialised; `addr_of` ensures that
+        // we don't actually dereference it (which would be UB).
+        let inner = unsafe { core::ptr::addr_of!((*outer).$($f)*) } as *const u8;
+        // To avoid warnings when nesting `unsafe` blocks.
         #[allow(unused_unsafe)]
-        unsafe { dev.offset_from(ptr as *const u8) }
+        // SAFETY: The two pointers are within the same allocation block.
+        unsafe { inner.offset_from(outer as *const u8) }
     }}
 }
 
