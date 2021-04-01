@@ -61,7 +61,7 @@ impl Registration {
 
         this.mdev = Some(bindings::miscdevice::default());
         let dev = this.mdev.as_mut().unwrap();
-        dev.fops = &FileOperationsVtable::<T>::VTABLE;
+        dev.fops = FileOperationsVtable::<T>::build();
         dev.name = name.as_ptr() as *const c_types::c_char;
         dev.minor = minor.unwrap_or(bindings::MISC_DYNAMIC_MINOR as i32);
         let ret = unsafe { bindings::misc_register(dev) };

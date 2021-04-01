@@ -201,7 +201,7 @@ unsafe extern "C" fn fsync_callback<T: FileOperations>(
 pub(crate) struct FileOperationsVtable<T>(marker::PhantomData<T>);
 
 impl<T: FileOperations> FileOperationsVtable<T> {
-    pub(crate) const VTABLE: bindings::file_operations = bindings::file_operations {
+    const VTABLE: bindings::file_operations = bindings::file_operations {
         open: Some(open_callback::<T>),
         release: Some(release_callback::<T>),
         read: if T::TO_USE.read {
@@ -260,6 +260,11 @@ impl<T: FileOperations> FileOperationsVtable<T> {
         },
         write_iter: None,
     };
+
+    /// Builds an instance of [`struct file_operations`].
+    pub(crate) const fn build() -> &'static bindings::file_operations {
+        &Self::VTABLE
+    }
 }
 
 /// Represents which fields of [`struct file_operations`] should be populated with pointers.

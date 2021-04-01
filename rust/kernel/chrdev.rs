@@ -112,7 +112,7 @@ impl<const N: usize> Registration<{ N }> {
         // SAFETY: Calling unsafe functions and manipulating `MaybeUninit`
         // pointer.
         unsafe {
-            bindings::cdev_init(cdev, &file_operations::FileOperationsVtable::<T>::VTABLE);
+            bindings::cdev_init(cdev, file_operations::FileOperationsVtable::<T>::build());
             (*cdev).owner = this.this_module.0;
             let rc = bindings::cdev_add(cdev, inner.dev + inner.used as bindings::dev_t, 1);
             if rc != 0 {
