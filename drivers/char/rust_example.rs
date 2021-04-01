@@ -148,7 +148,7 @@ impl KernelModule for RustExample {
 
         Ok(RustExample {
             message: "on the heap!".to_owned(),
-            _dev: miscdev::Registration::new_pinned::<RustFile>(cstr!("rust_miscdev"), None)?,
+            _dev: miscdev::Registration::new_pinned::<RustFile>(cstr!("rust_miscdev"), None, ())?,
             _chrdev: chrdev_reg,
         })
     }
