@@ -163,7 +163,8 @@ macro_rules! offset_of {
         // To avoid warnings when nesting `unsafe` blocks.
         #[allow(unused_unsafe)]
         // SAFETY: The pointer is valid and aligned, just not initialised; `addr_of` ensures that
-        // we don't actually dereference it (which would be UB).
+        // we don't actually read from `outer` (which would be UB) nor create an intermediate
+        // reference.
         let inner = unsafe { core::ptr::addr_of!((*outer).$($f)*) } as *const u8;
         // To avoid warnings when nesting `unsafe` blocks.
         #[allow(unused_unsafe)]
