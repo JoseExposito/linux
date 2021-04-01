@@ -42,9 +42,9 @@ impl<T: Sync> Registration<T> {
     pub fn new_pinned<F: FileOperations>(
         name: CStr<'static>,
         minor: Option<i32>,
-        state: T,
+        context: T,
     ) -> KernelResult<Pin<Box<Self>>> {
-        let mut r = Pin::from(Box::try_new(Self::new(state))?);
+        let mut r = Pin::from(Box::try_new(Self::new(context))?);
         r.as_mut().register::<F>(name, minor)?;
         Ok(r)
     }
