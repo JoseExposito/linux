@@ -100,7 +100,7 @@ unsafe extern "C" fn read_callback<T: FileOperations>(
     offset: *mut bindings::loff_t,
 ) -> c_types::c_ssize_t {
     from_kernel_result! {
-        let mut data = UserSlicePtr::new(buf as *mut c_types::c_void, len)?.writer();
+        let mut data = UserSlicePtr::new(buf as *mut c_types::c_void, len).writer();
         let f = &*((*file).private_data as *const T);
         // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
         // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
@@ -117,7 +117,7 @@ unsafe extern "C" fn write_callback<T: FileOperations>(
     offset: *mut bindings::loff_t,
 ) -> c_types::c_ssize_t {
     from_kernel_result! {
-        let mut data = UserSlicePtr::new(buf as *mut c_types::c_void, len)?.reader();
+        let mut data = UserSlicePtr::new(buf as *mut c_types::c_void, len).reader();
         let f = &*((*file).private_data as *const T);
         // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
         // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
@@ -359,26 +359,12 @@ pub struct IoctlCommand {
 
 impl IoctlCommand {
     /// Constructs a new [`IoctlCommand`].
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that `fs` is compatible with `arg` and the original caller's
-    /// context. For example, if the original caller is from userland (e.g., through the ioctl
-    /// syscall), then `arg` is untrusted and `fs` should therefore be `USER_DS`.
-    unsafe fn new(cmd: u32, arg: usize) -> Self {
-        let user_slice = {
-            let dir = (cmd >> bindings::_IOC_DIRSHIFT) & bindings::_IOC_DIRMASK;
-            if dir == bindings::_IOC_NONE {
-                None
-            } else {
-                let size = (cmd >> bindings::_IOC_SIZESHIFT) & bindings::_IOC_SIZEMASK;
+    fn new(cmd: u32, arg: usize) -> Self {
+        let size = (cmd >> bindings::_IOC_SIZESHIFT) & bindings::_IOC_SIZEMASK;
 
-                // SAFETY: We only create one instance of the user slice, so TOCTOU issues are not
-                // possible. The `set_fs` requirements are imposed on the caller.
-                UserSlicePtr::new(arg as _, size as _).ok()
-            }
-        };
-
+        // SAFETY: We only create one instance of the user slice per ioctl call, so TOCTOU issues
+        // are not possible.
+        let user_slice = Some(unsafe { UserSlicePtr::new(arg as _, size as _) });
         Self {
             cmd,
             arg,
@@ -398,7 +384,7 @@ impl IoctlCommand {
             return T::pure(handler, file, self.cmd, self.arg);
         }
 
-        let data = self.user_slice.take().ok_or(Error::EFAULT)?;
+        let data = self.user_slice.take().ok_or(Error::EINVAL)?;
         const READ_WRITE: u32 = bindings::_IOC_READ | bindings::_IOC_WRITE;
         match dir {
             bindings::_IOC_WRITE => T::write(handler, file, self.cmd, &mut data.reader()),

@@ -9,9 +9,6 @@ use alloc::vec::Vec;
 use core::mem::{size_of, MaybeUninit};
 
 extern "C" {
-    fn rust_helper_access_ok(addr: *const c_types::c_void, len: c_types::c_ulong)
-        -> c_types::c_int;
-
     fn rust_helper_copy_from_user(
         to: *mut c_types::c_void,
         from: *const c_types::c_void,
@@ -69,12 +66,12 @@ unsafe impl ReadableFromBytes for isize {}
 /// obtaining multiple readers on a given [`UserSlicePtr`], and the readers
 /// only permitting forward reads.
 ///
-/// Constructing a [`UserSlicePtr`] only checks that the range is in valid
-/// userspace memory, and does not depend on the current process (and
-/// can safely be constructed inside a kernel thread with no current
-/// userspace process). Reads and writes wrap the kernel APIs
-/// `copy_from_user` and `copy_to_user`, and check the memory map of the
-/// current process.
+/// Constructing a [`UserSlicePtr`] performs no checks on the provided
+/// address and length, it can safely be constructed inside a kernel thread
+/// with no current userspace process. Reads and writes wrap the kernel APIs
+/// `copy_from_user` and `copy_to_user`, which check the memory map of the
+/// current process and enforce that the address range is within the user
+/// range (no additional calls to `access_ok` are needed).
 ///
 /// [`std::io`]: https://doc.rust-lang.org/std/io/index.html
 pub struct UserSlicePtr(*mut c_types::c_void, usize);
@@ -82,29 +79,14 @@ pub struct UserSlicePtr(*mut c_types::c_void, usize);
 impl UserSlicePtr {
     /// Constructs a user slice from a raw pointer and a length in bytes.
     ///
-    /// Checks that the provided range is within the legal area for
-    /// userspace memory, using `access_ok` (e.g., on i386, the range
-    /// must be within the first 3 GiB), but does not check that
-    /// the actual pages are mapped in the current process with
-    /// appropriate permissions. Those checks are handled in the read
-    /// and write methods.
-    ///
     /// # Safety
     ///
-    /// This is `unsafe` because if it is called within `set_fs(KERNEL_DS)`
-    /// context then `access_ok` will not do anything. As a result the only
-    /// place you can safely use this is with a `__user` pointer that was
-    /// provided by the kernel.
-    ///
-    /// Callers must also be careful to avoid time-of-check-time-of-use
+    /// Callers must be careful to avoid time-of-check-time-of-use
     /// (TOCTOU) issues. The simplest way is to create a single instance of
     /// [`UserSlicePtr`] per user memory block as it reads each byte at
     /// most once.
-    pub unsafe fn new(ptr: *mut c_types::c_void, length: usize) -> KernelResult<UserSlicePtr> {
-        if rust_helper_access_ok(ptr, length as c_types::c_ulong) == 0 {
-            return Err(error::Error::EFAULT);
-        }
-        Ok(UserSlicePtr(ptr, length))
+    pub unsafe fn new(ptr: *mut c_types::c_void, length: usize) -> Self {
+        UserSlicePtr(ptr, length)
     }
 
     /// Reads the entirety of the user slice.
