@@ -140,5 +140,50 @@ fn panic(_info: &PanicInfo) -> ! {
     }
 }
 
+/// Calculates the offset of a field from the beginning of the struct it belongs to.
+#[macro_export]
+macro_rules! offset_of {
+    ($type:ty, $($f:tt)*) => {{
+        let tmp = core::mem::MaybeUninit::<$type>::uninit();
+        let ptr = tmp.as_ptr();
+        #[allow(unused_unsafe)]
+        let dev = unsafe { core::ptr::addr_of!((*ptr).$($f)*) as *const u8 };
+        #[allow(unused_unsafe)]
+        unsafe { dev.offset_from(ptr as *const u8) }
+    }}
+}
+
+/// Produces a pointer to an object from a pointer to one of its fields.
+///
+/// # Safety
+///
+/// Callers must ensure that the pointer to the field is in fact a pointer to the specified field,
+/// as opposed to a pointer to another object of the same type.
+///
+/// # Example
+///
+///```
+/// struct Test {
+///     a: u64,
+///     b: u32,
+/// }
+///
+/// fn test() {
+///     let test = Test{a: 10, b: 20};
+///     let b_ptr = &test.b;
+///     let test_alias = unsafe { container_of!(b_ptr, Test, b) };
+///     // This prints `true`.
+///     println!("{}", core::ptr::eq(&test, test_alias));
+/// }
+///```
+///
+#[macro_export]
+macro_rules! container_of {
+    ($ptr:expr, $type:ty, $($f:tt)*) => {{
+        let offset = $crate::offset_of!($type, $($f)*);
+        ($ptr as *const _ as *const u8).offset(-offset) as *const $type
+    }}
+}
+
 #[global_allocator]
 static ALLOCATOR: allocator::KernelAllocator = allocator::KernelAllocator;
