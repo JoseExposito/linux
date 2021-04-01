@@ -66,12 +66,12 @@ unsafe impl ReadableFromBytes for isize {}
 /// obtaining multiple readers on a given [`UserSlicePtr`], and the readers
 /// only permitting forward reads.
 ///
-/// Constructing a [`UserSlicePtr`] only checks that the range is in valid
-/// userspace memory, and does not depend on the current process (and
-/// can safely be constructed inside a kernel thread with no current
-/// userspace process). Reads and writes wrap the kernel APIs
-/// `copy_from_user` and `copy_to_user`, and check the memory map of the
-/// current process.
+/// Constructing a [`UserSlicePtr`] performs no checks on the provided
+/// address and length, it can safely be constructed inside a kernel thread
+/// with no current userspace process. Reads and writes wrap the kernel APIs
+/// `copy_from_user` and `copy_to_user`, which check the memory map of the
+/// current process and enforce that the address range is within the user
+/// range (no additional calls to `access_ok` are needed).
 ///
 /// [`std::io`]: https://doc.rust-lang.org/std/io/index.html
 pub struct UserSlicePtr(*mut c_types::c_void, usize);
