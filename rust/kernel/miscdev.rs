@@ -80,8 +80,13 @@ impl<T: Sync> Registration<T> {
 
 // SAFETY: The only method is `register()`, which requires a (pinned) mutable `Registration`, so it
 // is safe to pass `&Registration` to multiple threads because it offers no interior mutability,
-// except maybe through [`Registration::context`], but it is itself [`Sync`].
+// except maybe through `Registration::context`, but it is itself `Sync`.
 unsafe impl<T: Sync> Sync for Registration<T> {}
+
+// SAFETY: All functions work from any thread. So as long as the `Registration::context` is
+// `Send`, so is `Registration<T>`. `T` needs to be `Sync` because it's a requirement of
+// `Registration<T>`.
+unsafe impl<T: Send + Sync> Send for Registration<T> {}
 
 impl<T: Sync> Drop for Registration<T> {
     /// Removes the registration from the kernel if it has completed successfully before.
