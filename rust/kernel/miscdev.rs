@@ -14,33 +14,38 @@ use core::marker::PhantomPinned;
 use core::pin::Pin;
 
 /// A registration of a miscellaneous device.
-pub struct Registration {
+pub struct Registration<T: Sync = ()> {
     registered: bool,
     mdev: bindings::miscdevice,
     _pin: PhantomPinned,
+
+    /// Context initialised on construction.
+    pub context: T,
 }
 
-impl Registration {
+impl<T: Sync> Registration<T> {
     /// Creates a new [`Registration`] but does not register it yet.
     ///
     /// It is allowed to move.
-    pub fn new() -> Self {
+    pub fn new(context: T) -> Self {
         Self {
             registered: false,
             mdev: bindings::miscdevice::default(),
             _pin: PhantomPinned,
+            context,
         }
     }
 
     /// Registers a miscellaneous device.
     ///
     /// Returns a pinned heap-allocated representation of the registration.
-    pub fn new_pinned<T: FileOperations>(
+    pub fn new_pinned<F: FileOperations>(
         name: CStr<'static>,
         minor: Option<i32>,
+        state: T,
     ) -> KernelResult<Pin<Box<Self>>> {
-        let mut r = Pin::from(Box::try_new(Self::new())?);
-        r.as_mut().register::<T>(name, minor)?;
+        let mut r = Pin::from(Box::try_new(Self::new(state))?);
+        r.as_mut().register::<F>(name, minor)?;
         Ok(r)
     }
 
@@ -48,7 +53,7 @@ impl Registration {
     ///
     /// It must be pinned because the memory block that represents the registration is
     /// self-referential. If a minor is not given, the kernel allocates a new one if possible.
-    pub fn register<T: FileOperations>(
+    pub fn register<F: FileOperations>(
         self: Pin<&mut Self>,
         name: CStr<'static>,
         minor: Option<i32>,
@@ -60,7 +65,7 @@ impl Registration {
             return Err(Error::EINVAL);
         }
 
-        this.mdev.fops = FileOperationsVtable::<T>::build();
+        this.mdev.fops = FileOperationsVtable::<F>::build();
         this.mdev.name = name.as_ptr() as *const c_types::c_char;
         this.mdev.minor = minor.unwrap_or(bindings::MISC_DYNAMIC_MINOR as i32);
 
@@ -73,17 +78,12 @@ impl Registration {
     }
 }
 
-impl Default for Registration {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 // SAFETY: The only method is `register()`, which requires a (pinned) mutable `Registration`, so it
-// is safe to pass `&Registration` to multiple threads because it offers no interior mutability.
-unsafe impl Sync for Registration {}
+// is safe to pass `&Registration` to multiple threads because it offers no interior mutability,
+// except maybe through [`Registration::context`], but it is itself [`Sync`].
+unsafe impl<T: Sync> Sync for Registration<T> {}
 
-impl Drop for Registration {
+impl<T: Sync> Drop for Registration<T> {
     /// Removes the registration from the kernel if it has completed successfully before.
     fn drop(&mut self) {
         if self.registered {
