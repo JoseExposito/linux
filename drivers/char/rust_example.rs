@@ -99,10 +99,9 @@ impl KernelModule for RustExample {
             let cv = Pin::from(Box::try_new(unsafe { CondVar::new() })?);
             condvar_init!(cv.as_ref(), "RustExample::init::cv1");
             {
-                let guard = data.lock();
-                #[allow(clippy::while_immutable_condition)]
+                let mut guard = data.lock();
                 while *guard != 10 {
-                    let _ = cv.wait(&guard);
+                    let _ = cv.wait(&mut guard);
                 }
             }
             cv.notify_one();
@@ -122,10 +121,9 @@ impl KernelModule for RustExample {
             let cv = Pin::from(Box::try_new(unsafe { CondVar::new() })?);
             condvar_init!(cv.as_ref(), "RustExample::init::cv2");
             {
-                let guard = data.lock();
-                #[allow(clippy::while_immutable_condition)]
+                let mut guard = data.lock();
                 while *guard != 10 {
-                    let _ = cv.wait(&guard);
+                    let _ = cv.wait(&mut guard);
                 }
             }
             cv.notify_one();
