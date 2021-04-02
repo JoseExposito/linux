@@ -22,7 +22,7 @@
 /// static_assert!(X[1] == 'a' as u8);
 ///
 /// const fn f(x: i32) -> i32 {
-///    x + 2
+///     x + 2
 /// }
 /// static_assert!(f(40) == 42);
 /// ```

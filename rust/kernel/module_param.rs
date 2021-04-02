@@ -211,7 +211,7 @@ macro_rules! impl_module_param {
 /// make_param_ops!(
 ///     /// Documentation for new param ops.
 ///     PARAM_OPS_MYTYPE, // Name for the static.
-///     MyType            // A type which implements [`ModuleParam`].
+///     MyType // A type which implements [`ModuleParam`].
 /// );
 /// ```
 macro_rules! make_param_ops {
