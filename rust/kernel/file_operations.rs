@@ -409,7 +409,7 @@ impl IoctlCommand {
 ///
 /// This is meant to be implemented by registration managers.
 pub trait FileOpenAdapter {
-    /// The type of argument this adpter extracts.
+    /// The type of argument this adapter extracts.
     type Arg;
 
     /// Converts untyped data stored in [`struct inode`] and [`struct file`] (when [`struct
