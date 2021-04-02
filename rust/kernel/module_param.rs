@@ -165,6 +165,7 @@ macro_rules! impl_parse_int {
             fn from_str_radix(src: &str, radix: u32) -> Result<Self, core::num::ParseIntError> {
                 $ty::from_str_radix(src, radix)
             }
+
             fn checked_neg(self) -> Option<Self> {
                 self.checked_neg()
             }
@@ -187,6 +188,7 @@ macro_rules! impl_module_param {
     ($ty:ident) => {
         impl ModuleParam for $ty {
             type Value = $ty;
+
             const NOARG_ALLOWED: bool = false;
 
             fn try_from_param_arg(arg: Option<&'static [u8]>) -> Option<Self> {
@@ -314,6 +316,7 @@ make_param_ops!(
 
 impl ModuleParam for bool {
     type Value = bool;
+
     const NOARG_ALLOWED: bool = true;
 
     fn try_from_param_arg(arg: Option<&'static [u8]>) -> Option<Self> {
@@ -403,6 +406,7 @@ impl<T: Copy + core::fmt::Display + ModuleParam, const N: usize> ModuleParam
     for ArrayParam<T, { N }>
 {
     type Value = [T];
+
     const NOARG_ALLOWED: bool = false;
 
     fn try_from_param_arg(arg: Option<&'static [u8]>) -> Option<Self> {
@@ -462,6 +466,7 @@ impl core::fmt::Display for StringParam {
 
 impl ModuleParam for StringParam {
     type Value = [u8];
+
     const NOARG_ALLOWED: bool = false;
 
     fn try_from_param_arg(arg: Option<&'static [u8]>) -> Option<Self> {

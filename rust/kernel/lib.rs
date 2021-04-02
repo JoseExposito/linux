@@ -144,7 +144,7 @@ fn panic(_info: &PanicInfo) -> ! {
 ///
 /// # Example
 ///
-///```
+/// ```
 /// struct Test {
 ///     a: u64,
 ///     b: u32,
@@ -182,7 +182,7 @@ macro_rules! offset_of {
 ///
 /// # Example
 ///
-///```
+/// ```
 /// struct Test {
 ///     a: u64,
 ///     b: u32,
