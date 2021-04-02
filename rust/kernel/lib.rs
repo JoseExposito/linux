@@ -154,7 +154,7 @@ fn panic(_info: &PanicInfo) -> ! {
 ///     // This prints `8`.
 ///     println!("{}", offset_of!(Test, b));
 /// }
-///```
+/// ```
 #[macro_export]
 macro_rules! offset_of {
     ($type:ty, $($f:tt)*) => {{
@@ -189,14 +189,13 @@ macro_rules! offset_of {
 /// }
 ///
 /// fn test() {
-///     let test = Test{a: 10, b: 20};
+///     let test = Test { a: 10, b: 20 };
 ///     let b_ptr = &test.b;
 ///     let test_alias = unsafe { container_of!(b_ptr, Test, b) };
 ///     // This prints `true`.
 ///     println!("{}", core::ptr::eq(&test, test_alias));
 /// }
-///```
-///
+/// ```
 #[macro_export]
 macro_rules! container_of {
     ($ptr:expr, $type:ty, $($f:tt)*) => {{
