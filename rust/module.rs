@@ -375,10 +375,9 @@ fn generated_array_ops_name(vals: &str, max_length: usize) -> String {
 ///   - `u64`: Corresponds to C `ullong` param type.
 ///   - `isize`: No equivalent C param type.
 ///   - `usize`: No equivalent C param type.
-///   - `str`: Corresponds to C `charp` param type. Reading returns a byte
-///     slice.
-///   - `ArrayParam<T,N>`: Corresponds to C parameters created using
-///     `module_param_array`. An array of `T`'s of length at **most** `N`.
+///   - `str`: Corresponds to C `charp` param type. Reading returns a byte slice.
+///   - `ArrayParam<T,N>`: Corresponds to C parameters created using `module_param_array`. An array
+///     of `T`'s of length at **most** `N`.
 ///
 /// `invbool` is unsupported: it was only ever used in a few modules.
 /// Consider using a `bool` and inverting the logic instead.

@@ -7,7 +7,7 @@
 //!
 //! # Example
 //!
-//!```
+//! ```
 //! fn test() {
 //!     // SAFETY: `init` is called below.
 //!     let data = alloc::sync::Arc::pin(unsafe { Mutex::new(0) });
