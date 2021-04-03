@@ -10,7 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        arch: [x86_64, arm64]
+        arch: [arm64, ppc64le, x86_64]
         toolchain: [gcc, clang, llvm]
         config: [debug, release]
         rustc: [2021-02-20]
@@ -18,13 +18,18 @@ jobs:
         install: [rustup] # [rustup, standalone]
         sysroot: [common] # [common, custom]
 
+        # Exclude `LLVM=1` where not supported.
+        exclude:
+          - arch: ppc64le
+            toolchain: llvm
+
         # A few independent combinations to avoid exploding the matrix:
         #   - The other option for `output`.
         #   - Different nightlies for `rustc`.
         #   - The other three (`install`, `sysroot`) combinations
         #     (they are interrelated, so the cross-product needs to be tested)
         include:
-          - arch: x86_64
+          - arch: arm64
             toolchain: gcc
             config: debug
             rustc: 2021-02-20
@@ -32,7 +37,7 @@ jobs:
             install: rustup
             sysroot: custom
 
-          - arch: arm64
+          - arch: ppc64le
             toolchain: clang
             config: release
             rustc: 2021-02-20
@@ -47,14 +52,6 @@ jobs:
             output: build
             install: standalone
             sysroot: custom
-
-          - arch: ppc64le
-            toolchain: clang
-            config: debug
-            rustc: 2021-02-20
-            output: src
-            install: rustup
-            sysroot: common
 
     steps:
       # Setup: checkout
@@ -122,7 +119,7 @@ jobs:
       - if: matrix.arch == 'arm64'
         run: sudo apt-get install -y qemu-system-arm
       - if: matrix.arch == 'ppc64le'
-        run: sudo apt-get install -y qemu-system-ppc64
+        run: sudo apt-get install -y qemu-system-ppc
 
       # Setup: rustc
       - if: matrix.install == 'rustup'
