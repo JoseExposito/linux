@@ -150,7 +150,7 @@ unsafe extern "C" fn llseek_callback<T: FileOperations>(
             _ => return Err(Error::EINVAL),
         };
         let f = &*((*file).private_data as *const T);
-        let off = T::seek(f, &File::from_ptr(file), off)?;
+        let off = f.seek(&File::from_ptr(file), off)?;
         Ok(off as bindings::loff_t)
     }
 }
@@ -164,7 +164,7 @@ unsafe extern "C" fn unlocked_ioctl_callback<T: FileOperations>(
         let f = &*((*file).private_data as *const T);
         // SAFETY: This function is called by the kernel, so it must set `fs` appropriately.
         let mut cmd = IoctlCommand::new(cmd as _, arg as _);
-        let ret = T::ioctl(f, &File::from_ptr(file), &mut cmd)?;
+        let ret = f.ioctl(&File::from_ptr(file), &mut cmd)?;
         Ok(ret as _)
     }
 }
@@ -178,7 +178,7 @@ unsafe extern "C" fn compat_ioctl_callback<T: FileOperations>(
         let f = &*((*file).private_data as *const T);
         // SAFETY: This function is called by the kernel, so it must set `fs` appropriately.
         let mut cmd = IoctlCommand::new(cmd as _, arg as _);
-        let ret = T::compat_ioctl(f, &File::from_ptr(file), &mut cmd)?;
+        let ret = f.compat_ioctl(&File::from_ptr(file), &mut cmd)?;
         Ok(ret as _)
     }
 }
@@ -194,7 +194,7 @@ unsafe extern "C" fn fsync_callback<T: FileOperations>(
         let end = end.try_into()?;
         let datasync = datasync != 0;
         let f = &*((*file).private_data as *const T);
-        let res = T::fsync(f, &File::from_ptr(file), start, end, datasync)?;
+        let res = f.fsync(&File::from_ptr(file), start, end, datasync)?;
         Ok(res.try_into().unwrap())
     }
 }
@@ -386,15 +386,15 @@ impl IoctlCommand {
     pub fn dispatch<T: IoctlHandler>(&mut self, handler: &T, file: &File) -> KernelResult<i32> {
         let dir = (self.cmd >> bindings::_IOC_DIRSHIFT) & bindings::_IOC_DIRMASK;
         if dir == bindings::_IOC_NONE {
-            return T::pure(handler, file, self.cmd, self.arg);
+            return handler.pure(file, self.cmd, self.arg);
         }
 
         let data = self.user_slice.take().ok_or(Error::EINVAL)?;
         const READ_WRITE: u32 = bindings::_IOC_READ | bindings::_IOC_WRITE;
         match dir {
-            bindings::_IOC_WRITE => T::write(handler, file, self.cmd, &mut data.reader()),
-            bindings::_IOC_READ => T::read(handler, file, self.cmd, &mut data.writer()),
-            READ_WRITE => T::read_write(handler, file, self.cmd, data),
+            bindings::_IOC_WRITE => handler.write(file, self.cmd, &mut data.reader()),
+            bindings::_IOC_READ => handler.read(file, self.cmd, &mut data.writer()),
+            READ_WRITE => handler.read_write(file, self.cmd, data),
             _ => Err(Error::EINVAL),
         }
     }
@@ -531,7 +531,7 @@ impl<T> PointerWrapper<T> for Box<T> {
     }
 
     unsafe fn from_pointer(ptr: *const T) -> Self {
-        Box::<T>::from_raw(ptr as _)
+        Box::from_raw(ptr as _)
     }
 }
 
@@ -551,6 +551,6 @@ impl<T> PointerWrapper<T> for Arc<T> {
     }
 
     unsafe fn from_pointer(ptr: *const T) -> Self {
-        Arc::<T>::from_raw(ptr)
+        Arc::from_raw(ptr)
     }
 }
