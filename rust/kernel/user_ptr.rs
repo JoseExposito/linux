@@ -46,6 +46,32 @@ unsafe impl ReadableFromBytes for i32 {}
 unsafe impl ReadableFromBytes for i64 {}
 unsafe impl ReadableFromBytes for isize {}
 
+/// Specifies that a type is safely writable to byte slices.
+///
+/// This means that we don't read undefined values (which leads to UB) in preparation for writing
+/// to the byte slice. It also ensures that no potentially sensitive information is leaked into the
+/// byte slices.
+///
+/// # Safety
+///
+/// A type must not include padding bytes and must be fully initialised to safely implement
+/// [`WritableToBytes`] (i.e., it doesn't contain [`MaybeUninit`] fields). A composition of
+/// writable types in a structure is not necessarily writable because it may result in padding
+/// bytes.
+pub unsafe trait WritableToBytes {}
+
+// SAFETY: Initialised instances of the following types have no uninitialised portions.
+unsafe impl WritableToBytes for u8 {}
+unsafe impl WritableToBytes for u16 {}
+unsafe impl WritableToBytes for u32 {}
+unsafe impl WritableToBytes for u64 {}
+unsafe impl WritableToBytes for usize {}
+unsafe impl WritableToBytes for i8 {}
+unsafe impl WritableToBytes for i16 {}
+unsafe impl WritableToBytes for i32 {}
+unsafe impl WritableToBytes for i64 {}
+unsafe impl WritableToBytes for isize {}
+
 /// A reference to an area in userspace memory, which can be either
 /// read-only or read-write.
 ///
@@ -245,5 +271,12 @@ impl UserSlicePtrWriter {
         self.0 = self.0.wrapping_add(len);
         self.1 -= len;
         Ok(())
+    }
+
+    /// Writes the contents of the given data into the user slice.
+    pub fn write<T: WritableToBytes>(&mut self, data: &T) -> KernelResult<()> {
+        // SAFETY: The input buffer is valid as it's coming from a live
+        // reference to a type that implements `WritableToBytes`.
+        unsafe { self.write_raw(data as *const T as _, size_of::<T>()) }
     }
 }
