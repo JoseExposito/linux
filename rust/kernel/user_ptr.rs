@@ -4,7 +4,7 @@
 //!
 //! C header: [`include/linux/uaccess.h`](../../../../include/linux/uaccess.h)
 
-use crate::{c_types, error, KernelResult};
+use crate::{c_types, error::Error, KernelResult};
 use alloc::vec::Vec;
 use core::mem::{size_of, MaybeUninit};
 
@@ -148,7 +148,7 @@ impl UserSlicePtrReader {
     ///
     /// Returns `EFAULT` if the address does not currently point to
     /// mapped, readable memory.
-    pub fn read_all(&mut self) -> error::KernelResult<Vec<u8>> {
+    pub fn read_all(&mut self) -> KernelResult<Vec<u8>> {
         let mut data = Vec::<u8>::new();
         data.try_reserve_exact(self.1)?;
         data.resize(self.1, 0);
@@ -174,11 +174,11 @@ impl UserSlicePtrReader {
     /// The output buffer must be valid.
     pub unsafe fn read_raw(&mut self, out: *mut u8, len: usize) -> KernelResult {
         if len > self.1 || len > u32::MAX as usize {
-            return Err(error::Error::EFAULT);
+            return Err(Error::EFAULT);
         }
         let res = rust_helper_copy_from_user(out as _, self.0, len as _);
         if res != 0 {
-            return Err(error::Error::EFAULT);
+            return Err(Error::EFAULT);
         }
         // Since this is not a pointer to a valid object in our program,
         // we cannot use `add`, which has C-style rules for defined
@@ -233,11 +233,11 @@ impl UserSlicePtrWriter {
     /// The input buffer must be valid.
     unsafe fn write_raw(&mut self, data: *const u8, len: usize) -> KernelResult {
         if len > self.1 || len > u32::MAX as usize {
-            return Err(error::Error::EFAULT);
+            return Err(Error::EFAULT);
         }
         let res = rust_helper_copy_to_user(self.0, data as _, len as _);
         if res != 0 {
-            return Err(error::Error::EFAULT);
+            return Err(Error::EFAULT);
         }
         // Since this is not a pointer to a valid object in our program,
         // we cannot use `add`, which has C-style rules for defined
