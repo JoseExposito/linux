@@ -82,12 +82,13 @@ macro_rules! from_kernel_result {
     }};
 }
 
-unsafe extern "C" fn open_callback<T: FileOperations>(
-    _inode: *mut bindings::inode,
+unsafe extern "C" fn open_callback<A: FileOpenAdapter, T: FileOpener<A::Arg>>(
+    inode: *mut bindings::inode,
     file: *mut bindings::file,
 ) -> c_types::c_int {
     from_kernel_result! {
-        let ptr = T::open()?.into_pointer();
+        let arg = A::convert(inode, file);
+        let ptr = T::open(&*arg)?.into_pointer();
         (*file).private_data = ptr as *mut c_types::c_void;
         Ok(0)
     }
@@ -198,11 +199,11 @@ unsafe extern "C" fn fsync_callback<T: FileOperations>(
     }
 }
 
-pub(crate) struct FileOperationsVtable<T>(marker::PhantomData<T>);
+pub(crate) struct FileOperationsVtable<A, T>(marker::PhantomData<A>, marker::PhantomData<T>);
 
-impl<T: FileOperations> FileOperationsVtable<T> {
+impl<A: FileOpenAdapter, T: FileOpener<A::Arg>> FileOperationsVtable<A, T> {
     const VTABLE: bindings::file_operations = bindings::file_operations {
-        open: Some(open_callback::<T>),
+        open: Some(open_callback::<A, T>),
         release: Some(release_callback::<T>),
         read: if T::TO_USE.read {
             Some(read_callback::<T>)
@@ -262,7 +263,11 @@ impl<T: FileOperations> FileOperationsVtable<T> {
     };
 
     /// Builds an instance of [`struct file_operations`].
-    pub(crate) const fn build() -> &'static bindings::file_operations {
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the adapter is compatible with the way the device is registered.
+    pub(crate) const unsafe fn build() -> &'static bindings::file_operations {
         &Self::VTABLE
     }
 }
@@ -400,6 +405,39 @@ impl IoctlCommand {
     }
 }
 
+/// Trait for extracting file open arguments from kernel data structures.
+///
+/// This is meant to be implemented by registration managers.
+pub trait FileOpenAdapter {
+    /// The type of argument this adapter extracts.
+    type Arg;
+
+    /// Converts untyped data stored in [`struct inode`] and [`struct file`] (when [`struct
+    /// file_operations::open`] is called) into the given type. For example, for `miscdev`
+    /// devices, a pointer to the registered [`struct miscdev`] is stored in [`struct
+    /// file::private_data`].
+    ///
+    /// # Safety
+    ///
+    /// This function must be called only when [`struct file_operations::open`] is being called for
+    /// a file that was registered by the implementer.
+    unsafe fn convert(_inode: *mut bindings::inode, _file: *mut bindings::file)
+        -> *const Self::Arg;
+}
+
+/// Trait for implementers of kernel files.
+///
+/// In addition to the methods in [`FileOperations`], implementers must also provide
+/// [`FileOpener::open`] with a customised argument. This allows a single implementation of
+/// [`FileOperations`] to be used for different types of registrations, for example, `miscdev` and
+/// `chrdev`.
+pub trait FileOpener<T: ?Sized>: FileOperations {
+    /// Creates a new instance of this file.
+    ///
+    /// Corresponds to the `open` function pointer in `struct file_operations`.
+    fn open(context: &T) -> KernelResult<Self::Wrapper>;
+}
+
 /// Corresponds to the kernel's `struct file_operations`.
 ///
 /// You implement this trait whenever you would create a `struct file_operations`.
@@ -413,11 +451,6 @@ pub trait FileOperations: Send + Sync + Sized {
 
     /// The pointer type that will be used to hold ourselves.
     type Wrapper: PointerWrapper<Self>;
-
-    /// Creates a new instance of this file.
-    ///
-    /// Corresponds to the `open` function pointer in `struct file_operations`.
-    fn open() -> KernelResult<Self::Wrapper>;
 
     /// Cleans up after the last reference to the file goes away.
     ///

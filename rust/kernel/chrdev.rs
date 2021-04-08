@@ -78,7 +78,7 @@ impl<const N: usize> Registration<{ N }> {
     /// Registers a character device.
     ///
     /// You may call this once per device type, up to `N` times.
-    pub fn register<T: file_operations::FileOperations>(self: Pin<&mut Self>) -> KernelResult {
+    pub fn register<T: file_operations::FileOpener<()>>(self: Pin<&mut Self>) -> KernelResult {
         // SAFETY: We must ensure that we never move out of `this`.
         let this = unsafe { self.get_unchecked_mut() };
         if this.inner.is_none() {
@@ -112,7 +112,12 @@ impl<const N: usize> Registration<{ N }> {
         // SAFETY: Calling unsafe functions and manipulating `MaybeUninit`
         // pointer.
         unsafe {
-            bindings::cdev_init(cdev, file_operations::FileOperationsVtable::<T>::build());
+            bindings::cdev_init(
+                cdev,
+                // SAFETY: The adapter doesn't retrieve any state yet, so it's compatible with any
+                // registration.
+                file_operations::FileOperationsVtable::<Self, T>::build(),
+            );
             (*cdev).owner = this.this_module.0;
             let rc = bindings::cdev_add(cdev, inner.dev + inner.used as bindings::dev_t, 1);
             if rc != 0 {
@@ -121,6 +126,19 @@ impl<const N: usize> Registration<{ N }> {
         }
         inner.used += 1;
         Ok(())
+    }
+}
+
+impl<const N: usize> file_operations::FileOpenAdapter for Registration<{ N }> {
+    type Arg = ();
+
+    unsafe fn convert(
+        _inode: *mut bindings::inode,
+        _file: *mut bindings::file,
+    ) -> *const Self::Arg {
+        // TODO: Update the SAFETY comment on the call to `FileOperationsVTable::build` above once
+        // this is updated to retrieve state.
+        &()
     }
 }
 
