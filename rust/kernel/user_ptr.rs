@@ -46,14 +46,15 @@ unsafe impl ReadableFromBytes for i32 {}
 unsafe impl ReadableFromBytes for i64 {}
 unsafe impl ReadableFromBytes for isize {}
 
-/// Specifies that a type can be safely writable to byte slices.
+/// Specifies that a type is safely writable to byte slices.
 ///
-/// This means that we don't read undefined values when reading the memory contents (which leads to
-/// UB). It also ensures that no potentially sensitive information is leaked into the byte slices.
+/// This means that we don't read undefined values (which leads to UB) in preparation for writing
+/// to the byte slice. It also ensures that no potentially sensitive information is leaked into the
+/// byte slices.
 ///
 /// # Safety
 ///
-/// A type must not include padding bytes and must be fully initialsed to safely implement
+/// A type must not include padding bytes and must be fully initialised to safely implement
 /// [`WritableToBytes`] (i.e., it doesn't contain [`MaybeUninit`] fields). A composition of
 /// writable types in a structure is not necessarily writable because it may result in padding
 /// bytes.
