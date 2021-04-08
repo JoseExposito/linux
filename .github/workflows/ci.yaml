@@ -159,6 +159,28 @@ jobs:
       - run: mv .github/workflows/busybox.config busybox/.config
       - run: cd busybox && make ${{ env.MAKE_CROSS_COMPILE }} -j3
 
+      # Setup: module parameters test
+      - run: |
+          cp samples/rust/rust_module_parameters.rs samples/rust/rust_module_parameters_builtin_default.rs
+          cp samples/rust/rust_module_parameters.rs samples/rust/rust_module_parameters_builtin_custom.rs
+          cp samples/rust/rust_module_parameters.rs samples/rust/rust_module_parameters_loadable_default.rs
+          cp samples/rust/rust_module_parameters.rs samples/rust/rust_module_parameters_loadable_custom.rs
+
+          sed -i 's:"  my_:"  built-in default my_:g' samples/rust/rust_module_parameters_builtin_default.rs
+          sed -i 's:"  my_:"  built-in custom  my_:g' samples/rust/rust_module_parameters_builtin_custom.rs
+          sed -i 's:"  my_:"  loadable default my_:g' samples/rust/rust_module_parameters_loadable_default.rs
+          sed -i 's:"  my_:"  loadable custom  my_:g' samples/rust/rust_module_parameters_loadable_custom.rs
+
+          sed -i 's:rust_module_parameters:rust_module_parameters_builtin_default:g'  samples/rust/rust_module_parameters_builtin_default.rs
+          sed -i 's:rust_module_parameters:rust_module_parameters_builtin_custom:g'   samples/rust/rust_module_parameters_builtin_custom.rs
+          sed -i 's:rust_module_parameters:rust_module_parameters_loadable_default:g' samples/rust/rust_module_parameters_loadable_default.rs
+          sed -i 's:rust_module_parameters:rust_module_parameters_loadable_custom:g'  samples/rust/rust_module_parameters_loadable_custom.rs
+
+          echo 'obj-y	+= rust_module_parameters_builtin_default.o'  >> samples/rust/Makefile
+          echo 'obj-y	+= rust_module_parameters_builtin_custom.o'   >> samples/rust/Makefile
+          echo 'obj-m	+= rust_module_parameters_loadable_default.o' >> samples/rust/Makefile
+          echo 'obj-m	+= rust_module_parameters_loadable_custom.o'  >> samples/rust/Makefile
+
       # Build
       - run: mv .github/workflows/kernel-${{ matrix.arch }}-${{ matrix.config }}.config .config
 
@@ -166,7 +188,7 @@ jobs:
         run: |
           mkdir ${{ env.BUILD_DIR }}
           mv .config ${{ env.BUILD_DIR }}.config
-          sed -i 's:drivers/:${{ env.BUILD_DIR }}drivers/:' .github/workflows/qemu-initramfs.desc
+          sed -i 's:samples/rust/:${{ env.BUILD_DIR }}samples/rust/:' .github/workflows/qemu-initramfs.desc
 
       - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3
 
@@ -184,55 +206,67 @@ jobs:
             -vga none \
             -no-reboot \
             -append '${{ env.QEMU_APPEND }} \
-              rust_example.my_i32=123321 \
-              rust_example.my_str=🦀mod \
-              rust_example_2.my_i32=234432 \
-              rust_example_2.my_array=1,2,3' \
+              rust_module_parameters_builtin_custom.my_bool=n \
+              rust_module_parameters_builtin_custom.my_i32=345543 \
+              rust_module_parameters_builtin_custom.my_str=🦀mod \
+              rust_module_parameters_builtin_custom.my_usize=84 \
+              rust_module_parameters_builtin_custom.my_array=1,2,3 \
+            ' \
             | sed s:$'\r'$:: \
             | tee qemu-stdout.log
 
       # Check
       - run: |
-          grep      '] Rust Example (init)$' qemu-stdout.log
-          grep '] \[2] Rust Example (init)$' qemu-stdout.log
-          grep '] \[3] Rust Example (init)$' qemu-stdout.log
-          grep '] \[4] Rust Example (init)$' qemu-stdout.log
+          grep '] Rust minimal sample (init)$' qemu-stdout.log
+          grep '] Rust minimal sample (exit)$' qemu-stdout.log
 
-          grep      ']   my_i32:     123321$' qemu-stdout.log
-          grep '] \[2]   my_i32:     234432$' qemu-stdout.log
-          grep '] \[3]   my_i32:     345543$' qemu-stdout.log
-          grep '] \[4]   my_i32:     456654$' qemu-stdout.log
+          grep '] Rust module parameters sample (init)$'           qemu-stdout.log
+          grep ']   built-in default my_bool:    true$'            qemu-stdout.log
+          grep ']   built-in default my_i32:     42$'              qemu-stdout.log
+          grep ']   built-in default my_str:     default str val$' qemu-stdout.log
+          grep ']   built-in default my_usize:   42$'              qemu-stdout.log
+          grep ']   built-in default my_array:   \[0, 1]$'         qemu-stdout.log
+          grep ']   built-in custom  my_bool:    false$'           qemu-stdout.log
+          grep ']   built-in custom  my_i32:     345543$'          qemu-stdout.log
+          grep ']   built-in custom  my_str:     🦀mod$'           qemu-stdout.log
+          grep ']   built-in custom  my_usize:   84$'              qemu-stdout.log
+          grep ']   built-in custom  my_array:   \[1, 2, 3]$'      qemu-stdout.log
+          grep ']   loadable default my_bool:    true$'            qemu-stdout.log
+          grep ']   loadable default my_i32:     42$'              qemu-stdout.log
+          grep ']   loadable default my_str:     default str val$' qemu-stdout.log
+          grep ']   loadable default my_usize:   42$'              qemu-stdout.log
+          grep ']   loadable default my_array:   \[0, 1]$'         qemu-stdout.log
+          grep ']   loadable custom  my_bool:    false$'           qemu-stdout.log
+          grep ']   loadable custom  my_i32:     345543$'          qemu-stdout.log
+          grep ']   loadable custom  my_str:     🦀mod$'           qemu-stdout.log
+          grep ']   loadable custom  my_usize:   84$'              qemu-stdout.log
+          grep ']   loadable custom  my_array:   \[1, 2, 3]$'      qemu-stdout.log
+          grep '] Rust module parameters sample (exit)$'           qemu-stdout.log
 
-          grep      ']   my_usize:   42$' qemu-stdout.log
-          grep '] \[2]   my_usize:   42$' qemu-stdout.log
-          grep '] \[3]   my_usize:   42$' qemu-stdout.log
-          grep '] \[4]   my_usize:   84$' qemu-stdout.log
+          grep '] Rust synchronisation primitives sample (init)$' qemu-stdout.log
+          grep '] Rust synchronisation primitives sample (exit)$' qemu-stdout.log
 
-          grep      ']   my_str:     🦀mod$'           qemu-stdout.log
-          grep '] \[2]   my_str:     default str val$' qemu-stdout.log
-          grep '] \[3]   my_str:     🦀mod$'           qemu-stdout.log
-          grep '] \[4]   my_str:     default str val$' qemu-stdout.log
+          grep '] Rust character device sample (init)$' qemu-stdout.log
+          grep '] Rust character device sample (exit)$' qemu-stdout.log
 
-          grep      ']   my_array:   \[0, 1]$'    qemu-stdout.log
-          grep '] \[2]   my_array:   \[1, 2, 3]$' qemu-stdout.log
-          grep '] \[3]   my_array:   \[0, 1]$'    qemu-stdout.log
-          grep '] \[4]   my_array:   \[1, 2, 3]$' qemu-stdout.log
+          grep '] Rust miscellaneous device sample (init)$' qemu-stdout.log
+          grep '] Rust miscellaneous device sample (exit)$' qemu-stdout.log
 
-          grep '] \[3] Rust Example (exit)$' qemu-stdout.log
-          grep '] \[4] Rust Example (exit)$' qemu-stdout.log
+          grep '] Rust stack probing sample (init)$' qemu-stdout.log
+          grep '] Rust stack probing sample (exit)$' qemu-stdout.log
 
       # Report
       - run: |
           ls -l \
-            ${{ env.BUILD_DIR }}drivers/char/rust_example.o \
-            ${{ env.BUILD_DIR }}drivers/char/rust_example_3.ko \
+            ${{ env.BUILD_DIR }}samples/rust/*.o \
+            ${{ env.BUILD_DIR }}samples/rust/*.ko \
             ${{ env.BUILD_DIR }}rust/*.o \
             ${{ env.BUILD_DIR }}vmlinux \
             ${{ env.BUILD_DIR }}${{ env.IMAGE_PATH }}
 
           size \
-            ${{ env.BUILD_DIR }}drivers/char/rust_example.o \
-            ${{ env.BUILD_DIR }}drivers/char/rust_example_3.ko \
+            ${{ env.BUILD_DIR }}samples/rust/*.o \
+            ${{ env.BUILD_DIR }}samples/rust/*.ko \
             ${{ env.BUILD_DIR }}rust/*.o \
             ${{ env.BUILD_DIR }}vmlinux
 
