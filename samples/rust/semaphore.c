@@ -11,7 +11,7 @@
 #define IOCTL_SET_READ_COUNT _IOW('c', 1, u64)
 
 struct semaphore_state {
-	refcount_t ref;
+	struct kref ref;
 	struct miscdevice miscdev;
 	wait_queue_head_t changed;
 	struct mutex mutex;
@@ -55,7 +55,7 @@ static int semaphore_open(struct inode *nodp, struct file *filp)
 	if (!state)
 		return -ENOMEM;
 
-	refcount_inc(&shared->ref);
+	kref_get(&shared->ref);
 	state->shared = shared;
 	atomic64_set(&state->read_count, 0);
 
@@ -130,13 +130,19 @@ static long semaphore_ioctl(struct file *filp, unsigned int cmd, unsigned long a
 	}
 }
 
+static void semaphore_free(struct kref *kref)
+{
+	struct semaphore_state *device;
+
+	device = container_of(kref, struct semaphore_state, ref);
+	kfree(device);
+}
+
 static int semaphore_release(struct inode *nodp, struct file *filp)
 {
 	struct file_state *state = filp->private_data;
 
-	if (refcount_dec_and_test(&state->shared->ref))
-		kfree(state->shared);
-
+	kref_put(&state->shared->ref, semaphore_free);
 	kfree(state);
 	return 0;
 }
@@ -162,7 +168,7 @@ static int __init semaphore_init(void)
 		return -ENOMEM;
 
 	mutex_init(&state->mutex);
-	refcount_set(&state->ref, 1);
+	kref_init(&state->ref);
 	init_waitqueue_head(&state->changed);
 
 	state->miscdev.fops = &semaphore_fops;
@@ -183,8 +189,7 @@ static int __init semaphore_init(void)
 static void __exit semaphore_exit(void)
 {
 	misc_deregister(&device->miscdev);
-	if (refcount_dec_and_test(&device->ref))
-		kfree(device);
+	kref_put(&device->ref, semaphore_free);
 }
 
 module_init(semaphore_init);
