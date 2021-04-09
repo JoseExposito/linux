@@ -152,8 +152,13 @@ Configuration
 menu. The option is only shown if the build system can locate ``rustc``.
 In turn, this will make visible the rest of options that depend on Rust.
 
-Afterwards, go to ``Character devices`` under ``Device Drivers`` and enable
-the example Rust driver ``Rust example`` (``CONFIG_RUST_EXAMPLE``).
+Afterwards, go to::
+
+    Kernel hacking
+      -> Sample kernel code
+           -> Rust samples
+
+And enable some sample modules either as built-in or as loadable.
 
 
 Building
@@ -175,9 +180,9 @@ the moment.
 Hacking
 -------
 
-If you want to dive deeper, take a look at the source code of the example
-driver at ``drivers/char/rust_example.rs``, the Rust support code under
-``rust/`` and the ``Rust hacking`` menu under ``Kernel hacking``.
+If you want to dive deeper, take a look at the source code of the samples
+at ``samples/rust/``, the Rust support code under ``rust/`` and
+the ``Rust hacking`` menu under ``Kernel hacking``.
 
 If you use GDB/Binutils and Rust symbols aren't getting demangled, the reason
 is your toolchain doesn't support Rust's new v0 mangling scheme yet. There are
