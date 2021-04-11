@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 
+//! Rust semaphore sample
+//!
 //! A counting semaphore that can be used by userspace.
 //!
 //! The count is incremented by writes to the device. A write of `n` bytes results in an increment
@@ -31,10 +33,10 @@ use kernel::{
 };
 
 module! {
-    type: RustSemaphoreModule,
+    type: RustSemaphore,
     name: b"rust_semaphore",
     author: b"Rust for Linux Contributors",
-    description: b"An example kernel module written in Rust",
+    description: b"Rust semaphore sample",
     license: b"GPL v2",
     params: {},
 }
@@ -111,15 +113,18 @@ impl FileOperations for FileState {
     fn release(_obj: Box<Self>, _file: &File) {}
 }
 
-struct RustSemaphoreModule {
+struct RustSemaphore {
     _dev: Pin<Box<Registration<Arc<Semaphore>>>>,
 }
 
-impl KernelModule for RustSemaphoreModule {
+impl KernelModule for RustSemaphore {
     fn init() -> KernelResult<Self> {
+        info!("Rust semaphore sample (init)");
+
         let sema = Arc::try_new(Semaphore {
             // SAFETY: `condvar_init!` is called below.
             changed: unsafe { CondVar::new() },
+
             // SAFETY: `mutex_init!` is called below.
             inner: unsafe {
                 Mutex::new(SemaphoreInner {
@@ -128,13 +133,22 @@ impl KernelModule for RustSemaphoreModule {
                 })
             },
         })?;
+
         // SAFETY: `changed` is pinned behind `Arc`.
         condvar_init!(Pin::new_unchecked(&sema.changed), "Semaphore::changed");
+
         // SAFETY: `inner` is pinned behind `Arc`.
         mutex_init!(Pin::new_unchecked(&sema.inner), "Semaphore::inner");
+
         Ok(Self {
             _dev: Registration::new_pinned::<FileState>(cstr!("rust_semaphore"), None, sema)?,
         })
+    }
+}
+
+impl Drop for RustSemaphore {
+    fn drop(&mut self) {
+        info!("Rust semaphore sample (exit)");
     }
 }
 

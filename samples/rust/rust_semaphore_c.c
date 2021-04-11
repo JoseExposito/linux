@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0
+/*
+ * Rust semaphore sample (in C, for comparison)
+ *
+ * This is a C implementation of `rust_semaphore.rs`. Refer to the description
+ * in that file for details on the device.
+ */
 
-// This is a C implementation of `rust_semaphore.rs`. Refer to the description
-// in that file for details on the device.
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/miscdevice.h>
 #include <linux/module.h>
 #include <linux/fs.h>
@@ -165,6 +171,8 @@ static int __init semaphore_init(void)
 	int ret;
 	struct semaphore_state *state;
 
+	pr_info("Rust semaphore sample (in C, for comparison) (init)\n");
+
 	state = kzalloc(sizeof(*state), GFP_KERNEL);
 	if (!state)
 		return -ENOMEM;
@@ -190,6 +198,8 @@ static int __init semaphore_init(void)
 
 static void __exit semaphore_exit(void)
 {
+	pr_info("Rust semaphore sample (in C, for comparison) (exit)\n");
+
 	misc_deregister(&device->miscdev);
 	kref_put(&device->ref, semaphore_free);
 }
@@ -198,3 +208,5 @@ module_init(semaphore_init);
 module_exit(semaphore_exit);
 
 MODULE_LICENSE("GPL v2");
+MODULE_AUTHOR("Rust for Linux Contributors");
+MODULE_DESCRIPTION("Rust semaphore sample (in C, for comparison)");

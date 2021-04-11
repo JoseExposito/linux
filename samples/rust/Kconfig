@@ -80,20 +80,24 @@ config SAMPLE_RUST_STACK_PROBING
 
 	  If unsure, say N.
 
-config SAMPLE_SEMAPHORE
-	tristate "Semaphore in C"
-	help
-	  This option builds the C semaphore sample.
-
-	  To compile this as a module, choose M here:
-	  the module will be called semaphore.
-
 config SAMPLE_RUST_SEMAPHORE
-	tristate "Semaphore in Rust"
+	tristate "Semaphore"
 	help
 	  This option builds the Rust semaphore sample.
 
 	  To compile this as a module, choose M here:
 	  the module will be called rust_semaphore.
+
+	  If unsure, say N.
+
+config SAMPLE_RUST_SEMAPHORE_C
+	tristate "Semaphore (in C, for comparison)"
+	help
+	  This option builds the Rust semaphore sample (in C, for comparison).
+
+	  To compile this as a module, choose M here:
+	  the module will be called rust_semaphore_c.
+
+	  If unsure, say N.
 
 endif # SAMPLES_RUST
