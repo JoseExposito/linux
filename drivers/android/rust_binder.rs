@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0
 
+//! Binder -- the Android IPC mechanism.
+//!
+//! TODO: This module is a work in progress.
+
 #![no_std]
 #![feature(global_asm, try_reserve, allocator_api, concat_idents)]
 
