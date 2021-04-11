@@ -5,7 +5,7 @@
 //! C header: [`include/linux/fs.h`](../../../../include/linux/fs.h)
 
 use core::convert::{TryFrom, TryInto};
-use core::{marker, mem, ptr};
+use core::{marker, mem, ops::Deref, pin::Pin, ptr};
 
 use alloc::boxed::Box;
 use alloc::sync::Arc;
@@ -13,7 +13,7 @@ use alloc::sync::Arc;
 use crate::bindings;
 use crate::c_types;
 use crate::error::{Error, KernelResult};
-use crate::sync::{Ref, RefCounted};
+use crate::sync::{CondVar, Ref, RefCounted};
 use crate::user_ptr::{UserSlicePtr, UserSlicePtrReader, UserSlicePtrWriter};
 
 /// Wraps the kernel's `struct file`.
@@ -46,6 +46,50 @@ impl File {
     pub fn is_blocking(&self) -> bool {
         // SAFETY: `File::ptr` is guaranteed to be valid by the type invariants.
         unsafe { (*self.ptr).f_flags & bindings::O_NONBLOCK == 0 }
+    }
+}
+
+/// Wraps the kernel's `struct poll_table_struct`.
+///
+/// # Invariants
+///
+/// The pointer [`PollTable::ptr`] is null or valid.
+pub struct PollTable {
+    ptr: *mut bindings::poll_table_struct,
+}
+
+impl PollTable {
+    /// Constructors a new `struct poll_table_struct` wrapper.
+    ///
+    /// # Safety
+    ///
+    /// The pointer `ptr` must be either null or a valid pointer for the lifetime of the object.
+    unsafe fn from_ptr(ptr: *mut bindings::poll_table_struct) -> Self {
+        Self { ptr }
+    }
+
+    /// Associates the given file and condition variable to this poll table. It means notifying the
+    /// condition variable will notify the poll table as well; additionally, the association
+    /// between the condition variable and the file will automatically be undone by the kernel when
+    /// the file is destructed. To unilaterally remove the association before then, one can call
+    /// [`CondVar::free_waiters`].
+    ///
+    /// # Safety
+    ///
+    /// If the condition variable is destroyed before the file, then [`CondVar::free_waiters`] must
+    /// be called to ensure that all waiters are flushed out.
+    pub unsafe fn register_wait<'a>(&self, file: &'a File, cv: &'a CondVar) {
+        if self.ptr.is_null() {
+            return;
+        }
+
+        // SAFETY: `PollTable::ptr` is guaranteed to be valid by the type invariants and the null
+        // check above.
+        let table = &*self.ptr;
+        if let Some(proc) = table._qproc {
+            // SAFETY: All pointers are known to be valid.
+            proc(file.ptr as _, cv.wait_list.get(), self.ptr)
+        }
     }
 }
 
@@ -183,6 +227,17 @@ unsafe extern "C" fn compat_ioctl_callback<T: FileOperations>(
     }
 }
 
+unsafe extern "C" fn mmap_callback<T: FileOperations>(
+    file: *mut bindings::file,
+    vma: *mut bindings::vm_area_struct,
+) -> c_types::c_int {
+    from_kernel_result! {
+        let f = &*((*file).private_data as *const T);
+        f.mmap(&File::from_ptr(file), &mut *vma)?;
+        Ok(0)
+    }
+}
+
 unsafe extern "C" fn fsync_callback<T: FileOperations>(
     file: *mut bindings::file,
     start: bindings::loff_t,
@@ -196,6 +251,17 @@ unsafe extern "C" fn fsync_callback<T: FileOperations>(
         let f = &*((*file).private_data as *const T);
         let res = f.fsync(&File::from_ptr(file), start, end, datasync)?;
         Ok(res.try_into().unwrap())
+    }
+}
+
+unsafe extern "C" fn poll_callback<T: FileOperations>(
+    file: *mut bindings::file,
+    wait: *mut bindings::poll_table_struct,
+) -> bindings::__poll_t {
+    let f = &*((*file).private_data as *const T);
+    match f.poll(&File::from_ptr(file), &PollTable::from_ptr(wait)) {
+        Ok(v) => v,
+        Err(_) => bindings::POLLERR,
     }
 }
 
@@ -243,10 +309,18 @@ impl<A: FileOpenAdapter, T: FileOpener<A::Arg>> FileOperationsVtable<A, T> {
         iterate_shared: None,
         iopoll: None,
         lock: None,
-        mmap: None,
+        mmap: if T::TO_USE.mmap {
+            Some(mmap_callback::<T>)
+        } else {
+            None
+        },
         mmap_supported_flags: 0,
         owner: ptr::null_mut(),
-        poll: None,
+        poll: if T::TO_USE.poll {
+            Some(poll_callback::<T>)
+        } else {
+            None
+        },
         read_iter: None,
         remap_file_range: None,
         sendpage: None,
@@ -291,6 +365,12 @@ pub struct ToUse {
 
     /// The `fsync` field of [`struct file_operations`].
     pub fsync: bool,
+
+    /// The `mmap` field of [`struct file_operations`].
+    pub mmap: bool,
+
+    /// The `poll` field of [`struct file_operations`].
+    pub poll: bool,
 }
 
 /// A constant version where all values are to set to `false`, that is, all supported fields will
@@ -302,6 +382,8 @@ pub const USE_NONE: ToUse = ToUse {
     ioctl: false,
     compat_ioctl: false,
     fsync: false,
+    mmap: false,
+    poll: false,
 };
 
 /// Defines the [`FileOperations::TO_USE`] field based on a list of fields to be populated.
@@ -506,6 +588,22 @@ pub trait FileOperations: Send + Sync + Sized {
     fn fsync(&self, _file: &File, _start: u64, _end: u64, _datasync: bool) -> KernelResult<u32> {
         Err(Error::EINVAL)
     }
+
+    /// Maps areas of the caller's virtual memory with device/file memory.
+    ///
+    /// Corresponds to the `mmap` function pointer in `struct file_operations`.
+    /// TODO: wrap `vm_area_struct` so that we don't have to expose it.
+    fn mmap(&self, _file: &File, _vma: &mut bindings::vm_area_struct) -> KernelResult {
+        Err(Error::EINVAL)
+    }
+
+    /// Checks the state of the file and optionally registers for notification when the state
+    /// changes.
+    ///
+    /// Corresponds to the `poll` function pointer in `struct file_operations`.
+    fn poll(&self, _file: &File, _table: &PollTable) -> KernelResult<u32> {
+        Ok(bindings::POLLIN | bindings::POLLOUT | bindings::POLLRDNORM | bindings::POLLWRNORM)
+    }
 }
 
 /// Used to convert an object into a raw pointer that represents it.
@@ -552,5 +650,19 @@ impl<T> PointerWrapper<T> for Arc<T> {
 
     unsafe fn from_pointer(ptr: *const T) -> Self {
         Arc::from_raw(ptr)
+    }
+}
+
+impl<T, W: PointerWrapper<T> + Deref> PointerWrapper<T> for Pin<W> {
+    fn into_pointer(self) -> *const T {
+        // SAFETY: We continue to treat the pointer as pinned by returning just a pointer to it to
+        // the caller.
+        let inner = unsafe { Pin::into_inner_unchecked(self) };
+        inner.into_pointer()
+    }
+
+    unsafe fn from_pointer(p: *const T) -> Self {
+        // SAFETY: The object was originally pinned.
+        Pin::new_unchecked(W::from_pointer(p))
     }
 }
