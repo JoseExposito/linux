@@ -264,9 +264,9 @@ impl Thread {
         self.inner.lock().current_transaction = Some(transaction);
     }
 
-    /// Attemps to fetch a work item from the thread-local queue. The behaviour if it the queue is
+    /// Attempts to fetch a work item from the thread-local queue. The behaviour if the queue is
     /// empty depends on `wait`: if it is true, the function waits for some work to be queued (or a
-    /// signal); otherwise it returns indicating that none is avaible.
+    /// signal); otherwise it returns indicating that none is available.
     fn get_work_local(self: &Arc<Self>, wait: bool) -> KernelResult<Arc<dyn DeliverToRead>> {
         // Try once if the caller does not want to wait.
         if !wait {
@@ -291,7 +291,7 @@ impl Thread {
         }
     }
 
-    /// Attemps to fetch a work item from the thread-local queue, falling back to the process-wide
+    /// Attempts to fetch a work item from the thread-local queue, falling back to the process-wide
     /// queue if none is available locally.
     ///
     /// This must only be called when the thread is not participating in a transaction chain. If it
@@ -354,7 +354,7 @@ impl Thread {
         Ok(())
     }
 
-    /// Attemps to push to given work item to the thread if it's a looper thread (i.e., if it's
+    /// Attempts to push to given work item to the thread if it's a looper thread (i.e., if it's
     /// part of a thread pool) and is alive. Otherwise, push the work item to the process instead.
     pub(crate) fn push_work_if_looper(&self, work: Arc<dyn DeliverToRead>) -> BinderResult {
         let mut inner = self.inner.lock();
@@ -541,7 +541,7 @@ impl Thread {
             Ok(())
         })()
         .map_err(|mut err| {
-            // At this point we only return BR_TRANSACTION_COMPLETE to the caller, and we must let
+            // At this point we only return `BR_TRANSACTION_COMPLETE` to the caller, and we must let
             // the sender know that the transaction has completed (with an error in this case).
             let reply = Either::Right(BR_FAILED_REPLY);
             orig.from.deliver_reply(reply, &orig);
@@ -552,7 +552,7 @@ impl Thread {
 
     /// Determines the current top of the transaction stack. It fails if the top is in another
     /// thread (i.e., this thread belongs to a stack but it has called another thread). The top is
-    /// `None` if the thread is not currently participating in a transaction stack.
+    /// [`None`] if the thread is not currently participating in a transaction stack.
     fn top_of_transaction_stack(&self) -> KernelResult<Option<Arc<Transaction>>> {
         let inner = self.inner.lock();
         Ok(if let Some(cur) = &inner.current_transaction {
