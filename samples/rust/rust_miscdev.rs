@@ -4,7 +4,6 @@
 
 #![no_std]
 #![feature(allocator_api, global_asm)]
-#![feature(test)]
 
 use alloc::{boxed::Box, sync::Arc};
 use core::pin::Pin;
