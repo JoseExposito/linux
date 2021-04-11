@@ -21,6 +21,12 @@ busybox  rmmod rust_miscdev.ko
 busybox insmod rust_stack_probing.ko
 busybox  rmmod rust_stack_probing.ko
 
+busybox insmod rust_semaphore.ko
+busybox  rmmod rust_semaphore.ko
+
+busybox insmod rust_semaphore_c.ko
+busybox  rmmod rust_semaphore_c.ko
+
 busybox insmod rust_module_parameters_loadable_default.ko
 busybox insmod rust_module_parameters_loadable_custom.ko \
     my_bool=n \
