@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 
+// This is a C implementation of `rust_semaphore.rs`. Refer to the description
+// in that file for details on the device.
 #include <linux/miscdevice.h>
 #include <linux/module.h>
 #include <linux/fs.h>
