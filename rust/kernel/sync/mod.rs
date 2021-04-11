@@ -13,7 +13,7 @@
 //!     let data = alloc::sync::Arc::pin(unsafe { Mutex::new(0) });
 //!     mutex_init!(data.as_ref(), "test::data");
 //!     *data.lock() = 10;
-//!     kernel::println!("{}", *data.lock());
+//!     info!("{}", *data.lock());
 //! }
 //! ```
 

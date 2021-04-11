@@ -17,6 +17,7 @@
     alloc_error_handler,
     const_fn,
     const_mut_refs,
+    const_panic,
     try_reserve
 )]
 #![deny(clippy::complexity)]
@@ -47,7 +48,7 @@ pub mod miscdev;
 pub mod module_param;
 
 pub mod prelude;
-pub mod printk;
+pub mod print;
 pub mod random;
 mod static_assert;
 pub mod sync;
@@ -152,7 +153,7 @@ fn panic(_info: &PanicInfo) -> ! {
 ///
 /// fn test() {
 ///     // This prints `8`.
-///     println!("{}", offset_of!(Test, b));
+///     info!("{}", offset_of!(Test, b));
 /// }
 /// ```
 #[macro_export]
@@ -193,7 +194,7 @@ macro_rules! offset_of {
 ///     let b_ptr = &test.b;
 ///     let test_alias = unsafe { container_of!(b_ptr, Test, b) };
 ///     // This prints `true`.
-///     println!("{}", core::ptr::eq(&test, test_alias));
+///     info!("{}", core::ptr::eq(&test, test_alias));
 /// }
 /// ```
 #[macro_export]

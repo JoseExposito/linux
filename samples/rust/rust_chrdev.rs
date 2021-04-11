@@ -27,7 +27,7 @@ struct RustFile;
 
 impl FileOpener<()> for RustFile {
     fn open(_ctx: &()) -> KernelResult<Self::Wrapper> {
-        println!("rust file was opened!");
+        info!("rust file was opened!");
         Ok(Box::try_new(Self)?)
     }
 }
@@ -44,7 +44,7 @@ struct RustChrdev {
 
 impl KernelModule for RustChrdev {
     fn init() -> KernelResult<Self> {
-        println!("Rust character device sample (init)");
+        info!("Rust character device sample (init)");
 
         let mut chrdev_reg =
             chrdev::Registration::new_pinned(cstr!("rust_chrdev"), 0, &THIS_MODULE)?;
@@ -61,6 +61,6 @@ impl KernelModule for RustChrdev {
 
 impl Drop for RustChrdev {
     fn drop(&mut self) {
-        println!("Rust character device sample (exit)");
+        info!("Rust character device sample (exit)");
     }
 }

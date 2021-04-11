@@ -355,11 +355,11 @@ fn generated_array_ops_name(vals: &str, max_length: usize) -> String {
 ///         // taken to read the parameter:
 ///         {
 ///             let lock = THIS_MODULE.kernel_param_lock();
-///             println!("i32 param is:  {}", writeable_i32.read(&lock));
+///             info!("i32 param is:  {}", writeable_i32.read(&lock));
 ///         }
 ///         // If the parameter is read only, it can be read without locking
 ///         // the kernel parameters:
-///         println!("i32 param is:  {}", my_i32.read());
+///         info!("i32 param is:  {}", my_i32.read());
 ///         Ok(MyKernelModule)
 ///     }
 /// }
@@ -584,6 +584,11 @@ pub fn module(ts: TokenStream) -> TokenStream {
 
     format!(
         "
+            /// The module name.
+            ///
+            /// Used by the printing macros, e.g. [`info!`].
+            const __MODULE_NAME: &[u8] = b\"{name}\\0\";
+
             static mut __MOD: Option<{type_}> = None;
 
             // SAFETY: `__this_module` is constructed by the kernel at load time and will not be freed until the module is unloaded.

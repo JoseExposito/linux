@@ -166,11 +166,6 @@ jobs:
           cp samples/rust/rust_module_parameters.rs samples/rust/rust_module_parameters_loadable_default.rs
           cp samples/rust/rust_module_parameters.rs samples/rust/rust_module_parameters_loadable_custom.rs
 
-          sed -i 's:"  my_:"  built-in default my_:g' samples/rust/rust_module_parameters_builtin_default.rs
-          sed -i 's:"  my_:"  built-in custom  my_:g' samples/rust/rust_module_parameters_builtin_custom.rs
-          sed -i 's:"  my_:"  loadable default my_:g' samples/rust/rust_module_parameters_loadable_default.rs
-          sed -i 's:"  my_:"  loadable custom  my_:g' samples/rust/rust_module_parameters_loadable_custom.rs
-
           sed -i 's:rust_module_parameters:rust_module_parameters_builtin_default:g'  samples/rust/rust_module_parameters_builtin_default.rs
           sed -i 's:rust_module_parameters:rust_module_parameters_builtin_custom:g'   samples/rust/rust_module_parameters_builtin_custom.rs
           sed -i 's:rust_module_parameters:rust_module_parameters_loadable_default:g' samples/rust/rust_module_parameters_loadable_default.rs
@@ -217,43 +212,94 @@ jobs:
 
       # Check
       - run: |
-          grep '] Rust minimal sample (init)$' qemu-stdout.log
-          grep '] Rust minimal sample (exit)$' qemu-stdout.log
+          grep '] rust_minimal: Rust minimal sample (init)$' qemu-stdout.log
+          grep '] rust_minimal: Rust minimal sample (exit)$' qemu-stdout.log
 
-          grep '] Rust module parameters sample (init)$'           qemu-stdout.log
-          grep ']   built-in default my_bool:    true$'            qemu-stdout.log
-          grep ']   built-in default my_i32:     42$'              qemu-stdout.log
-          grep ']   built-in default my_str:     default str val$' qemu-stdout.log
-          grep ']   built-in default my_usize:   42$'              qemu-stdout.log
-          grep ']   built-in default my_array:   \[0, 1]$'         qemu-stdout.log
-          grep ']   built-in custom  my_bool:    false$'           qemu-stdout.log
-          grep ']   built-in custom  my_i32:     345543$'          qemu-stdout.log
-          grep ']   built-in custom  my_str:     🦀mod$'           qemu-stdout.log
-          grep ']   built-in custom  my_usize:   84$'              qemu-stdout.log
-          grep ']   built-in custom  my_array:   \[1, 2, 3]$'      qemu-stdout.log
-          grep ']   loadable default my_bool:    true$'            qemu-stdout.log
-          grep ']   loadable default my_i32:     42$'              qemu-stdout.log
-          grep ']   loadable default my_str:     default str val$' qemu-stdout.log
-          grep ']   loadable default my_usize:   42$'              qemu-stdout.log
-          grep ']   loadable default my_array:   \[0, 1]$'         qemu-stdout.log
-          grep ']   loadable custom  my_bool:    false$'           qemu-stdout.log
-          grep ']   loadable custom  my_i32:     345543$'          qemu-stdout.log
-          grep ']   loadable custom  my_str:     🦀mod$'           qemu-stdout.log
-          grep ']   loadable custom  my_usize:   84$'              qemu-stdout.log
-          grep ']   loadable custom  my_array:   \[1, 2, 3]$'      qemu-stdout.log
-          grep '] Rust module parameters sample (exit)$'           qemu-stdout.log
+      - run: |
+          grep '] rust_print: Rust printing macros sample (init)$'                 qemu-stdout.log
 
-          grep '] Rust synchronisation primitives sample (init)$' qemu-stdout.log
-          grep '] Rust synchronisation primitives sample (exit)$' qemu-stdout.log
+          grep '] rust_print: Emergency message (level 0) with newline w/o args$'  qemu-stdout.log
+          grep '] rust_print: Alert message (level 1) with newline w/o args$'      qemu-stdout.log
+          grep '] rust_print: Critical message (level 2) with newline w/o args$'   qemu-stdout.log
+          grep '] rust_print: Error message (level 3) with newline w/o args$'      qemu-stdout.log
+          grep '] rust_print: Warning message (level 4) with newline w/o args$'    qemu-stdout.log
+          grep '] rust_print: Notice message (level 5) with newline w/o args$'     qemu-stdout.log
+          grep '] rust_print: Info message (level 6) with newline w/o args$'       qemu-stdout.log
+          grep '] rust_print: A line that is continued with newline w/o args$'     qemu-stdout.log
 
-          grep '] Rust character device sample (init)$' qemu-stdout.log
-          grep '] Rust character device sample (exit)$' qemu-stdout.log
+          grep '] rust_print: Emergency message (level 0) w/o newline w/o args$'   qemu-stdout.log
+          grep '] rust_print: Alert message (level 1) w/o newline w/o args$'       qemu-stdout.log
+          grep '] rust_print: Critical message (level 2) w/o newline w/o args$'    qemu-stdout.log
+          grep '] rust_print: Error message (level 3) w/o newline w/o args$'       qemu-stdout.log
+          grep '] rust_print: Warning message (level 4) w/o newline w/o args$'     qemu-stdout.log
+          grep '] rust_print: Notice message (level 5) w/o newline w/o args$'      qemu-stdout.log
+          grep '] rust_print: Info message (level 6) w/o newline w/o args$'        qemu-stdout.log
+          grep '] rust_print: A line that is continued w/o newline w/o args$'      qemu-stdout.log
 
-          grep '] Rust miscellaneous device sample (init)$' qemu-stdout.log
-          grep '] Rust miscellaneous device sample (exit)$' qemu-stdout.log
+          grep '] rust_print: Emergency message (level 0) with newline with args$' qemu-stdout.log
+          grep '] rust_print: Alert message (level 1) with newline with args$'     qemu-stdout.log
+          grep '] rust_print: Critical message (level 2) with newline with args$'  qemu-stdout.log
+          grep '] rust_print: Error message (level 3) with newline with args$'     qemu-stdout.log
+          grep '] rust_print: Warning message (level 4) with newline with args$'   qemu-stdout.log
+          grep '] rust_print: Notice message (level 5) with newline with args$'    qemu-stdout.log
+          grep '] rust_print: Info message (level 6) with newline with args$'      qemu-stdout.log
+          grep '] rust_print: A line that is continued with newline with args$'    qemu-stdout.log
 
-          grep '] Rust stack probing sample (init)$' qemu-stdout.log
-          grep '] Rust stack probing sample (exit)$' qemu-stdout.log
+          grep '] rust_print: Emergency message (level 0) w/o newline with args$'  qemu-stdout.log
+          grep '] rust_print: Alert message (level 1) w/o newline with args$'      qemu-stdout.log
+          grep '] rust_print: Critical message (level 2) w/o newline with args$'   qemu-stdout.log
+          grep '] rust_print: Error message (level 3) w/o newline with args$'      qemu-stdout.log
+          grep '] rust_print: Warning message (level 4) w/o newline with args$'    qemu-stdout.log
+          grep '] rust_print: Notice message (level 5) w/o newline with args$'     qemu-stdout.log
+          grep '] rust_print: Info message (level 6) w/o newline with args$'       qemu-stdout.log
+          grep '] rust_print: A line that is continued w/o newline with args$'     qemu-stdout.log
+
+          grep '] rust_print: Rust printing macros sample (exit)$'                 qemu-stdout.log
+
+      - run: |
+          grep '] rust_module_parameters: Rust module parameters sample (init)$'           qemu-stdout.log
+
+          grep '] rust_module_parameters_builtin_default:   my_bool:    true$'             qemu-stdout.log
+          grep '] rust_module_parameters_builtin_default:   my_i32:     42$'               qemu-stdout.log
+          grep '] rust_module_parameters_builtin_default:   my_str:     default str val$'  qemu-stdout.log
+          grep '] rust_module_parameters_builtin_default:   my_usize:   42$'               qemu-stdout.log
+          grep '] rust_module_parameters_builtin_default:   my_array:   \[0, 1]$'          qemu-stdout.log
+
+          grep '] rust_module_parameters_builtin_custom:   my_bool:    false$'             qemu-stdout.log
+          grep '] rust_module_parameters_builtin_custom:   my_i32:     345543$'            qemu-stdout.log
+          grep '] rust_module_parameters_builtin_custom:   my_str:     🦀mod$'             qemu-stdout.log
+          grep '] rust_module_parameters_builtin_custom:   my_usize:   84$'                qemu-stdout.log
+          grep '] rust_module_parameters_builtin_custom:   my_array:   \[1, 2, 3]$'        qemu-stdout.log
+
+          grep '] rust_module_parameters_loadable_default:   my_bool:    true$'            qemu-stdout.log
+          grep '] rust_module_parameters_loadable_default:   my_i32:     42$'              qemu-stdout.log
+          grep '] rust_module_parameters_loadable_default:   my_str:     default str val$' qemu-stdout.log
+          grep '] rust_module_parameters_loadable_default:   my_usize:   42$'              qemu-stdout.log
+          grep '] rust_module_parameters_loadable_default:   my_array:   \[0, 1]$'         qemu-stdout.log
+
+          grep '] rust_module_parameters_loadable_custom:   my_bool:    false$'            qemu-stdout.log
+          grep '] rust_module_parameters_loadable_custom:   my_i32:     345543$'           qemu-stdout.log
+          grep '] rust_module_parameters_loadable_custom:   my_str:     🦀mod$'            qemu-stdout.log
+          grep '] rust_module_parameters_loadable_custom:   my_usize:   84$'               qemu-stdout.log
+          grep '] rust_module_parameters_loadable_custom:   my_array:   \[1, 2, 3]$'       qemu-stdout.log
+
+          grep '] rust_module_parameters: Rust module parameters sample (exit)$'           qemu-stdout.log
+
+      - run: |
+          grep '] rust_sync: Rust synchronisation primitives sample (init)$' qemu-stdout.log
+          grep '] rust_sync: Rust synchronisation primitives sample (exit)$' qemu-stdout.log
+
+      - run: |
+          grep '] rust_chrdev: Rust character device sample (init)$' qemu-stdout.log
+          grep '] rust_chrdev: Rust character device sample (exit)$' qemu-stdout.log
+
+      - run: |
+          grep '] rust_miscdev: Rust miscellaneous device sample (init)$' qemu-stdout.log
+          grep '] rust_miscdev: Rust miscellaneous device sample (exit)$' qemu-stdout.log
+
+      - run: |
+          grep '] rust_stack_probing: Rust stack probing sample (init)$' qemu-stdout.log
+          grep '] rust_stack_probing: Rust stack probing sample (exit)$' qemu-stdout.log
 
       # Report
       - run: |
