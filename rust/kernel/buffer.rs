@@ -6,7 +6,7 @@ use core::fmt;
 
 /// A pre-allocated buffer that implements [`core::fmt::Write`].
 ///
-/// Consequtive writes will append to what has already been written.
+/// Consecutive writes will append to what has already been written.
 /// Writes that don't fit in the buffer will fail.
 pub struct Buffer<'a> {
     slice: &'a mut [u8],
