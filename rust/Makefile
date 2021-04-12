@@ -1,10 +1,15 @@
 # SPDX-License-Identifier: GPL-2.0
 
-obj-$(CONFIG_RUST) += helpers.o exports.o
-obj-$(CONFIG_RUST) += core.o compiler_builtins.o alloc.o kernel.o
-extra-$(CONFIG_RUST) += bindings_generated.rs libmodule.so
-extra-$(CONFIG_RUST) += exports_core_generated.h exports_alloc_generated.h
-extra-$(CONFIG_RUST) += exports_kernel_generated.h
+obj-$(CONFIG_RUST) += core.o compiler_builtins.o helpers.o
+extra-$(CONFIG_RUST) += exports_core_generated.h
+
+extra-$(CONFIG_RUST) += libmodule.so
+
+extra-$(CONFIG_RUST) += bindings_generated.rs
+obj-$(CONFIG_RUST) += alloc.o kernel.o
+extra-$(CONFIG_RUST) += exports_alloc_generated.h exports_kernel_generated.h
+
+obj-$(CONFIG_RUST) += exports.o
 
 RUSTDOC = rustdoc
 
