@@ -314,6 +314,7 @@ jobs:
           ls -l \
             ${{ env.BUILD_DIR }}samples/rust/*.o \
             ${{ env.BUILD_DIR }}samples/rust/*.ko \
+            ${{ env.BUILD_DIR }}drivers/android/rust_binder.o \
             ${{ env.BUILD_DIR }}rust/*.o \
             ${{ env.BUILD_DIR }}vmlinux \
             ${{ env.BUILD_DIR }}${{ env.IMAGE_PATH }}
@@ -321,6 +322,7 @@ jobs:
           size \
             ${{ env.BUILD_DIR }}samples/rust/*.o \
             ${{ env.BUILD_DIR }}samples/rust/*.ko \
+            ${{ env.BUILD_DIR }}drivers/android/rust_binder.o \
             ${{ env.BUILD_DIR }}rust/*.o \
             ${{ env.BUILD_DIR }}vmlinux
 
