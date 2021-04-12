@@ -30,8 +30,6 @@
 #[cfg(not(CONFIG_RUST))]
 compile_error!("Missing kernel configuration for conditional compilation");
 
-use core::panic::PanicInfo;
-
 mod allocator;
 
 #[doc(hidden)]
@@ -127,17 +125,6 @@ impl<'a> Drop for KParamGuard<'a> {
         // use the built-in mutex in that case. The existance of `self`
         // guarantees that the lock is held.
         unsafe { bindings::kernel_param_unlock(self.this_module.0) }
-    }
-}
-
-extern "C" {
-    fn rust_helper_BUG() -> !;
-}
-
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    unsafe {
-        rust_helper_BUG();
     }
 }
 
