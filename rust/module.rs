@@ -65,7 +65,7 @@ fn expect_byte_string(it: &mut token_stream::IntoIter) -> String {
     try_byte_string(it).expect("Expected byte string")
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 enum ParamType {
     Ident(String),
     Array { vals: String, max_length: usize },
