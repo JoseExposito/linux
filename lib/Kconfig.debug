@@ -2557,7 +2557,7 @@ config RUST_DEBUG_ASSERTIONS
 
 config RUST_OVERFLOW_CHECKS
 	bool "Overflow checks"
-	default n
+	default y
 	depends on RUST
 	help
 	  Enables rustc's `-Coverflow-checks` codegen option.
@@ -2568,7 +2568,7 @@ config RUST_OVERFLOW_CHECKS
 
 	  Note that this will apply to all Rust code, including `core`.
 
-	  If unsure, say N.
+	  If unsure, say Y.
 
 choice
 	prompt "Optimization level"
