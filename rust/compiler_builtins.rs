@@ -133,3 +133,14 @@ define_panicking_intrinsics!("`u128` should not be used", {
     __udivti3,
     __umodti3,
 });
+
+extern "C" {
+    fn rust_helper_BUG() -> !;
+}
+
+#[panic_handler]
+fn panic(_info: &core::panic::PanicInfo) -> ! {
+    unsafe {
+        rust_helper_BUG();
+    }
+}
