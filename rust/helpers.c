@@ -31,55 +31,55 @@ void rust_helper_spin_lock_init(spinlock_t *lock, const char *name,
 	spin_lock_init(lock);
 #endif
 }
-EXPORT_SYMBOL(rust_helper_spin_lock_init);
+EXPORT_SYMBOL_GPL(rust_helper_spin_lock_init);
 
 void rust_helper_spin_lock(spinlock_t *lock)
 {
 	spin_lock(lock);
 }
-EXPORT_SYMBOL(rust_helper_spin_lock);
+EXPORT_SYMBOL_GPL(rust_helper_spin_lock);
 
 void rust_helper_spin_unlock(spinlock_t *lock)
 {
 	spin_unlock(lock);
 }
-EXPORT_SYMBOL(rust_helper_spin_unlock);
+EXPORT_SYMBOL_GPL(rust_helper_spin_unlock);
 
 void rust_helper_init_wait(struct wait_queue_entry *wq_entry)
 {
 	init_wait(wq_entry);
 }
-EXPORT_SYMBOL(rust_helper_init_wait);
+EXPORT_SYMBOL_GPL(rust_helper_init_wait);
 
 int rust_helper_current_pid(void)
 {
 	return current->pid;
 }
-EXPORT_SYMBOL(rust_helper_current_pid);
+EXPORT_SYMBOL_GPL(rust_helper_current_pid);
 
 int rust_helper_signal_pending(void)
 {
 	return signal_pending(current);
 }
-EXPORT_SYMBOL(rust_helper_signal_pending);
+EXPORT_SYMBOL_GPL(rust_helper_signal_pending);
 
 struct page *rust_helper_alloc_pages(gfp_t gfp_mask, unsigned int order)
 {
 	return alloc_pages(gfp_mask, order);
 }
-EXPORT_SYMBOL(rust_helper_alloc_pages);
+EXPORT_SYMBOL_GPL(rust_helper_alloc_pages);
 
 void *rust_helper_kmap(struct page *page)
 {
 	return kmap(page);
 }
-EXPORT_SYMBOL(rust_helper_kmap);
+EXPORT_SYMBOL_GPL(rust_helper_kmap);
 
 void rust_helper_kunmap(struct page *page)
 {
 	return kunmap(page);
 }
-EXPORT_SYMBOL(rust_helper_kunmap);
+EXPORT_SYMBOL_GPL(rust_helper_kunmap);
 
 // See https://github.com/rust-lang/rust-bindgen/issues/1671
 static_assert(__builtin_types_compatible_p(size_t, uintptr_t),
