@@ -5,10 +5,9 @@
 //! C header: [`include/linux/fs.h`](../../../../include/linux/fs.h)
 
 use core::convert::{TryFrom, TryInto};
-use core::{marker, mem, ops::Deref, pin::Pin, ptr};
+use core::{marker, mem, ptr};
 
 use alloc::boxed::Box;
-use alloc::sync::Arc;
 
 use crate::{
     bindings, c_types,
@@ -16,7 +15,8 @@ use crate::{
     file::File,
     io_buffer::{IoBufferReader, IoBufferWriter},
     iov_iter::IovIter,
-    sync::{CondVar, Ref, RefCounted},
+    sync::CondVar,
+    types::PointerWrapper,
     user_ptr::{UserSlicePtr, UserSlicePtrReader, UserSlicePtrWriter},
 };
 
@@ -555,7 +555,7 @@ pub trait FileOperations: Send + Sync + Sized {
     const TO_USE: ToUse;
 
     /// The pointer type that will be used to hold ourselves.
-    type Wrapper: PointerWrapper<Self> = Box<Self>;
+    type Wrapper: PointerWrapper = Box<Self>;
 
     /// Cleans up after the last reference to the file goes away.
     ///
@@ -631,66 +631,5 @@ pub trait FileOperations: Send + Sync + Sized {
     /// Corresponds to the `poll` function pointer in `struct file_operations`.
     fn poll(&self, _file: &File, _table: &PollTable) -> KernelResult<u32> {
         Ok(bindings::POLLIN | bindings::POLLOUT | bindings::POLLRDNORM | bindings::POLLWRNORM)
-    }
-}
-
-/// Used to convert an object into a raw pointer that represents it.
-///
-/// It can eventually be converted back into the object. This is used to store objects as pointers
-/// in kernel data structures, for example, an implementation of [`FileOperations`] in `struct
-/// file::private_data`.
-pub trait PointerWrapper<T> {
-    /// Returns the raw pointer.
-    fn into_pointer(self) -> *const T;
-
-    /// Returns the instance back from the raw pointer.
-    ///
-    /// # Safety
-    ///
-    /// The passed pointer must come from a previous call to [`PointerWrapper::into_pointer()`].
-    unsafe fn from_pointer(ptr: *const T) -> Self;
-}
-
-impl<T> PointerWrapper<T> for Box<T> {
-    fn into_pointer(self) -> *const T {
-        Box::into_raw(self)
-    }
-
-    unsafe fn from_pointer(ptr: *const T) -> Self {
-        Box::from_raw(ptr as _)
-    }
-}
-
-impl<T: RefCounted> PointerWrapper<T> for Ref<T> {
-    fn into_pointer(self) -> *const T {
-        Ref::into_raw(self)
-    }
-
-    unsafe fn from_pointer(ptr: *const T) -> Self {
-        Ref::from_raw(ptr as _)
-    }
-}
-
-impl<T> PointerWrapper<T> for Arc<T> {
-    fn into_pointer(self) -> *const T {
-        Arc::into_raw(self)
-    }
-
-    unsafe fn from_pointer(ptr: *const T) -> Self {
-        Arc::from_raw(ptr)
-    }
-}
-
-impl<T, W: PointerWrapper<T> + Deref> PointerWrapper<T> for Pin<W> {
-    fn into_pointer(self) -> *const T {
-        // SAFETY: We continue to treat the pointer as pinned by returning just a pointer to it to
-        // the caller.
-        let inner = unsafe { Pin::into_inner_unchecked(self) };
-        inner.into_pointer()
-    }
-
-    unsafe fn from_pointer(p: *const T) -> Self {
-        // SAFETY: The object was originally pinned.
-        Pin::new_unchecked(W::from_pointer(p))
     }
 }
