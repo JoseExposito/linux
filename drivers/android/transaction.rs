@@ -2,11 +2,10 @@
 
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicBool, Ordering};
-use kernel::{bindings, prelude::*, sync::Ref, user_ptr::UserSlicePtrWriter};
+use kernel::{bindings, linked_list::Links, prelude::*, sync::Ref, user_ptr::UserSlicePtrWriter};
 
 use crate::{
     defs::*,
-    linked_list::Links,
     node::NodeRef,
     process::Process,
     ptr_align,

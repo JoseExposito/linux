@@ -43,6 +43,9 @@ pub mod file_operations;
 pub mod miscdev;
 pub mod pages;
 
+pub mod linked_list;
+mod raw_list;
+
 #[doc(hidden)]
 pub mod module_param;
 

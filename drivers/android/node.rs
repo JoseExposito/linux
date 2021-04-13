@@ -6,6 +6,7 @@ use core::{
     sync::atomic::{AtomicU64, Ordering},
 };
 use kernel::{
+    linked_list::{GetLinks, Links, List},
     prelude::*,
     sync::{Guard, LockedBy, Mutex, Ref, SpinLock},
     user_ptr::UserSlicePtrWriter,
@@ -13,7 +14,6 @@ use kernel::{
 
 use crate::{
     defs::*,
-    linked_list::{GetLinks, Links, List},
     process::{Process, ProcessInner},
     thread::{BinderError, BinderResult, Thread},
     DeliverToRead,

@@ -5,6 +5,7 @@ use core::{alloc::AllocError, mem::size_of, pin::Pin};
 use kernel::{
     bindings,
     file_operations::{File, PollTable},
+    linked_list::{GetLinks, Links, List},
     prelude::*,
     sync::{CondVar, Ref, SpinLock},
     user_ptr::{UserSlicePtr, UserSlicePtrWriter},
@@ -14,11 +15,10 @@ use kernel::{
 use crate::{
     allocation::{Allocation, AllocationView},
     defs::*,
-    linked_list::{GetLinks, Links, List},
     process::{AllocationInfo, Process},
     ptr_align,
     transaction::Transaction,
-    DeliverCode, DeliverToRead, Either,
+    DeliverCode, DeliverToRead, DeliverToReadListAdapter, Either,
 };
 
 pub(crate) type BinderResult<T = ()> = Result<T, BinderError>;
@@ -81,7 +81,7 @@ struct InnerThread {
     /// Determines whether the work list below should be processed. When set to false, `work_list`
     /// is treated as if it were empty.
     process_work_list: bool,
-    work_list: List<Arc<dyn DeliverToRead>>,
+    work_list: List<DeliverToReadListAdapter>,
     current_transaction: Option<Arc<Transaction>>,
 }
 
