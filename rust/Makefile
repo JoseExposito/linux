@@ -88,17 +88,14 @@ quiet_cmd_exports = EXPORTS $@
 	$(NM) -p --defined-only $< \
 		| grep -E ' (T|R|D) ' | cut -d ' ' -f 3 | grep -E '^(__rust_|_R)' \
 		| xargs -n1 -Isymbol \
-		echo 'EXPORT_SYMBOL$(exports_target_type)(symbol);' > $@
+		echo 'EXPORT_SYMBOL_RUST_GPL(symbol);' > $@
 
-$(objtree)/rust/exports_core_generated.h: private exports_target_type := _RUST
 $(objtree)/rust/exports_core_generated.h: $(objtree)/rust/core.o FORCE
 	$(call if_changed,exports)
 
-$(objtree)/rust/exports_alloc_generated.h: private exports_target_type := _RUST
 $(objtree)/rust/exports_alloc_generated.h: $(objtree)/rust/alloc.o FORCE
 	$(call if_changed,exports)
 
-$(objtree)/rust/exports_kernel_generated.h: private exports_target_type := _RUST_GPL
 $(objtree)/rust/exports_kernel_generated.h: $(objtree)/rust/kernel.o FORCE
 	$(call if_changed,exports)
 
