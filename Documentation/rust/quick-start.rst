@@ -201,4 +201,3 @@ a few ways out:
   - If you don't need loadable module support, you may compile without
     the ``-Zsymbol-mangling-version=v0`` flag. However, we don't maintain
     support for that, so avoid it unless you are in a hurry.
-
