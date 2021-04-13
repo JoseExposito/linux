@@ -355,11 +355,11 @@ fn generated_array_ops_name(vals: &str, max_length: usize) -> String {
 ///         // taken to read the parameter:
 ///         {
 ///             let lock = THIS_MODULE.kernel_param_lock();
-///             info!("i32 param is:  {}", writeable_i32.read(&lock));
+///             pr_info!("i32 param is:  {}\n", writeable_i32.read(&lock));
 ///         }
 ///         // If the parameter is read only, it can be read without locking
 ///         // the kernel parameters:
-///         info!("i32 param is:  {}", my_i32.read());
+///         pr_info!("i32 param is:  {}\n", my_i32.read());
 ///         Ok(MyKernelModule)
 ///     }
 /// }

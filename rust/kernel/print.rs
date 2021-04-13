@@ -206,7 +206,7 @@ pub unsafe fn format_and_call<const CONT: bool>(
 #[macro_export]
 macro_rules! print_macro (
     // Without extra arguments: no need to format anything.
-    ($format_string:path, false, $suffix:literal, $fmt:expr) => (
+    ($format_string:path, false, $fmt:expr) => (
         // SAFETY: This hidden macro should only be called by the documented
         // printing macros which ensure the format string is one of the fixed
         // ones. All `__MODULE_NAME`s are null-terminated as they are generated
@@ -215,20 +215,20 @@ macro_rules! print_macro (
             kernel::print::call_printk(
                 &$format_string,
                 crate::__MODULE_NAME,
-                concat!($fmt, $suffix).as_bytes(),
+                $fmt.as_bytes(),
             );
         }
     );
 
     // Without extra arguments: no need to format anything (`CONT` case).
-    ($format_string:path, true, $suffix:literal, $fmt:expr) => (
+    ($format_string:path, true, $fmt:expr) => (
         kernel::print::call_printk_cont(
-            concat!($fmt, $suffix).as_bytes(),
+            $fmt.as_bytes(),
         );
     );
 
     // With extra arguments: we need to perform formatting.
-    ($format_string:path, $cont:literal, $suffix:literal, $fmt:expr, $($arg:tt)*) => (
+    ($format_string:path, $cont:literal, $fmt:expr, $($arg:tt)*) => (
         // Forwarding the call to a function to perform the formatting
         // is needed here to avoid stack overflows in non-optimized builds when
         // invoking the printing macros a lot of times in the same function.
@@ -251,7 +251,7 @@ macro_rules! print_macro (
             kernel::print::format_and_call::<$cont>(
                 &$format_string,
                 crate::__MODULE_NAME,
-                format_args!(concat!($fmt, $suffix), $($arg)*),
+                format_args!($fmt, $($arg)*),
             );
         }
     );
@@ -268,9 +268,6 @@ macro_rules! print_macro (
 
 /// Prints an emergency-level message (level 0).
 ///
-/// Use [`emerg!`] unless you need to continue the message with [`cont!`]
-/// or [`pr_cont!`].
-///
 /// Use this level if the system is unusable.
 ///
 /// Equivalent to the kernel's [`pr_emerg`] macro.
@@ -284,20 +281,16 @@ macro_rules! print_macro (
 /// # Examples
 ///
 /// ```
-/// pr_emerg!("hello {} ", "there");
-/// cont!("with arguments");
+/// pr_emerg!("hello {}\n", "there");
 /// ```
 #[macro_export]
 macro_rules! pr_emerg (
     ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::EMERG, false, "", $($arg)*)
+        $crate::print_macro!($crate::print::format_strings::EMERG, false, $($arg)*)
     )
 );
 
 /// Prints an alert-level message (level 1).
-///
-/// Use [`alert!`] unless you need to continue the message with [`cont!`]
-/// or [`pr_cont!`].
 ///
 /// Use this level if action must be taken immediately.
 ///
@@ -312,20 +305,16 @@ macro_rules! pr_emerg (
 /// # Examples
 ///
 /// ```
-/// pr_alert!("hello {} ", "there");
-/// cont!("with arguments");
+/// pr_alert!("hello {}\n", "there");
 /// ```
 #[macro_export]
 macro_rules! pr_alert (
     ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::ALERT, false, "", $($arg)*)
+        $crate::print_macro!($crate::print::format_strings::ALERT, false, $($arg)*)
     )
 );
 
 /// Prints a critical-level message (level 2).
-///
-/// Use [`crit!`] unless you need to continue the message with [`cont!`]
-/// or [`pr_cont!`].
 ///
 /// Use this level for critical conditions.
 ///
@@ -340,20 +329,16 @@ macro_rules! pr_alert (
 /// # Examples
 ///
 /// ```
-/// pr_crit!("hello {} ", "there");
-/// cont!("with arguments");
+/// pr_crit!("hello {}\n", "there");
 /// ```
 #[macro_export]
 macro_rules! pr_crit (
     ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::CRIT, false, "", $($arg)*)
+        $crate::print_macro!($crate::print::format_strings::CRIT, false, $($arg)*)
     )
 );
 
 /// Prints an error-level message (level 3).
-///
-/// Use [`err!`] unless you need to continue the message with [`cont!`]
-/// or [`pr_cont!`].
 ///
 /// Use this level for error conditions.
 ///
@@ -368,20 +353,16 @@ macro_rules! pr_crit (
 /// # Examples
 ///
 /// ```
-/// pr_err!("hello {} ", "there");
-/// cont!("with arguments");
+/// pr_err!("hello {}\n", "there");
 /// ```
 #[macro_export]
 macro_rules! pr_err (
     ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::ERR, false, "", $($arg)*)
+        $crate::print_macro!($crate::print::format_strings::ERR, false, $($arg)*)
     )
 );
 
 /// Prints a warning-level message (level 4).
-///
-/// Use [`warn!`] unless you need to continue the message with [`cont!`]
-/// or [`pr_cont!`].
 ///
 /// Use this level for warning conditions.
 ///
@@ -396,20 +377,16 @@ macro_rules! pr_err (
 /// # Examples
 ///
 /// ```
-/// pr_warn!("hello {} ", "there");
-/// cont!("with arguments");
+/// pr_warn!("hello {}\n", "there");
 /// ```
 #[macro_export]
 macro_rules! pr_warn (
     ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::WARNING, false, "", $($arg)*)
+        $crate::print_macro!($crate::print::format_strings::WARNING, false, $($arg)*)
     )
 );
 
 /// Prints a notice-level message (level 5).
-///
-/// Use [`notice!`] unless you need to continue the message with [`cont!`]
-/// or [`pr_cont!`].
 ///
 /// Use this level for normal but significant conditions.
 ///
@@ -424,20 +401,16 @@ macro_rules! pr_warn (
 /// # Examples
 ///
 /// ```
-/// pr_notice!("hello {} ", "there");
-/// cont!("with arguments");
+/// pr_notice!("hello {}\n", "there");
 /// ```
 #[macro_export]
 macro_rules! pr_notice (
     ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::NOTICE, false, "", $($arg)*)
+        $crate::print_macro!($crate::print::format_strings::NOTICE, false, $($arg)*)
     )
 );
 
 /// Prints an info-level message (level 6).
-///
-/// Use [`info!`] unless you need to continue the message with [`cont!`]
-/// or [`pr_cont!`].
 ///
 /// Use this level for informational messages.
 ///
@@ -452,21 +425,17 @@ macro_rules! pr_notice (
 /// # Examples
 ///
 /// ```
-/// pr_info!("hello {} ", "there");
-/// cont!("with arguments");
+/// pr_info!("hello {}\n", "there");
 /// ```
 #[macro_export]
 #[doc(alias = "print")]
 macro_rules! pr_info (
     ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::INFO, false, "", $($arg)*)
+        $crate::print_macro!($crate::print::format_strings::INFO, false, $($arg)*)
     )
 );
 
 /// Continues a previous log message in the same line.
-///
-/// Use [`cont!`] unless you need to continue the message (again) with [`cont!`]
-/// or [`pr_cont!`].
 ///
 /// Use only when continuing a previous `pr_*!` macro (e.g. [`pr_info!`]).
 ///
@@ -481,229 +450,12 @@ macro_rules! pr_info (
 /// # Examples
 ///
 /// ```
-/// pr_info!("hello ");
-/// pr_cont!("th");
-/// cont!("ere!");
-///
-/// pr_info!("format ");
-/// pr_cont!("{} ", "some");
-/// cont!("{}", "arguments");
+/// pr_info!("hello");
+/// pr_cont!(" {}\n", "there");
 /// ```
 #[macro_export]
 macro_rules! pr_cont (
     ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::CONT, true, "", $($arg)*)
-    )
-);
-
-/// Prints an emergency-level message, with a newline (level 0).
-///
-/// Use this level if the system is unusable.
-///
-/// Similar to the kernel's [`pr_emerg`] macro.
-///
-/// Mimics the interface of [`std::println!`]. See [`core::fmt`] and
-/// [`alloc::format!`] for information about the formatting syntax.
-///
-/// [`pr_emerg`]: https://www.kernel.org/doc/html/latest/core-api/printk-basics.html#c.pr_emerg
-/// [`std::println!`]: https://doc.rust-lang.org/std/macro.println.html
-///
-/// # Examples
-///
-/// ```
-/// emerg!("hello there!");
-/// emerg!("format {} arguments", "some");
-/// ```
-#[macro_export]
-#[doc(alias = "pr_emerg")]
-macro_rules! emerg (
-    ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::EMERG, false, "\n", $($arg)*)
-    )
-);
-
-/// Prints an alert-level message, with a newline (level 1).
-///
-/// Use this level if action must be taken immediately.
-///
-/// Similar to the kernel's [`pr_alert`] macro.
-///
-/// Mimics the interface of [`std::println!`]. See [`core::fmt`] and
-/// [`alloc::format!`] for information about the formatting syntax.
-///
-/// [`pr_alert`]: https://www.kernel.org/doc/html/latest/core-api/printk-basics.html#c.pr_alert
-/// [`std::println!`]: https://doc.rust-lang.org/std/macro.println.html
-///
-/// # Examples
-///
-/// ```
-/// alert!("hello there!");
-/// alert!("format {} arguments", "some");
-/// ```
-#[macro_export]
-#[doc(alias = "pr_alert")]
-macro_rules! alert (
-    ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::ALERT, false, "\n", $($arg)*)
-    )
-);
-
-/// Prints a critical-level message, with a newline (level 2).
-///
-/// Use this level for critical conditions.
-///
-/// Similar to the kernel's [`pr_crit`] macro.
-///
-/// Mimics the interface of [`std::println!`]. See [`core::fmt`] and
-/// [`alloc::format!`] for information about the formatting syntax.
-///
-/// [`pr_crit`]: https://www.kernel.org/doc/html/latest/core-api/printk-basics.html#c.pr_crit
-/// [`std::println!`]: https://doc.rust-lang.org/std/macro.println.html
-///
-/// # Examples
-///
-/// ```
-/// pr_crit!("hello there!");
-/// pr_crit!("format {} arguments", "some");
-/// ```
-#[macro_export]
-#[doc(alias = "pr_crit")]
-macro_rules! crit (
-    ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::CRIT, false, "\n", $($arg)*)
-    )
-);
-
-/// Prints an error-level message, with a newline (level 3).
-///
-/// Use this level for error conditions.
-///
-/// Similar to the kernel's [`pr_err`] macro.
-///
-/// Mimics the interface of [`std::println!`]. See [`core::fmt`] and
-/// [`alloc::format!`] for information about the formatting syntax.
-///
-/// [`pr_err`]: https://www.kernel.org/doc/html/latest/core-api/printk-basics.html#c.pr_err
-/// [`std::println!`]: https://doc.rust-lang.org/std/macro.println.html
-///
-/// # Examples
-///
-/// ```
-/// err!("hello there!");
-/// err!("format {} arguments", "some");
-/// ```
-#[macro_export]
-#[doc(alias = "pr_err")]
-macro_rules! err (
-    ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::ERR, false, "\n", $($arg)*)
-    )
-);
-
-/// Prints a warning-level message, with a newline (level 4).
-///
-/// Use this level for warning conditions.
-///
-/// Similar to the kernel's [`pr_warn`] macro.
-///
-/// Mimics the interface of [`std::println!`]. See [`core::fmt`] and
-/// [`alloc::format!`] for information about the formatting syntax.
-///
-/// [`pr_warn`]: https://www.kernel.org/doc/html/latest/core-api/printk-basics.html#c.pr_warn
-/// [`std::println!`]: https://doc.rust-lang.org/std/macro.println.html
-///
-/// # Examples
-///
-/// ```
-/// warn!("hello there!");
-/// warn!("format {} arguments", "some");
-/// ```
-#[macro_export]
-#[doc(alias = "pr_warn")]
-macro_rules! warn (
-    ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::WARNING, false, "\n", $($arg)*)
-    )
-);
-
-/// Prints a notice-level message, with a newline (level 5).
-///
-/// Use this level for normal but significant conditions.
-///
-/// Similar to the kernel's [`pr_notice`] macro.
-///
-/// Mimics the interface of [`std::println!`]. See [`core::fmt`] and
-/// [`alloc::format!`] for information about the formatting syntax.
-///
-/// [`pr_notice`]: https://www.kernel.org/doc/html/latest/core-api/printk-basics.html#c.pr_notice
-/// [`std::println!`]: https://doc.rust-lang.org/std/macro.println.html
-///
-/// # Examples
-///
-/// ```
-/// notice!("hello there!");
-/// notice!("format {} arguments", "some");
-/// ```
-#[macro_export]
-#[doc(alias = "pr_notice")]
-macro_rules! notice (
-    ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::NOTICE, false, "\n", $($arg)*)
-    )
-);
-
-/// Prints an info-level message, with a newline (level 6).
-///
-/// Use this level for informational messages.
-///
-/// Similar to the kernel's [`pr_info`] macro.
-///
-/// Mimics the interface of [`std::println!`]. See [`core::fmt`] and
-/// [`alloc::format!`] for information about the formatting syntax.
-///
-/// [`pr_info`]: https://www.kernel.org/doc/html/latest/core-api/printk-basics.html#c.pr_info
-/// [`std::println!`]: https://doc.rust-lang.org/std/macro.println.html
-///
-/// # Examples
-///
-/// ```
-/// info!("hello there!");
-/// info!("format {} arguments", "some");
-/// ```
-#[macro_export]
-#[doc(alias = "pr_info")]
-#[doc(alias = "println")]
-macro_rules! info (
-    ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::INFO, false, "\n", $($arg)*)
-    )
-);
-
-/// Continues a previous log message in the same line, with a newline.
-///
-/// Use only when continuing a previous `pr_*!` macro (e.g. [`pr_info!`]).
-///
-/// Similar to the kernel's [`pr_cont`] macro.
-///
-/// Mimics the interface of [`std::println!`]. See [`core::fmt`] and
-/// [`alloc::format!`] for information about the formatting syntax.
-///
-/// [`pr_cont`]: https://www.kernel.org/doc/html/latest/core-api/printk-basics.html#c.pr_cont
-/// [`std::println!`]: https://doc.rust-lang.org/std/macro.println.html
-///
-/// # Examples
-///
-/// ```
-/// pr_info!("hello ");
-/// cont!("there!");
-///
-/// pr_info!("format {}", "some");
-/// cont!(" {}", "arguments");
-/// ```
-#[macro_export]
-#[doc(alias = "pr_cont")]
-macro_rules! cont (
-    ($($arg:tt)*) => (
-        $crate::print_macro!($crate::print::format_strings::CONT, true, "\n", $($arg)*)
+        $crate::print_macro!($crate::print::format_strings::CONT, true, $($arg)*)
     )
 );

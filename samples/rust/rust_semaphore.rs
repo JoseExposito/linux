@@ -119,7 +119,7 @@ struct RustSemaphore {
 
 impl KernelModule for RustSemaphore {
     fn init() -> KernelResult<Self> {
-        info!("Rust semaphore sample (init)");
+        pr_info!("Rust semaphore sample (init)\n");
 
         let sema = Arc::try_new(Semaphore {
             // SAFETY: `condvar_init!` is called below.
@@ -148,7 +148,7 @@ impl KernelModule for RustSemaphore {
 
 impl Drop for RustSemaphore {
     fn drop(&mut self) {
-        info!("Rust semaphore sample (exit)");
+        pr_info!("Rust semaphore sample (exit)\n");
     }
 }
 

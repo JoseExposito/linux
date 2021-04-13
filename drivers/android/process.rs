@@ -557,7 +557,7 @@ impl Process {
                 .reservation_abort(ptr - mapping.address)
                 .is_err()
             {
-                warn!("Offset {} failed to free", ptr - mapping.address);
+                pr_warn!("Offset {} failed to free\n", ptr - mapping.address);
             }
         }
     }
@@ -566,7 +566,7 @@ impl Process {
         let mut inner = self.inner.lock();
         if let Some(ref mut mapping) = &mut inner.mapping {
             if mapping.alloc.reservation_commit(offset, data).is_err() {
-                warn!("Offset {} failed to be marked freeable", offset);
+                pr_warn!("Offset {} failed to be marked freeable\n", offset);
             }
         }
     }

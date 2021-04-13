@@ -140,7 +140,7 @@ impl<'a> Drop for KParamGuard<'a> {
 ///
 /// fn test() {
 ///     // This prints `8`.
-///     info!("{}", offset_of!(Test, b));
+///     pr_info!("{}\n", offset_of!(Test, b));
 /// }
 /// ```
 #[macro_export]
@@ -181,7 +181,7 @@ macro_rules! offset_of {
 ///     let b_ptr = &test.b;
 ///     let test_alias = unsafe { container_of!(b_ptr, Test, b) };
 ///     // This prints `true`.
-///     info!("{}", core::ptr::eq(&test, test_alias));
+///     pr_info!("{}\n", core::ptr::eq(&test, test_alias));
 /// }
 /// ```
 #[macro_export]
