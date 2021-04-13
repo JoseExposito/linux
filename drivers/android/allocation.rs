@@ -2,13 +2,12 @@
 
 use alloc::sync::Arc;
 use core::mem::{size_of, MaybeUninit};
-use kernel::{bindings, prelude::*, user_ptr::UserSlicePtrReader, Error};
+use kernel::{bindings, pages::Pages, prelude::*, user_ptr::UserSlicePtrReader, Error};
 
 use crate::{
     node::NodeRef,
     process::{AllocationInfo, Process},
     thread::{BinderError, BinderResult},
-    Pages,
 };
 
 pub(crate) struct Allocation<'a> {
@@ -83,7 +82,7 @@ impl<'a> Allocation<'a> {
                     offset,
                     to_copy,
                 )
-            };
+            }?;
             out_offset += to_copy;
             Ok(())
         })?;
@@ -97,7 +96,7 @@ impl<'a> Allocation<'a> {
             // SAFETY: The sum of `offset` and `to_copy` is bounded by the size of T.
             let obj_ptr = unsafe { (obj as *const T as *const u8).add(obj_offset) };
             // SAFETY: We have a reference to the object, so the pointer is valid.
-            unsafe { page.write(obj_ptr, offset, to_copy) };
+            unsafe { page.write(obj_ptr, offset, to_copy) }?;
             obj_offset += to_copy;
             Ok(())
         })

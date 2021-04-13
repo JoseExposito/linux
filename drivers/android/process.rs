@@ -9,6 +9,7 @@ use core::{
 use kernel::{
     bindings, c_types,
     file_operations::{File, FileOpener, FileOperations, IoctlCommand, IoctlHandler, PollTable},
+    pages::Pages,
     prelude::*,
     sync::{Guard, Mutex, Ref, RefCount, RefCounted},
     user_ptr::{UserSlicePtr, UserSlicePtrReader},
@@ -23,7 +24,7 @@ use crate::{
     node::{Node, NodeDeath, NodeRef},
     range_alloc::RangeAllocator,
     thread::{BinderError, BinderResult, Thread},
-    DeliverToRead, Either, Pages,
+    DeliverToRead, Either,
 };
 
 // TODO: Review this:
