@@ -151,7 +151,7 @@ impl Drop for Allocation<'_> {
             let view = AllocationView::new(self, info.offsets.start);
             for i in info.offsets.clone().step_by(size_of::<usize>()) {
                 if self.cleanup_object(i, &view).is_err() {
-                    warn!("Error cleaning up object at offset {}", i)
+                    pr_warn!("Error cleaning up object at offset {}\n", i)
                 }
             }
         }

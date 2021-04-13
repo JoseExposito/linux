@@ -398,7 +398,7 @@ impl Thread {
                     self.process.get_node_from_handle(handle, strong)
                 })?;
             }
-            _ => warn!("Unsupported binder object type: {:x}", header.type_),
+            _ => pr_warn!("Unsupported binder object type: {:x}\n", header.type_),
         }
         Ok(())
     }

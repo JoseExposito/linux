@@ -21,75 +21,31 @@ struct RustPrint;
 
 impl KernelModule for RustPrint {
     fn init() -> KernelResult<Self> {
-        info!("Rust printing macros sample (init)");
+        pr_info!("Rust printing macros sample (init)\n");
 
-        emerg!("Emergency message (level 0) with newline w/o args");
-        alert!("Alert message (level 1) with newline w/o args");
-        crit!("Critical message (level 2) with newline w/o args");
-        err!("Error message (level 3) with newline w/o args");
-        warn!("Warning message (level 4) with newline w/o args");
-        notice!("Notice message (level 5) with newline w/o args");
-        info!("Info message (level 6) with newline w/o args");
-
-        pr_info!("A line that");
-        pr_cont!(" is continued");
-        cont!(" with newline w/o args");
-
-        pr_emerg!("Emergency message (level 0) w/o newline w/o args\n");
-        pr_alert!("Alert message (level 1) w/o newline w/o args\n");
-        pr_crit!("Critical message (level 2) w/o newline w/o args\n");
-        pr_err!("Error message (level 3) w/o newline w/o args\n");
-        pr_warn!("Warning message (level 4) w/o newline w/o args\n");
-        pr_notice!("Notice message (level 5) w/o newline w/o args\n");
-        pr_info!("Info message (level 6) w/o newline w/o args\n");
+        pr_emerg!("Emergency message (level 0) without args\n");
+        pr_alert!("Alert message (level 1) without args\n");
+        pr_crit!("Critical message (level 2) without args\n");
+        pr_err!("Error message (level 3) without args\n");
+        pr_warn!("Warning message (level 4) without args\n");
+        pr_notice!("Notice message (level 5) without args\n");
+        pr_info!("Info message (level 6) without args\n");
 
         pr_info!("A line that");
         pr_cont!(" is continued");
-        pr_cont!(" w/o newline w/o args\n");
+        pr_cont!(" without args\n");
 
-        emerg!(
-            "{} message (level {}) with newline with args",
-            "Emergency",
-            0
-        );
-        alert!("{} message (level {}) with newline with args", "Alert", 1);
-        crit!(
-            "{} message (level {}) with newline with args",
-            "Critical",
-            2
-        );
-        err!("{} message (level {}) with newline with args", "Error", 3);
-        warn!("{} message (level {}) with newline with args", "Warning", 4);
-        notice!("{} message (level {}) with newline with args", "Notice", 5);
-        info!("{} message (level {}) with newline with args", "Info", 6);
+        pr_emerg!("{} message (level {}) with args\n", "Emergency", 0);
+        pr_alert!("{} message (level {}) with args\n", "Alert", 1);
+        pr_crit!("{} message (level {}) with args\n", "Critical", 2);
+        pr_err!("{} message (level {}) with args\n", "Error", 3);
+        pr_warn!("{} message (level {}) with args\n", "Warning", 4);
+        pr_notice!("{} message (level {}) with args\n", "Notice", 5);
+        pr_info!("{} message (level {}) with args\n", "Info", 6);
 
         pr_info!("A {} that", "line");
         pr_cont!(" is {}", "continued");
-        cont!(" with {} with args", "newline");
-
-        pr_emerg!(
-            "{} message (level {}) w/o newline with args\n",
-            "Emergency",
-            0
-        );
-        pr_alert!("{} message (level {}) w/o newline with args\n", "Alert", 1);
-        pr_crit!(
-            "{} message (level {}) w/o newline with args\n",
-            "Critical",
-            2
-        );
-        pr_err!("{} message (level {}) w/o newline with args\n", "Error", 3);
-        pr_warn!(
-            "{} message (level {}) w/o newline with args\n",
-            "Warning",
-            4
-        );
-        pr_notice!("{} message (level {}) w/o newline with args\n", "Notice", 5);
-        pr_info!("{} message (level {}) w/o newline with args\n", "Info", 6);
-
-        pr_info!("A {} that", "line");
-        pr_cont!(" is {}", "continued");
-        pr_cont!(" w/o {} with args\n", "newline");
+        pr_cont!(" with {}\n", "args");
 
         Ok(RustPrint)
     }
@@ -97,6 +53,6 @@ impl KernelModule for RustPrint {
 
 impl Drop for RustPrint {
     fn drop(&mut self) {
-        info!("Rust printing macros sample (exit)");
+        pr_info!("Rust printing macros sample (exit)\n");
     }
 }
