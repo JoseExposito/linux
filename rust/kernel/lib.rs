@@ -41,6 +41,7 @@ pub mod chrdev;
 mod error;
 pub mod file_operations;
 pub mod miscdev;
+pub mod pages;
 
 #[doc(hidden)]
 pub mod module_param;
