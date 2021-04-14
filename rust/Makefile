@@ -87,7 +87,7 @@ quiet_cmd_exports = EXPORTS $@
       cmd_exports = \
 	$(NM) -p --defined-only $< \
 		| grep -E ' (T|R|D) ' | cut -d ' ' -f 3 | grep -E '^(__rust_|_R)' \
-		| xargs -n1 -Isymbol \
+		| xargs -Isymbol \
 		echo 'EXPORT_SYMBOL_RUST_GPL(symbol);' > $@
 
 $(objtree)/rust/exports_core_generated.h: $(objtree)/rust/core.o FORCE
