@@ -188,8 +188,7 @@ _cpp_flags += -I $(srctree)/$(src) -I $(objtree)/$(obj)
 endif
 endif
 
-# TODO: quick hack
-part-of-module = $(if $(filter $(basename $@).o,$(real-obj-m)),y,$(and $(real-obj-m),$(shell echo $@ | sed -E 's!.+/lib.+\.a!y!;t;d')))
+part-of-module = $(if $(filter $(basename $@).o, $(real-obj-m)),y)
 quiet_modtag = $(if $(part-of-module),[M],   )
 
 modkern_cflags =                                          \
