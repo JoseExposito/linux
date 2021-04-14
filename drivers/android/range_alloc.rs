@@ -2,9 +2,11 @@
 
 use alloc::boxed::Box;
 use core::ptr::NonNull;
-use kernel::{prelude::*, Error};
-
-use crate::linked_list::{CursorMut, GetLinks, Links, List};
+use kernel::{
+    linked_list::{CursorMut, GetLinks, Links, List},
+    prelude::*,
+    Error,
+};
 
 pub(crate) struct RangeAllocator<T> {
     list: List<Box<Descriptor<T>>>,

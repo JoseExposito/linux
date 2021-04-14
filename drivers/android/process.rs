@@ -9,6 +9,7 @@ use core::{
 use kernel::{
     bindings, c_types,
     file_operations::{File, FileOpener, FileOperations, IoctlCommand, IoctlHandler, PollTable},
+    linked_list::List,
     pages::Pages,
     prelude::*,
     sync::{Guard, Mutex, Ref, RefCount, RefCounted},
@@ -20,11 +21,10 @@ use crate::{
     allocation::Allocation,
     context::Context,
     defs::*,
-    linked_list::List,
     node::{Node, NodeDeath, NodeRef},
     range_alloc::RangeAllocator,
     thread::{BinderError, BinderResult, Thread},
-    DeliverToRead, Either,
+    DeliverToRead, DeliverToReadListAdapter, Either,
 };
 
 // TODO: Review this:
@@ -62,7 +62,7 @@ pub(crate) struct ProcessInner {
     is_dead: bool,
     threads: BTreeMap<i32, Arc<Thread>>,
     ready_threads: List<Arc<Thread>>,
-    work: List<Arc<dyn DeliverToRead>>,
+    work: List<DeliverToReadListAdapter>,
     mapping: Option<Mapping>,
     nodes: BTreeMap<usize, Arc<Node>>,
 

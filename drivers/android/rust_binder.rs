@@ -9,16 +9,20 @@
 
 use alloc::{boxed::Box, sync::Arc};
 use core::pin::Pin;
-use kernel::{cstr, miscdev::Registration, prelude::*, user_ptr::UserSlicePtrWriter};
+use kernel::{
+    cstr,
+    linked_list::{GetLinks, GetLinksWrapped, Links},
+    miscdev::Registration,
+    prelude::*,
+    user_ptr::UserSlicePtrWriter,
+};
 
 mod allocation;
 mod context;
 mod defs;
-mod linked_list;
 mod node;
 mod process;
 mod range_alloc;
-mod raw_list;
 mod thread;
 mod transaction;
 
@@ -53,26 +57,33 @@ trait DeliverToRead {
     fn cancel(self: Arc<Self>) {}
 
     /// Returns the linked list links for the work item.
-    fn get_links(&self) -> &linked_list::Links<dyn DeliverToRead>;
+    fn get_links(&self) -> &Links<dyn DeliverToRead>;
 }
 
-impl linked_list::GetLinks for Arc<dyn DeliverToRead> {
+struct DeliverToReadListAdapter {}
+
+impl GetLinks for DeliverToReadListAdapter {
     type EntryType = dyn DeliverToRead;
-    fn get_links(obj: &dyn DeliverToRead) -> &linked_list::Links<dyn DeliverToRead> {
-        obj.get_links()
+
+    fn get_links(data: &Self::EntryType) -> &Links<Self::EntryType> {
+        data.get_links()
     }
+}
+
+impl GetLinksWrapped for DeliverToReadListAdapter {
+    type Wrapped = Arc<dyn DeliverToRead>;
 }
 
 struct DeliverCode {
     code: u32,
-    links: linked_list::Links<dyn DeliverToRead>,
+    links: Links<dyn DeliverToRead>,
 }
 
 impl DeliverCode {
     fn new(code: u32) -> Self {
         Self {
             code,
-            links: linked_list::Links::new(),
+            links: Links::new(),
         }
     }
 }
@@ -87,7 +98,7 @@ impl DeliverToRead for DeliverCode {
         Ok(true)
     }
 
-    fn get_links(&self) -> &linked_list::Links<dyn DeliverToRead> {
+    fn get_links(&self) -> &Links<dyn DeliverToRead> {
         &self.links
     }
 }
