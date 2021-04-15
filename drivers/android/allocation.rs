@@ -5,6 +5,7 @@ use core::mem::{size_of, MaybeUninit};
 use kernel::{bindings, pages::Pages, prelude::*, user_ptr::UserSlicePtrReader, Error};
 
 use crate::{
+    defs::*,
     node::NodeRef,
     process::{AllocationInfo, Process},
     thread::{BinderError, BinderResult},
@@ -117,9 +118,9 @@ impl<'a> Allocation<'a> {
         let header = view.read::<bindings::binder_object_header>(offset)?;
         // TODO: Handle other types.
         match header.type_ {
-            bindings::BINDER_TYPE_WEAK_BINDER | bindings::BINDER_TYPE_BINDER => {
+            BINDER_TYPE_WEAK_BINDER | BINDER_TYPE_BINDER => {
                 let obj = view.read::<bindings::flat_binder_object>(offset)?;
-                let strong = header.type_ == bindings::BINDER_TYPE_BINDER;
+                let strong = header.type_ == BINDER_TYPE_BINDER;
                 // SAFETY: The type is `BINDER_TYPE_{WEAK_}BINDER`, so the `binder` field is
                 // populated.
                 let ptr = unsafe { obj.__bindgen_anon_1.binder } as usize;
@@ -127,9 +128,9 @@ impl<'a> Allocation<'a> {
                 self.process.update_node(ptr, cookie, strong, false);
                 Ok(())
             }
-            bindings::BINDER_TYPE_WEAK_HANDLE | bindings::BINDER_TYPE_HANDLE => {
+            BINDER_TYPE_WEAK_HANDLE | BINDER_TYPE_HANDLE => {
                 let obj = view.read::<bindings::flat_binder_object>(offset)?;
-                let strong = header.type_ == bindings::BINDER_TYPE_HANDLE;
+                let strong = header.type_ == BINDER_TYPE_HANDLE;
                 // SAFETY: The type is `BINDER_TYPE_{WEAK_}HANDLE`, so the `handle` field is
                 // populated.
                 let handle = unsafe { obj.__bindgen_anon_1.handle } as _;
@@ -203,9 +204,9 @@ impl<'a> AllocationView<'a> {
             let newobj = bindings::flat_binder_object {
                 hdr: bindings::binder_object_header {
                     type_: if strong {
-                        bindings::BINDER_TYPE_BINDER
+                        BINDER_TYPE_BINDER
                     } else {
-                        bindings::BINDER_TYPE_WEAK_BINDER
+                        BINDER_TYPE_WEAK_BINDER
                     },
                 },
                 flags: obj.flags,
@@ -228,9 +229,9 @@ impl<'a> AllocationView<'a> {
             let newobj = bindings::flat_binder_object {
                 hdr: bindings::binder_object_header {
                     type_: if strong {
-                        bindings::BINDER_TYPE_HANDLE
+                        BINDER_TYPE_HANDLE
                     } else {
-                        bindings::BINDER_TYPE_WEAK_HANDLE
+                        BINDER_TYPE_WEAK_HANDLE
                     },
                 },
                 flags: obj.flags,

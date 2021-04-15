@@ -3,7 +3,7 @@
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicBool, Ordering};
 use kernel::{
-    bindings, io_buffer::IoBufferWriter, linked_list::Links, prelude::*, sync::Ref,
+    io_buffer::IoBufferWriter, linked_list::Links, prelude::*, sync::Ref,
     user_ptr::UserSlicePtrWriter,
 };
 
@@ -179,7 +179,7 @@ impl DeliverToRead for Transaction {
 
         // When this is not a reply and not an async transaction, update `current_transaction`. If
         // it's a reply, `current_transaction` has already been updated appropriately.
-        if self.node_ref.is_some() && tr.flags & bindings::transaction_flags_TF_ONE_WAY == 0 {
+        if self.node_ref.is_some() && tr.flags & TF_ONE_WAY == 0 {
             thread.set_current_transaction(self);
         }
 
