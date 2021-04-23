@@ -20,6 +20,8 @@ extern "C" {
         from: *const c_types::c_void,
         n: c_types::c_ulong,
     ) -> c_types::c_ulong;
+
+    fn rust_helper_clear_user(to: *mut c_types::c_void, n: c_types::c_ulong) -> c_types::c_ulong;
 }
 
 /// Specifies that a type is safely readable from byte slices.
@@ -240,6 +242,34 @@ impl UserSlicePtrWriter {
     /// Returns `true` if `self.len()` is 0.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    /// Writes zeroes to the user slice.
+    ///
+    /// Differently from the other write functions, `clear` will zero as much as it can and update
+    /// the writer internal state to reflect this. It will, however, return an error if it cannot
+    /// clear `len` bytes.
+    ///
+    /// For example, if a caller requests that 100 bytes be cleared but a segfault happens after
+    /// 20 bytes, then EFAULT is returned and the writer is advanced by 20 bytes.
+    pub fn clear(&mut self, mut len: usize) -> KernelResult {
+        let mut ret = Ok(());
+        if len > self.1 {
+            ret = Err(Error::EFAULT);
+            len = self.1;
+        }
+
+        // SAFETY: The buffer will be validated by `clear_user`. We ensure that `len` is within
+        // bounds in the check above.
+        let left = unsafe { rust_helper_clear_user(self.0, len as _) } as usize;
+        if left != 0 {
+            ret = Err(Error::EFAULT);
+            len -= left;
+        }
+
+        self.0 = self.0.wrapping_add(len);
+        self.1 -= len;
+        ret
     }
 
     /// Writes a byte slice to the user slice.

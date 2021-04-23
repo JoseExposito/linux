@@ -22,6 +22,11 @@ unsigned long rust_helper_copy_to_user(void __user *to, const void *from, unsign
 	return copy_to_user(to, from, n);
 }
 
+unsigned long rust_helper_clear_user(void __user *to, unsigned long n)
+{
+	return clear_user(to, n);
+}
+
 void rust_helper_spin_lock_init(spinlock_t *lock, const char *name,
 				struct lock_class_key *key)
 {
