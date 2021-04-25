@@ -127,11 +127,11 @@ quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L 
 
 # `$(rustc_flags)` is passed in case the user added `--sysroot`.
 rustc_sysroot = $(shell $(RUSTC) $(rustc_flags) --print sysroot)
-rustc_src = $(rustc_sysroot)/lib/rustlib/src/rust
+RUST_LIB_SRC ?= $(rustc_sysroot)/lib/rustlib/src/rust/library
 
 .SECONDEXPANSION:
 $(objtree)/rust/core.o: private skip_clippy = 1
-$(objtree)/rust/core.o: $$(rustc_src)/library/core/src/lib.rs FORCE
+$(objtree)/rust/core.o: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
 	$(call if_changed_dep,rustc_library)
 
 $(objtree)/rust/compiler_builtins.o: private rustc_objcopy = -w -W '__*'
@@ -140,7 +140,7 @@ $(objtree)/rust/compiler_builtins.o: $(srctree)/rust/compiler_builtins.rs \
 	$(call if_changed_dep,rustc_library)
 
 $(objtree)/rust/alloc.o: private skip_clippy = 1
-$(objtree)/rust/alloc.o: $$(rustc_src)/library/alloc/src/lib.rs \
+$(objtree)/rust/alloc.o: $$(RUST_LIB_SRC)/alloc/src/lib.rs \
     $(objtree)/rust/compiler_builtins.o FORCE
 	$(call if_changed_dep,rustc_library)
 
