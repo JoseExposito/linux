@@ -6,6 +6,7 @@ use core::{
     sync::atomic::{AtomicU64, Ordering},
 };
 use kernel::{
+    io_buffer::IoBufferWriter,
     linked_list::{GetLinks, Links, List},
     prelude::*,
     sync::{Guard, LockedBy, Mutex, Ref, SpinLock},

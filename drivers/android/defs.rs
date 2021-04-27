@@ -4,7 +4,7 @@ use core::ops::{Deref, DerefMut};
 use kernel::{
     bindings,
     bindings::*,
-    user_ptr::{ReadableFromBytes, WritableToBytes},
+    io_buffer::{ReadableFromBytes, WritableToBytes},
 };
 
 macro_rules! pub_no_prefix {

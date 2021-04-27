@@ -11,6 +11,7 @@ use alloc::{boxed::Box, sync::Arc};
 use core::pin::Pin;
 use kernel::{
     cstr,
+    io_buffer::IoBufferWriter,
     linked_list::{GetLinks, GetLinksWrapped, Links},
     miscdev::Registration,
     prelude::*,

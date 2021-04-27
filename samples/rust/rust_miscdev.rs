@@ -11,6 +11,7 @@ use kernel::prelude::*;
 use kernel::{
     cstr,
     file_operations::{File, FileOpener, FileOperations},
+    io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev,
     sync::{CondVar, Mutex},
     user_ptr::{UserSlicePtrReader, UserSlicePtrWriter},

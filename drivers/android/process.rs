@@ -9,6 +9,7 @@ use core::{
 use kernel::{
     bindings, c_types,
     file_operations::{File, FileOpener, FileOperations, IoctlCommand, IoctlHandler, PollTable},
+    io_buffer::{IoBufferReader, IoBufferWriter},
     linked_list::List,
     pages::Pages,
     prelude::*,

@@ -5,6 +5,7 @@ use core::{alloc::AllocError, mem::size_of, pin::Pin};
 use kernel::{
     bindings,
     file_operations::{File, PollTable},
+    io_buffer::{IoBufferReader, IoBufferWriter},
     linked_list::{GetLinks, Links, List},
     prelude::*,
     sync::{CondVar, Ref, SpinLock},
