@@ -10,11 +10,13 @@ use core::{marker, mem, ops::Deref, pin::Pin, ptr};
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 
-use crate::bindings;
-use crate::c_types;
-use crate::error::{Error, KernelResult};
-use crate::sync::{CondVar, Ref, RefCounted};
-use crate::user_ptr::{UserSlicePtr, UserSlicePtrReader, UserSlicePtrWriter};
+use crate::{
+    bindings, c_types,
+    error::{Error, KernelResult},
+    io_buffer::{IoBufferReader, IoBufferWriter},
+    sync::{CondVar, Ref, RefCounted},
+    user_ptr::{UserSlicePtr, UserSlicePtrReader, UserSlicePtrWriter},
+};
 
 /// Wraps the kernel's `struct file`.
 ///
@@ -166,7 +168,7 @@ unsafe extern "C" fn write_callback<T: FileOperations>(
         let f = &*((*file).private_data as *const T);
         // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
         // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
-        let written = f.write(&mut data, (*offset).try_into()?)?;
+        let written = f.write(&File::from_ptr(file), &mut data, (*offset).try_into()?)?;
         (*offset) += bindings::loff_t::try_from(written).unwrap();
         Ok(written as _)
     }
@@ -548,22 +550,27 @@ pub trait FileOperations: Send + Sync + Sized {
     /// Corresponds to the `release` function pointer in `struct file_operations`.
     fn release(_obj: Self::Wrapper, _file: &File) {}
 
-    /// Reads data from this file to userspace.
+    /// Reads data from this file to the caller's buffer.
     ///
-    /// Corresponds to the `read` function pointer in `struct file_operations`.
-    fn read(
+    /// Corresponds to the `read` and `read_iter` function pointers in `struct file_operations`.
+    fn read<T: IoBufferWriter>(
         &self,
         _file: &File,
-        _data: &mut UserSlicePtrWriter,
+        _data: &mut T,
         _offset: u64,
     ) -> KernelResult<usize> {
         Err(Error::EINVAL)
     }
 
-    /// Writes data from userspace to this file.
+    /// Writes data from the caller's buffer to this file.
     ///
-    /// Corresponds to the `write` function pointer in `struct file_operations`.
-    fn write(&self, _data: &mut UserSlicePtrReader, _offset: u64) -> KernelResult<usize> {
+    /// Corresponds to the `write` and `write_iter` function pointers in `struct file_operations`.
+    fn write<T: IoBufferReader>(
+        &self,
+        _file: &File,
+        _data: &mut T,
+        _offset: u64,
+    ) -> KernelResult<usize> {
         Err(Error::EINVAL)
     }
 
