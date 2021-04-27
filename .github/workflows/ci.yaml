@@ -25,6 +25,8 @@ jobs:
           # Exclude `LLVM=1` where not supported.
           - arch: ppc64le
             toolchain: llvm
+          - arch: riscv64
+            toolchain: llvm
 
         # A few independent combinations to avoid exploding the matrix:
         #   - The other option for `output`.
@@ -92,6 +94,15 @@ jobs:
           echo 'QEMU_ARCH=arm' >> $GITHUB_ENV
           echo 'QEMU_MACHINE=virt' >> $GITHUB_ENV
           echo 'QEMU_CPU=cortex-a7' >> $GITHUB_ENV
+      - if: matrix.arch == 'riscv64'
+        run: |
+          echo 'MAKE_ARCH=ARCH=riscv' >> $GITHUB_ENV
+          echo 'MAKE_CROSS_COMPILE=CROSS_COMPILE=riscv64-linux-gnu-' >> $GITHUB_ENV
+          echo 'IMAGE_PATH=arch/riscv/boot/Image' >> $GITHUB_ENV
+          echo 'QEMU_ARCH=riscv64' >> $GITHUB_ENV
+          echo 'QEMU_MACHINE=virt' >> $GITHUB_ENV
+          echo 'QEMU_CPU=rv64' >> $GITHUB_ENV
+          echo 'QEMU_ARGS=-bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.elf' >> $GITHUB_ENV
 
       - if: matrix.toolchain == 'clang'
         run: echo 'MAKE_TOOLCHAIN=CC=clang-11' >> $GITHUB_ENV
@@ -122,6 +133,12 @@ jobs:
         run: sudo apt-get install -y gcc-aarch64-linux-gnu
       - if: matrix.arch == 'ppc64le'
         run: sudo apt-get install -y gcc-powerpc64le-linux-gnu
+      - if: matrix.arch == 'riscv64'
+        run: sudo apt-get install -y gcc-riscv64-linux-gnu
+
+      # Setup OpenSBI
+      - if: matrix.arch == 'riscv64'
+        run: sudo apt-get install -y opensbi
 
       # Setup: libelf
       - run: sudo apt-get install -y libelf-dev
@@ -133,6 +150,8 @@ jobs:
         run: sudo apt-get install -y qemu-system-arm
       - if: matrix.arch == 'ppc64le'
         run: sudo apt-get install -y qemu-system-ppc
+      - if: matrix.arch == 'riscv64'
+        run: sudo apt-get install -y qemu-system-misc
 
       # Setup: rustc
       - if: matrix.install == 'rustup'
@@ -205,6 +224,7 @@ jobs:
 
       - run: |
           qemu-system-${{ env.QEMU_ARCH }} \
+            ${{ env.QEMU_ARGS }} \
             -kernel ${{ env.BUILD_DIR }}${{ env.IMAGE_PATH }} \
             -initrd qemu-initramfs.img \
             -M ${{ env.QEMU_MACHINE }} \
