@@ -6,6 +6,7 @@
 #include <linux/sched/signal.h>
 #include <linux/gfp.h>
 #include <linux/highmem.h>
+#include <linux/uio.h>
 
 void rust_helper_BUG(void)
 {
@@ -91,6 +92,18 @@ int rust_helper_cond_resched(void)
 	return cond_resched();
 }
 EXPORT_SYMBOL_GPL(rust_helper_cond_resched);
+
+size_t rust_helper_copy_from_iter(void *addr, size_t bytes, struct iov_iter *i)
+{
+	return copy_from_iter(addr, bytes, i);
+}
+EXPORT_SYMBOL_GPL(rust_helper_copy_from_iter);
+
+size_t rust_helper_copy_to_iter(const void *addr, size_t bytes, struct iov_iter *i)
+{
+	return copy_to_iter(addr, bytes, i);
+}
+EXPORT_SYMBOL_GPL(rust_helper_copy_to_iter);
 
 #if !defined(CONFIG_ARM)
 // See https://github.com/rust-lang/rust-bindgen/issues/1671

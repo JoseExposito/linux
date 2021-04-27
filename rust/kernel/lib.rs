@@ -60,6 +60,7 @@ pub mod sync;
 pub mod sysctl;
 
 pub mod io_buffer;
+pub mod iov_iter;
 mod types;
 pub mod user_ptr;
 
