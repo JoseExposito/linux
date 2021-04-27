@@ -24,6 +24,7 @@ use core::{
 use kernel::{
     condvar_init, cstr, declare_file_operations,
     file_operations::{File, FileOpener, FileOperations, IoctlCommand, IoctlHandler},
+    io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev::Registration,
     mutex_init,
     prelude::*,

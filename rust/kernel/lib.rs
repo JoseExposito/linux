@@ -59,6 +59,7 @@ pub mod sync;
 #[cfg(CONFIG_SYSCTL)]
 pub mod sysctl;
 
+pub mod io_buffer;
 mod types;
 pub mod user_ptr;
 

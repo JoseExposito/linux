@@ -4,7 +4,10 @@
 //!
 //! TODO: This module is a work in progress.
 
-use crate::{bindings, c_types, user_ptr::UserSlicePtrReader, Error, KernelResult, PAGE_SIZE};
+use crate::{
+    bindings, c_types, io_buffer::IoBufferReader, user_ptr::UserSlicePtrReader, Error,
+    KernelResult, PAGE_SIZE,
+};
 use core::{marker::PhantomData, ptr};
 
 extern "C" {
@@ -95,7 +98,7 @@ impl<const ORDER: u32> Pages<ORDER> {
     ///
     /// Callers must ensure that the destination buffer is valid for the given length.
     /// Additionally, if the raw buffer is intended to be recast, they must ensure that the data
-    /// can be safely cast; [`crate::user_ptr::ReadableFromBytes`] has more details about it.
+    /// can be safely cast; [`crate::io_buffer::ReadableFromBytes`] has more details about it.
     pub unsafe fn read(&self, dest: *mut u8, offset: usize, len: usize) -> KernelResult {
         // TODO: For now this only works on the first page.
         let end = offset.checked_add(len).ok_or(Error::EINVAL)?;
@@ -114,7 +117,7 @@ impl<const ORDER: u32> Pages<ORDER> {
     ///
     /// Callers must ensure that the buffer is valid for the given length. Additionally, if the
     /// page is (or will be) mapped by userspace, they must ensure that no kernel data is leaked
-    /// through padding if it was cast from another type; [`crate::user_ptr::WritableToBytes`] has
+    /// through padding if it was cast from another type; [`crate::io_buffer::WritableToBytes`] has
     /// more details about it.
     pub unsafe fn write(&self, src: *const u8, offset: usize, len: usize) -> KernelResult {
         // TODO: For now this only works on the first page.

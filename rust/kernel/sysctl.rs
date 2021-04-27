@@ -12,11 +12,12 @@ use core::mem;
 use core::ptr;
 use core::sync::atomic;
 
-use crate::bindings;
-use crate::c_types;
-use crate::error;
-use crate::types;
-use crate::user_ptr::{UserSlicePtr, UserSlicePtrWriter};
+use crate::{
+    bindings, c_types, error,
+    io_buffer::IoBufferWriter,
+    types,
+    user_ptr::{UserSlicePtr, UserSlicePtrWriter},
+};
 
 /// Sysctl storage.
 pub trait SysctlStorage: Sync {

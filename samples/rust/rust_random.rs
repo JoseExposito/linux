@@ -10,6 +10,7 @@
 
 use kernel::{
     file_operations::{File, FileOperations},
+    io_buffer::{IoBufferReader, IoBufferWriter},
     prelude::*,
     user_ptr::{UserSlicePtrReader, UserSlicePtrWriter},
 };
