@@ -14,6 +14,7 @@ use crate::{
     bindings, c_types,
     error::{Error, KernelResult},
     io_buffer::{IoBufferReader, IoBufferWriter},
+    iov_iter::IovIter,
     sync::{CondVar, Ref, RefCounted},
     user_ptr::{UserSlicePtr, UserSlicePtrReader, UserSlicePtrWriter},
 };
@@ -157,6 +158,21 @@ unsafe extern "C" fn read_callback<T: FileOperations>(
     }
 }
 
+unsafe extern "C" fn read_iter_callback<T: FileOperations>(
+    iocb: *mut bindings::kiocb,
+    raw_iter: *mut bindings::iov_iter,
+) -> isize {
+    from_kernel_result! {
+        let mut iter = IovIter::from_ptr(raw_iter);
+        let file = (*iocb).ki_filp;
+        let offset = (*iocb).ki_pos;
+        let f = &*((*file).private_data as *const T);
+        let read = f.read(&File::from_ptr(file), &mut iter, offset.try_into()?)?;
+        (*iocb).ki_pos += bindings::loff_t::try_from(read).unwrap();
+        Ok(read as _)
+    }
+}
+
 unsafe extern "C" fn write_callback<T: FileOperations>(
     file: *mut bindings::file,
     buf: *const c_types::c_char,
@@ -170,6 +186,21 @@ unsafe extern "C" fn write_callback<T: FileOperations>(
         // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
         let written = f.write(&File::from_ptr(file), &mut data, (*offset).try_into()?)?;
         (*offset) += bindings::loff_t::try_from(written).unwrap();
+        Ok(written as _)
+    }
+}
+
+unsafe extern "C" fn write_iter_callback<T: FileOperations>(
+    iocb: *mut bindings::kiocb,
+    raw_iter: *mut bindings::iov_iter,
+) -> isize {
+    from_kernel_result! {
+        let mut iter = IovIter::from_ptr(raw_iter);
+        let file = (*iocb).ki_filp;
+        let offset = (*iocb).ki_pos;
+        let f = &*((*file).private_data as *const T);
+        let written = f.write(&File::from_ptr(file), &mut iter, offset.try_into()?)?;
+        (*iocb).ki_pos += bindings::loff_t::try_from(written).unwrap();
         Ok(written as _)
     }
 }
@@ -323,7 +354,11 @@ impl<A: FileOpenAdapter, T: FileOpener<A::Arg>> FileOperationsVtable<A, T> {
         } else {
             None
         },
-        read_iter: None,
+        read_iter: if T::TO_USE.read_iter {
+            Some(read_iter_callback::<T>)
+        } else {
+            None
+        },
         remap_file_range: None,
         sendpage: None,
         setlease: None,
@@ -335,7 +370,11 @@ impl<A: FileOpenAdapter, T: FileOpener<A::Arg>> FileOperationsVtable<A, T> {
         } else {
             None
         },
-        write_iter: None,
+        write_iter: if T::TO_USE.write_iter {
+            Some(write_iter_callback::<T>)
+        } else {
+            None
+        },
     };
 
     /// Builds an instance of [`struct file_operations`].
@@ -353,8 +392,14 @@ pub struct ToUse {
     /// The `read` field of [`struct file_operations`].
     pub read: bool,
 
+    /// The `read_iter` field of [`struct file_operations`].
+    pub read_iter: bool,
+
     /// The `write` field of [`struct file_operations`].
     pub write: bool,
+
+    /// The `write_iter` field of [`struct file_operations`].
+    pub write_iter: bool,
 
     /// The `llseek` field of [`struct file_operations`].
     pub seek: bool,
@@ -379,7 +424,9 @@ pub struct ToUse {
 /// be set to null pointers.
 pub const USE_NONE: ToUse = ToUse {
     read: false,
+    read_iter: false,
     write: false,
+    write_iter: false,
     seek: false,
     ioctl: false,
     compat_ioctl: false,

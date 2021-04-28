@@ -18,7 +18,7 @@ use kernel::{
 struct RandomFile;
 
 impl FileOperations for RandomFile {
-    kernel::declare_file_operations!(read, write);
+    kernel::declare_file_operations!(read, write, read_iter, write_iter);
 
     fn read<T: IoBufferWriter>(
         &self,
