@@ -103,28 +103,12 @@ fn expect_end(it: &mut token_stream::IntoIter) {
     }
 }
 
-fn get_ident(it: &mut token_stream::IntoIter, expected_name: &str) -> String {
-    assert_eq!(expect_ident(it), expected_name);
-    assert_eq!(expect_punct(it), ':');
-    let ident = expect_ident(it);
-    assert_eq!(expect_punct(it), ',');
-    ident
-}
-
 fn get_literal(it: &mut token_stream::IntoIter, expected_name: &str) -> String {
     assert_eq!(expect_ident(it), expected_name);
     assert_eq!(expect_punct(it), ':');
     let literal = expect_literal(it);
     assert_eq!(expect_punct(it), ',');
     literal
-}
-
-fn get_group(it: &mut token_stream::IntoIter, expected_name: &str) -> Group {
-    assert_eq!(expect_ident(it), expected_name);
-    assert_eq!(expect_punct(it), ':');
-    let group = expect_group(it);
-    assert_eq!(expect_punct(it), ',');
-    group
 }
 
 fn get_byte_string(it: &mut token_stream::IntoIter, expected_name: &str) -> String {
@@ -200,6 +184,14 @@ fn build_modinfo_string_only_loadable(module: &str, field: &str, content: &str) 
 fn build_modinfo_string(module: &str, field: &str, content: &str) -> String {
     build_modinfo_string_only_builtin(module, field, content)
         + &build_modinfo_string_only_loadable(module, field, content)
+}
+
+fn build_modinfo_string_optional(module: &str, field: &str, content: Option<&str>) -> String {
+    if let Some(content) = content {
+        build_modinfo_string(module, field, content)
+    } else {
+        "".to_string()
+    }
 }
 
 fn build_modinfo_string_param(module: &str, field: &str, param: &str, content: &str) -> String {
@@ -315,6 +307,97 @@ fn generated_array_ops_name(vals: &str, max_length: usize) -> String {
     )
 }
 
+#[derive(Debug, Default)]
+struct ModuleInfo {
+    type_: String,
+    license: String,
+    name: String,
+    author: Option<String>,
+    description: Option<String>,
+    alias: Option<String>,
+    params: Option<Group>,
+}
+
+impl ModuleInfo {
+    fn parse(it: &mut token_stream::IntoIter) -> Self {
+        let mut info = ModuleInfo::default();
+        // The first allowed position is 1, to prevent setting something twice.
+        let mut pos = 0u8;
+
+        loop {
+            let name = match it.next() {
+                Some(TokenTree::Ident(ident)) => ident.to_string(),
+                Some(_) => panic!("Expected Ident or end"),
+                None => break,
+            };
+
+            assert_eq!(expect_punct(it), ':');
+
+            if name == "type" {
+                Self::allowed_pos(&mut pos, 1, &name);
+                let type_ = expect_ident(it);
+                info.type_ = type_;
+            } else if name == "params" {
+                Self::allowed_pos(&mut pos, 7, &name);
+                let params = expect_group(it);
+                info.params = Some(params);
+            } else {
+                let value = expect_byte_string(it);
+
+                match name.as_str() {
+                    "name" => {
+                        Self::allowed_pos(&mut pos, 2, &name);
+                        info.name = value;
+                    }
+                    "author" => {
+                        Self::allowed_pos(&mut pos, 3, &name);
+                        info.author = Some(value);
+                    }
+                    "description" => {
+                        Self::allowed_pos(&mut pos, 4, &name);
+                        info.description = Some(value);
+                    }
+                    "license" => {
+                        Self::allowed_pos(&mut pos, 5, &name);
+                        info.license = value;
+                    }
+                    "alias" => {
+                        Self::allowed_pos(&mut pos, 6, &name);
+                        info.alias = Some(value);
+                    }
+                    "alias_rtnl_link" => {
+                        Self::allowed_pos(&mut pos, 6, &name);
+                        info.alias = Some(format!("rtnl-link-{}", value));
+                    }
+                    _ => panic!("field '{}' is not supported by module", name),
+                }
+            }
+            assert_eq!(expect_punct(it), ',');
+        }
+
+        expect_end(it);
+
+        if info.type_.is_empty() {
+            panic!("'type' not specified in module macro");
+        }
+        if info.license.is_empty() {
+            panic!("'license' not specified in module macro");
+        }
+        if info.name.is_empty() {
+            panic!("'name' not specified in module macro");
+        }
+
+        info
+    }
+
+    fn allowed_pos(pos: &mut u8, allowed_pos: u8, name: &str) {
+        if *pos > allowed_pos {
+            panic!("'{}' is not allowed at this position", name);
+        }
+        *pos = allowed_pos;
+    }
+}
+
 /// Declares a kernel module.
 ///
 /// The `type` argument should be a type which implements the [`KernelModule`]
@@ -365,6 +448,16 @@ fn generated_array_ops_name(vals: &str, max_length: usize) -> String {
 /// }
 /// ```
 ///
+/// # Supported argument types
+///   - `type`: type which implements the [`KernelModule`] trait (required).
+///   - `name`: byte array of the name of the kernel module (required).
+///   - `author`: byte array of the author of the kernel module.
+///   - `description`: byte array of the description of the kernel module.
+///   - `license`: byte array of the license of the kernel module (required).
+///   - `alias`: byte array of alias name of the kernel module.
+///   - `alias_rtnl_link`: byte array of the `rtnl_link_alias` of the kernel module (mutually exclusive with `alias`).
+///   - `params`: parameters for the kernel module, as described below.
+///
 /// # Supported parameter types
 ///
 ///   - `bool`: Corresponds to C `bool` param type.
@@ -388,178 +481,173 @@ fn generated_array_ops_name(vals: &str, max_length: usize) -> String {
 pub fn module(ts: TokenStream) -> TokenStream {
     let mut it = ts.into_iter();
 
-    let type_ = get_ident(&mut it, "type");
-    let name = get_byte_string(&mut it, "name");
-    let author = get_byte_string(&mut it, "author");
-    let description = get_byte_string(&mut it, "description");
-    let license = get_byte_string(&mut it, "license");
-    let params = get_group(&mut it, "params");
+    let info = ModuleInfo::parse(&mut it);
 
-    expect_end(&mut it);
-
-    assert_eq!(params.delimiter(), Delimiter::Brace);
-
-    let mut it = params.stream().into_iter();
-
-    let mut params_modinfo = String::new();
+    let name = info.name.clone();
 
     let mut array_types_to_generate = Vec::new();
+    let mut params_modinfo = String::new();
+    if let Some(params) = info.params {
+        assert_eq!(params.delimiter(), Delimiter::Brace);
 
-    loop {
-        let param_name = match it.next() {
-            Some(TokenTree::Ident(ident)) => ident.to_string(),
-            Some(_) => panic!("Expected Ident or end"),
-            None => break,
-        };
+        let mut it = params.stream().into_iter();
 
-        assert_eq!(expect_punct(&mut it), ':');
-        let param_type = expect_type(&mut it);
-        let group = expect_group(&mut it);
-        assert_eq!(expect_punct(&mut it), ',');
+        loop {
+            let param_name = match it.next() {
+                Some(TokenTree::Ident(ident)) => ident.to_string(),
+                Some(_) => panic!("Expected Ident or end"),
+                None => break,
+            };
 
-        assert_eq!(group.delimiter(), Delimiter::Brace);
+            assert_eq!(expect_punct(&mut it), ':');
+            let param_type = expect_type(&mut it);
+            let group = expect_group(&mut it);
+            assert_eq!(expect_punct(&mut it), ',');
 
-        let mut param_it = group.stream().into_iter();
-        let param_default = get_default(&param_type, &mut param_it);
-        let param_permissions = get_literal(&mut param_it, "permissions");
-        let param_description = get_byte_string(&mut param_it, "description");
-        expect_end(&mut param_it);
+            assert_eq!(group.delimiter(), Delimiter::Brace);
 
-        // TODO: more primitive types
-        // TODO: other kinds: unsafes, etc.
-        let (param_kernel_type, ops): (String, _) = match param_type {
-            ParamType::Ident(ref param_type) => (
-                param_type.to_string(),
-                param_ops_path(&param_type).to_string(),
-            ),
-            ParamType::Array {
-                ref vals,
-                max_length,
-            } => {
-                array_types_to_generate.push((vals.clone(), max_length));
-                (
-                    format!("__rust_array_param_{}_{}", vals, max_length),
-                    generated_array_ops_name(vals, max_length),
+            let mut param_it = group.stream().into_iter();
+            let param_default = get_default(&param_type, &mut param_it);
+            let param_permissions = get_literal(&mut param_it, "permissions");
+            let param_description = get_byte_string(&mut param_it, "description");
+            expect_end(&mut param_it);
+
+            // TODO: more primitive types
+            // TODO: other kinds: unsafes, etc.
+            let (param_kernel_type, ops): (String, _) = match param_type {
+                ParamType::Ident(ref param_type) => (
+                    param_type.to_string(),
+                    param_ops_path(&param_type).to_string(),
+                ),
+                ParamType::Array {
+                    ref vals,
+                    max_length,
+                } => {
+                    array_types_to_generate.push((vals.clone(), max_length));
+                    (
+                        format!("__rust_array_param_{}_{}", vals, max_length),
+                        generated_array_ops_name(vals, max_length),
+                    )
+                }
+            };
+
+            params_modinfo.push_str(&build_modinfo_string_param(
+                &name,
+                "parmtype",
+                &param_name,
+                &param_kernel_type,
+            ));
+            params_modinfo.push_str(&build_modinfo_string_param(
+                &name,
+                "parm",
+                &param_name,
+                &param_description,
+            ));
+            let param_type_internal = match param_type {
+                ParamType::Ident(ref param_type) => match param_type.as_ref() {
+                    "str" => "kernel::module_param::StringParam".to_string(),
+                    other => other.to_string(),
+                },
+                ParamType::Array {
+                    ref vals,
+                    max_length,
+                } => format!(
+                    "kernel::module_param::ArrayParam<{vals}, {max_length}>",
+                    vals = vals,
+                    max_length = max_length
+                ),
+            };
+            let read_func = if permissions_are_readonly(&param_permissions) {
+                format!(
+                    "
+                        fn read(&self) -> &<{param_type_internal} as kernel::module_param::ModuleParam>::Value {{
+                            // SAFETY: Parameters do not need to be locked because they are read only or sysfs is not enabled.
+                            unsafe {{ <{param_type_internal} as kernel::module_param::ModuleParam>::value(&__{name}_{param_name}_value) }}
+                        }}
+                    ",
+                    name = name,
+                    param_name = param_name,
+                    param_type_internal = param_type_internal,
                 )
-            }
-        };
-
-        params_modinfo.push_str(&build_modinfo_string_param(
-            &name,
-            "parmtype",
-            &param_name,
-            &param_kernel_type,
-        ));
-        params_modinfo.push_str(&build_modinfo_string_param(
-            &name,
-            "parm",
-            &param_name,
-            &param_description,
-        ));
-        let param_type_internal = match param_type {
-            ParamType::Ident(ref param_type) => match param_type.as_ref() {
-                "str" => "kernel::module_param::StringParam".to_string(),
-                other => other.to_string(),
-            },
-            ParamType::Array {
-                ref vals,
-                max_length,
-            } => format!(
-                "kernel::module_param::ArrayParam<{vals}, {max_length}>",
-                vals = vals,
-                max_length = max_length
-            ),
-        };
-        let read_func = if permissions_are_readonly(&param_permissions) {
-            format!(
+            } else {
+                format!(
+                    "
+                        fn read<'lck>(&self, lock: &'lck kernel::KParamGuard) -> &'lck <{param_type_internal} as kernel::module_param::ModuleParam>::Value {{
+                            // SAFETY: Parameters are locked by `KParamGuard`.
+                            unsafe {{ <{param_type_internal} as kernel::module_param::ModuleParam>::value(&__{name}_{param_name}_value) }}
+                        }}
+                    ",
+                    name = name,
+                    param_name = param_name,
+                    param_type_internal = param_type_internal,
+                )
+            };
+            let kparam = format!(
                 "
-                    fn read(&self) -> &<{param_type_internal} as kernel::module_param::ModuleParam>::Value {{
-                        // SAFETY: Parameters do not need to be locked because they are read only or sysfs is not enabled.
-                        unsafe {{ <{param_type_internal} as kernel::module_param::ModuleParam>::value(&__{name}_{param_name}_value) }}
-                    }}
+                    kernel::bindings::kernel_param__bindgen_ty_1 {{
+                        arg: unsafe {{ &__{name}_{param_name}_value }} as *const _ as *mut kernel::c_types::c_void,
+                    }},
                 ",
                 name = name,
                 param_name = param_name,
-                param_type_internal = param_type_internal,
-            )
-        } else {
-            format!(
-                "
-                    fn read<'lck>(&self, lock: &'lck kernel::KParamGuard) -> &'lck <{param_type_internal} as kernel::module_param::ModuleParam>::Value {{
-                        // SAFETY: Parameters are locked by `KParamGuard`.
-                        unsafe {{ <{param_type_internal} as kernel::module_param::ModuleParam>::value(&__{name}_{param_name}_value) }}
+            );
+            params_modinfo.push_str(
+                &format!(
+                    "
+                    static mut __{name}_{param_name}_value: {param_type_internal} = {param_default};
+
+                    struct __{name}_{param_name};
+
+                    impl __{name}_{param_name} {{ {read_func} }}
+
+                    const {param_name}: __{name}_{param_name} = __{name}_{param_name};
+
+                    // Note: the C macro that generates the static structs for the `__param` section
+                    // asks for them to be `aligned(sizeof(void *))`. However, that was put in place
+                    // in 2003 in commit 38d5b085d2 (\"[PATCH] Fix over-alignment problem on x86-64\")
+                    // to undo GCC over-alignment of static structs of >32 bytes. It seems that is
+                    // not the case anymore, so we simplify to a transparent representation here
+                    // in the expectation that it is not needed anymore.
+                    // TODO: revisit this to confirm the above comment and remove it if it happened
+                    #[repr(transparent)]
+                    struct __{name}_{param_name}_RacyKernelParam(kernel::bindings::kernel_param);
+
+                    unsafe impl Sync for __{name}_{param_name}_RacyKernelParam {{
                     }}
-                ",
-                name = name,
-                param_name = param_name,
-                param_type_internal = param_type_internal,
-            )
-        };
-        let kparam = format!(
-            "
-                kernel::bindings::kernel_param__bindgen_ty_1 {{
-                    arg: unsafe {{ &__{name}_{param_name}_value }} as *const _ as *mut kernel::c_types::c_void,
-                }},
-            ",
-            name = name,
-            param_name = param_name,
-        );
-        params_modinfo.push_str(
-            &format!(
-                "
-                static mut __{name}_{param_name}_value: {param_type_internal} = {param_default};
 
-                struct __{name}_{param_name};
-
-                impl __{name}_{param_name} {{ {read_func} }}
-
-                const {param_name}: __{name}_{param_name} = __{name}_{param_name};
-
-                // Note: the C macro that generates the static structs for the `__param` section
-                // asks for them to be `aligned(sizeof(void *))`. However, that was put in place
-                // in 2003 in commit 38d5b085d2 (\"[PATCH] Fix over-alignment problem on x86-64\")
-                // to undo GCC over-alignment of static structs of >32 bytes. It seems that is
-                // not the case anymore, so we simplify to a transparent representation here
-                // in the expectation that it is not needed anymore.
-                // TODO: revisit this to confirm the above comment and remove it if it happened
-                #[repr(transparent)]
-                struct __{name}_{param_name}_RacyKernelParam(kernel::bindings::kernel_param);
-
-                unsafe impl Sync for __{name}_{param_name}_RacyKernelParam {{
-                }}
-
-                #[cfg(not(MODULE))]
-                const __{name}_{param_name}_name: *const kernel::c_types::c_char = b\"{name}.{param_name}\\0\" as *const _ as *const kernel::c_types::c_char;
-
-                #[cfg(MODULE)]
-                const __{name}_{param_name}_name: *const kernel::c_types::c_char = b\"{param_name}\\0\" as *const _ as *const kernel::c_types::c_char;
-
-                #[link_section = \"__param\"]
-                #[used]
-                static __{name}_{param_name}_struct: __{name}_{param_name}_RacyKernelParam = __{name}_{param_name}_RacyKernelParam(kernel::bindings::kernel_param {{
-                    name: __{name}_{param_name}_name,
-                    // SAFETY: `__this_module` is constructed by the kernel at load time and will not be freed until the module is unloaded.
-                    #[cfg(MODULE)]
-                    mod_: unsafe {{ &kernel::bindings::__this_module as *const _ as *mut _ }},
                     #[cfg(not(MODULE))]
-                    mod_: core::ptr::null_mut(),
-                    ops: unsafe {{ &{ops} }} as *const kernel::bindings::kernel_param_ops,
-                    perm: {permissions},
-                    level: -1,
-                    flags: 0,
-                    __bindgen_anon_1: {kparam}
-                }});
-                ",
-                name = name,
-                param_type_internal = param_type_internal,
-                read_func = read_func,
-                param_default = param_default,
-                param_name = param_name,
-                ops = ops,
-                permissions = param_permissions,
-                kparam = kparam,
-            )
-        );
+                    const __{name}_{param_name}_name: *const kernel::c_types::c_char = b\"{name}.{param_name}\\0\" as *const _ as *const kernel::c_types::c_char;
+
+                    #[cfg(MODULE)]
+                    const __{name}_{param_name}_name: *const kernel::c_types::c_char = b\"{param_name}\\0\" as *const _ as *const kernel::c_types::c_char;
+
+                    #[link_section = \"__param\"]
+                    #[used]
+                    static __{name}_{param_name}_struct: __{name}_{param_name}_RacyKernelParam = __{name}_{param_name}_RacyKernelParam(kernel::bindings::kernel_param {{
+                        name: __{name}_{param_name}_name,
+                        // SAFETY: `__this_module` is constructed by the kernel at load time and will not be freed until the module is unloaded.
+                        #[cfg(MODULE)]
+                        mod_: unsafe {{ &kernel::bindings::__this_module as *const _ as *mut _ }},
+                        #[cfg(not(MODULE))]
+                        mod_: core::ptr::null_mut(),
+                        ops: unsafe {{ &{ops} }} as *const kernel::bindings::kernel_param_ops,
+                        perm: {permissions},
+                        level: -1,
+                        flags: 0,
+                        __bindgen_anon_1: {kparam}
+                    }});
+                    ",
+                    name = name,
+                    param_type_internal = param_type_internal,
+                    read_func = read_func,
+                    param_default = param_default,
+                    param_name = param_name,
+                    ops = ops,
+                    permissions = param_permissions,
+                    kparam = kparam,
+                )
+            );
+        }
     }
 
     let mut generated_array_types = String::new();
@@ -664,6 +752,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
             {author}
             {description}
             {license}
+            {alias}
 
             // Built-in modules also export the `file` modinfo string
             {file}
@@ -672,11 +761,12 @@ pub fn module(ts: TokenStream) -> TokenStream {
 
             {generated_array_types}
         ",
-        type_ = type_,
-        name = name,
-        author = &build_modinfo_string(&name, "author", &author),
-        description = &build_modinfo_string(&name, "description", &description),
-        license = &build_modinfo_string(&name, "license", &license),
+        type_ = info.type_,
+        name = info.name,
+        author = &build_modinfo_string_optional(&name, "author", info.author.as_deref()),
+        description = &build_modinfo_string_optional(&name, "description", info.description.as_deref()),
+        license = &build_modinfo_string(&name, "license", &info.license),
+        alias = &build_modinfo_string_optional(&name, "alias", info.alias.as_deref()),
         file = &build_modinfo_string_only_builtin(&name, "file", &file),
         params_modinfo = params_modinfo,
         generated_array_types = generated_array_types,
@@ -715,14 +805,9 @@ pub fn module(ts: TokenStream) -> TokenStream {
 pub fn module_misc_device(ts: TokenStream) -> TokenStream {
     let mut it = ts.into_iter();
 
-    let type_ = get_ident(&mut it, "type");
-    let name = get_byte_string(&mut it, "name");
-    let author = get_byte_string(&mut it, "author");
-    let description = get_byte_string(&mut it, "description");
-    let license = get_byte_string(&mut it, "license");
-    expect_end(&mut it);
+    let info = ModuleInfo::parse(&mut it);
 
-    let module = format!("__internal_ModuleFor{}", type_);
+    let module = format!("__internal_ModuleFor{}", info.type_);
 
     format!(
         "
@@ -746,18 +831,28 @@ pub fn module_misc_device(ts: TokenStream) -> TokenStream {
             kernel::prelude::module! {{
                 type: {module},
                 name: b\"{name}\",
-                author: b\"{author}\",
-                description: b\"{description}\",
+                {author}
+                {description}
                 license: b\"{license}\",
-                params: {{}},
+                {alias}
             }}
         ",
         module = module,
-        type_ = type_,
-        name = name,
-        author = author,
-        description = description,
-        license = license
+        type_ = info.type_,
+        name = info.name,
+        author = info
+            .author
+            .map(|v| format!("author: b\"{}\",", v))
+            .unwrap_or_else(|| "".to_string()),
+        description = info
+            .description
+            .map(|v| format!("description: b\"{}\",", v))
+            .unwrap_or_else(|| "".to_string()),
+        alias = info
+            .alias
+            .map(|v| format!("alias: b\"{}\",", v))
+            .unwrap_or_else(|| "".to_string()),
+        license = info.license
     )
     .parse()
     .expect("Error parsing formatted string into token stream.")

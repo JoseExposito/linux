@@ -16,8 +16,6 @@ module! {
     author: b"Rust for Linux Contributors",
     description: b"Rust character device sample",
     license: b"GPL v2",
-    params: {
-    },
 }
 
 #[derive(Default)]
