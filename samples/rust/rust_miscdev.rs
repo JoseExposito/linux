@@ -23,8 +23,6 @@ module! {
     author: b"Rust for Linux Contributors",
     description: b"Rust miscellaneous device sample",
     license: b"GPL v2",
-    params: {
-    },
 }
 
 const MAX_TOKENS: usize = 3;

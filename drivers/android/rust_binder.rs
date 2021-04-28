@@ -35,7 +35,6 @@ module! {
     author: b"Wedson Almeida Filho",
     description: b"Android Binder",
     license: b"GPL v2",
-    params: {},
 }
 
 enum Either<L, R> {
