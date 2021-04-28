@@ -14,7 +14,6 @@ use kernel::{
     io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev,
     sync::{CondVar, Mutex},
-    user_ptr::{UserSlicePtrReader, UserSlicePtrWriter},
     Error,
 };
 
@@ -74,7 +73,7 @@ impl FileOperations for Token {
 
     kernel::declare_file_operations!(read, write);
 
-    fn read(&self, _: &File, data: &mut UserSlicePtrWriter, offset: u64) -> KernelResult<usize> {
+    fn read<T: IoBufferWriter>(&self, _: &File, data: &mut T, offset: u64) -> KernelResult<usize> {
         // Succeed if the caller doesn't provide a buffer or if not at the start.
         if data.is_empty() || offset != 0 {
             return Ok(0);
@@ -102,7 +101,12 @@ impl FileOperations for Token {
         Ok(1)
     }
 
-    fn write(&self, data: &mut UserSlicePtrReader, _offset: u64) -> KernelResult<usize> {
+    fn write<T: IoBufferReader>(
+        &self,
+        _: &File,
+        data: &mut T,
+        _offset: u64,
+    ) -> KernelResult<usize> {
         {
             let mut inner = self.shared.inner.lock();
 

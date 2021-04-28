@@ -84,7 +84,7 @@ impl FileOperations for FileState {
 
     declare_file_operations!(read, write, ioctl);
 
-    fn read(&self, _: &File, data: &mut UserSlicePtrWriter, offset: u64) -> KernelResult<usize> {
+    fn read<T: IoBufferWriter>(&self, _: &File, data: &mut T, offset: u64) -> KernelResult<usize> {
         if data.is_empty() || offset > 0 {
             return Ok(0);
         }
@@ -94,7 +94,12 @@ impl FileOperations for FileState {
         Ok(1)
     }
 
-    fn write(&self, data: &mut UserSlicePtrReader, _offset: u64) -> KernelResult<usize> {
+    fn write<T: IoBufferReader>(
+        &self,
+        _: &File,
+        data: &mut T,
+        _offset: u64,
+    ) -> KernelResult<usize> {
         {
             let mut inner = self.shared.inner.lock();
             inner.count = inner.count.saturating_add(data.len());
