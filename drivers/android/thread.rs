@@ -4,7 +4,8 @@ use alloc::sync::Arc;
 use core::{alloc::AllocError, mem::size_of, pin::Pin};
 use kernel::{
     bindings,
-    file_operations::{File, PollTable},
+    file::File,
+    file_operations::PollTable,
     io_buffer::{IoBufferReader, IoBufferWriter},
     linked_list::{GetLinks, Links, List},
     prelude::*,

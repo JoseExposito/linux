@@ -10,7 +10,8 @@ use core::pin::Pin;
 use kernel::prelude::*;
 use kernel::{
     cstr,
-    file_operations::{File, FileOpener, FileOperations},
+    file::File,
+    file_operations::{FileOpener, FileOperations},
     io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev,
     sync::{CondVar, Mutex},

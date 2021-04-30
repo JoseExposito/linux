@@ -9,7 +9,8 @@
 #![feature(allocator_api, global_asm)]
 
 use kernel::{
-    file_operations::{File, FileOperations},
+    file::File,
+    file_operations::FileOperations,
     io_buffer::{IoBufferReader, IoBufferWriter},
     prelude::*,
 };
