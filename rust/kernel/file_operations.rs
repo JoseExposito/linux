@@ -12,7 +12,7 @@ use alloc::boxed::Box;
 use crate::{
     bindings, c_types,
     error::{Error, Result},
-    file::File,
+    file::{File, FileRef},
     from_kernel_result,
     io_buffer::{IoBufferReader, IoBufferWriter},
     iov_iter::IovIter,
@@ -102,7 +102,7 @@ unsafe extern "C" fn read_callback<T: FileOperations>(
         let f = &*((*file).private_data as *const T);
         // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
         // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
-        let read = f.read(&File::from_ptr(file), &mut data, (*offset).try_into()?)?;
+        let read = f.read(&FileRef::from_ptr(file), &mut data, (*offset).try_into()?)?;
         (*offset) += bindings::loff_t::try_from(read).unwrap();
         Ok(read as _)
     }
@@ -117,7 +117,7 @@ unsafe extern "C" fn read_iter_callback<T: FileOperations>(
         let file = (*iocb).ki_filp;
         let offset = (*iocb).ki_pos;
         let f = &*((*file).private_data as *const T);
-        let read = f.read(&File::from_ptr(file), &mut iter, offset.try_into()?)?;
+        let read = f.read(&FileRef::from_ptr(file), &mut iter, offset.try_into()?)?;
         (*iocb).ki_pos += bindings::loff_t::try_from(read).unwrap();
         Ok(read as _)
     }
@@ -134,7 +134,7 @@ unsafe extern "C" fn write_callback<T: FileOperations>(
         let f = &*((*file).private_data as *const T);
         // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
         // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
-        let written = f.write(&File::from_ptr(file), &mut data, (*offset).try_into()?)?;
+        let written = f.write(&FileRef::from_ptr(file), &mut data, (*offset).try_into()?)?;
         (*offset) += bindings::loff_t::try_from(written).unwrap();
         Ok(written as _)
     }
@@ -149,7 +149,7 @@ unsafe extern "C" fn write_iter_callback<T: FileOperations>(
         let file = (*iocb).ki_filp;
         let offset = (*iocb).ki_pos;
         let f = &*((*file).private_data as *const T);
-        let written = f.write(&File::from_ptr(file), &mut iter, offset.try_into()?)?;
+        let written = f.write(&FileRef::from_ptr(file), &mut iter, offset.try_into()?)?;
         (*iocb).ki_pos += bindings::loff_t::try_from(written).unwrap();
         Ok(written as _)
     }
@@ -160,7 +160,7 @@ unsafe extern "C" fn release_callback<T: FileOperations>(
     file: *mut bindings::file,
 ) -> c_types::c_int {
     let ptr = mem::replace(&mut (*file).private_data, ptr::null_mut());
-    T::release(T::Wrapper::from_pointer(ptr as _), &File::from_ptr(file));
+    T::release(T::Wrapper::from_pointer(ptr as _), &FileRef::from_ptr(file));
     0
 }
 
@@ -177,7 +177,7 @@ unsafe extern "C" fn llseek_callback<T: FileOperations>(
             _ => return Err(Error::EINVAL),
         };
         let f = &*((*file).private_data as *const T);
-        let off = f.seek(&File::from_ptr(file), off)?;
+        let off = f.seek(&FileRef::from_ptr(file), off)?;
         Ok(off as bindings::loff_t)
     }
 }
@@ -191,7 +191,7 @@ unsafe extern "C" fn unlocked_ioctl_callback<T: FileOperations>(
         let f = &*((*file).private_data as *const T);
         // SAFETY: This function is called by the kernel, so it must set `fs` appropriately.
         let mut cmd = IoctlCommand::new(cmd as _, arg as _);
-        let ret = f.ioctl(&File::from_ptr(file), &mut cmd)?;
+        let ret = f.ioctl(&FileRef::from_ptr(file), &mut cmd)?;
         Ok(ret as _)
     }
 }
@@ -205,7 +205,7 @@ unsafe extern "C" fn compat_ioctl_callback<T: FileOperations>(
         let f = &*((*file).private_data as *const T);
         // SAFETY: This function is called by the kernel, so it must set `fs` appropriately.
         let mut cmd = IoctlCommand::new(cmd as _, arg as _);
-        let ret = f.compat_ioctl(&File::from_ptr(file), &mut cmd)?;
+        let ret = f.compat_ioctl(&FileRef::from_ptr(file), &mut cmd)?;
         Ok(ret as _)
     }
 }
@@ -216,7 +216,7 @@ unsafe extern "C" fn mmap_callback<T: FileOperations>(
 ) -> c_types::c_int {
     from_kernel_result! {
         let f = &*((*file).private_data as *const T);
-        f.mmap(&File::from_ptr(file), &mut *vma)?;
+        f.mmap(&FileRef::from_ptr(file), &mut *vma)?;
         Ok(0)
     }
 }
@@ -232,7 +232,7 @@ unsafe extern "C" fn fsync_callback<T: FileOperations>(
         let end = end.try_into()?;
         let datasync = datasync != 0;
         let f = &*((*file).private_data as *const T);
-        let res = f.fsync(&File::from_ptr(file), start, end, datasync)?;
+        let res = f.fsync(&FileRef::from_ptr(file), start, end, datasync)?;
         Ok(res.try_into().unwrap())
     }
 }
@@ -242,7 +242,7 @@ unsafe extern "C" fn poll_callback<T: FileOperations>(
     wait: *mut bindings::poll_table_struct,
 ) -> bindings::__poll_t {
     let f = &*((*file).private_data as *const T);
-    match f.poll(&File::from_ptr(file), &PollTable::from_ptr(wait)) {
+    match f.poll(&FileRef::from_ptr(file), &PollTable::from_ptr(wait)) {
         Ok(v) => v,
         Err(_) => bindings::POLLERR,
     }
