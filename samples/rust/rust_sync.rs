@@ -19,8 +19,6 @@ module! {
     author: b"Rust for Linux Contributors",
     description: b"Rust synchronisation primitives sample",
     license: b"GPL v2",
-    params: {
-    },
 }
 
 struct RustSync;

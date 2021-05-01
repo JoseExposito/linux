@@ -13,8 +13,6 @@ module! {
     author: b"Rust for Linux Contributors",
     description: b"Rust printing macros sample",
     license: b"GPL v2",
-    params: {
-    },
 }
 
 struct RustPrint;

@@ -40,7 +40,6 @@ module! {
     author: b"Rust for Linux Contributors",
     description: b"Rust semaphore sample",
     license: b"GPL v2",
-    params: {},
 }
 
 struct SemaphoreInner {
