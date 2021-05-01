@@ -1825,10 +1825,10 @@ rustdoc: prepare0
 PHONY += rustfmt rustfmtcheck
 
 rustfmt:
-	find -name '*.rs' | xargs $(RUSTFMT)
+	find $(srctree) -name '*.rs' | xargs $(RUSTFMT)
 
 rustfmtcheck:
-	find -name '*.rs' | xargs $(RUSTFMT) --check
+	find $(srctree) -name '*.rs' | xargs $(RUSTFMT) --check
 
 
 # Misc
