@@ -321,80 +321,81 @@ struct ModuleInfo {
 impl ModuleInfo {
     fn parse(it: &mut token_stream::IntoIter) -> Self {
         let mut info = ModuleInfo::default();
-        // The first allowed position is 1, to prevent setting something twice.
-        let mut pos = 0u8;
+
+        const EXPECTED_KEYS: &[&str] = &[
+            "type",
+            "name",
+            "author",
+            "description",
+            "license",
+            "alias",
+            "alias_rtnl_link",
+            "params",
+        ];
+        const REQUIRED_KEYS: &[&str] = &["type", "name", "license"];
+        let mut seen_keys = Vec::new();
 
         loop {
-            let name = match it.next() {
+            let key = match it.next() {
                 Some(TokenTree::Ident(ident)) => ident.to_string(),
                 Some(_) => panic!("Expected Ident or end"),
                 None => break,
             };
 
+            if seen_keys.contains(&key) {
+                panic!(
+                    "Duplicated key \"{}\". Keys can only be specified once.",
+                    key
+                );
+            }
+
             assert_eq!(expect_punct(it), ':');
 
-            if name == "type" {
-                Self::allowed_pos(&mut pos, 1, &name);
-                let type_ = expect_ident(it);
-                info.type_ = type_;
-            } else if name == "params" {
-                Self::allowed_pos(&mut pos, 7, &name);
-                let params = expect_group(it);
-                info.params = Some(params);
-            } else {
-                let value = expect_byte_string(it);
-
-                match name.as_str() {
-                    "name" => {
-                        Self::allowed_pos(&mut pos, 2, &name);
-                        info.name = value;
-                    }
-                    "author" => {
-                        Self::allowed_pos(&mut pos, 3, &name);
-                        info.author = Some(value);
-                    }
-                    "description" => {
-                        Self::allowed_pos(&mut pos, 4, &name);
-                        info.description = Some(value);
-                    }
-                    "license" => {
-                        Self::allowed_pos(&mut pos, 5, &name);
-                        info.license = value;
-                    }
-                    "alias" => {
-                        Self::allowed_pos(&mut pos, 6, &name);
-                        info.alias = Some(value);
-                    }
-                    "alias_rtnl_link" => {
-                        Self::allowed_pos(&mut pos, 6, &name);
-                        info.alias = Some(format!("rtnl-link-{}", value));
-                    }
-                    _ => panic!("field '{}' is not supported by module", name),
+            match key.as_str() {
+                "type" => info.type_ = expect_ident(it),
+                "name" => info.name = expect_byte_string(it),
+                "author" => info.author = Some(expect_byte_string(it)),
+                "description" => info.description = Some(expect_byte_string(it)),
+                "license" => info.license = expect_byte_string(it),
+                "alias" => info.alias = Some(expect_byte_string(it)),
+                "alias_rtnl_link" => {
+                    info.alias = Some(format!("rtnl-link-{}", expect_byte_string(it)))
                 }
+                "params" => info.params = Some(expect_group(it)),
+                _ => panic!(
+                    "Unknown key \"{}\". Valid keys are: {:?}.",
+                    key, EXPECTED_KEYS
+                ),
             }
+
             assert_eq!(expect_punct(it), ',');
+
+            seen_keys.push(key);
         }
 
         expect_end(it);
 
-        if info.type_.is_empty() {
-            panic!("'type' not specified in module macro");
+        for key in REQUIRED_KEYS {
+            if !seen_keys.iter().any(|e| e == key) {
+                panic!("Missing required key \"{}\".", key);
+            }
         }
-        if info.license.is_empty() {
-            panic!("'license' not specified in module macro");
+
+        let mut ordered_keys: Vec<&str> = Vec::new();
+        for key in EXPECTED_KEYS {
+            if seen_keys.iter().any(|e| e == key) {
+                ordered_keys.push(key);
+            }
         }
-        if info.name.is_empty() {
-            panic!("'name' not specified in module macro");
+
+        if seen_keys != ordered_keys {
+            panic!(
+                "Keys are not ordered as expected. Order them like: {:?}.",
+                ordered_keys
+            );
         }
 
         info
-    }
-
-    fn allowed_pos(pos: &mut u8, allowed_pos: u8, name: &str) {
-        if *pos > allowed_pos {
-            panic!("'{}' is not allowed at this position", name);
-        }
-        *pos = allowed_pos;
     }
 }
 
