@@ -10,7 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        arch: [arm, arm64, ppc64le, x86_64]
+        arch: [arm, arm64, ppc64le, riscv64, x86_64]
         toolchain: [gcc, clang, llvm]
         config: [debug, release]
         rustc: [2021-02-20]
@@ -119,6 +119,11 @@ jobs:
           echo 'RUSTC_SYSROOT=--sysroot=$HOME/sysroot' >> $GITHUB_ENV
           echo "MAKE_SYSROOT=KRUSTCFLAGS=--sysroot=$HOME/sysroot" >> $GITHUB_ENV
 
+      # Setup: custom pre-built binaries folder
+      - run: |
+          mkdir bin
+          echo $(pwd)/bin >> $GITHUB_PATH
+
       # Setup: LLVM
       - run: curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
       - run: sudo add-apt-repository 'deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main'
@@ -151,7 +156,9 @@ jobs:
       - if: matrix.arch == 'ppc64le'
         run: sudo apt-get install -y qemu-system-ppc
       - if: matrix.arch == 'riscv64'
-        run: sudo apt-get install -y qemu-system-misc
+        run: |
+          curl -o bin/qemu-system-riscv64 https://raw.githubusercontent.com/Rust-for-Linux/ci-bin/master/qemu-6.0.0/bin/qemu-system-riscv64
+          chmod u+x bin/qemu-system-riscv64
 
       # Setup: rustc
       - if: matrix.install == 'rustup'
