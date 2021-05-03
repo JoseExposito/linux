@@ -191,7 +191,9 @@ jobs:
       - run: rustup component add clippy
 
       # Setup: bindgen
-      - run: cargo install --version 0.56.0 bindgen
+      - run: |
+          curl -o bin/bindgen https://raw.githubusercontent.com/Rust-for-Linux/ci-bin/master/bindgen-0.56.0/bin/bindgen
+          chmod u+x bin/bindgen
 
       # Setup: busybox
       - run: git clone --depth 1 -b 1_30_1 https://github.com/mirror/busybox
