@@ -1738,6 +1738,8 @@ help:
 	@echo  '		    is formatted, printing a diff otherwise.'
 	@echo  '  rustdoc	  - Generate Rust documentation'
 	@echo  '		    (requires kernel .config)'
+	@echo  '  rust-analyzer	  - Generate rust-project.json rust-analyzer support file'
+	@echo  '		    (requires kernel .config)'
 	@echo  ''
 	@$(if $(dtstree), \
 		echo 'Devicetree:'; \
@@ -1830,6 +1832,10 @@ rustfmt:
 rustfmtcheck:
 	find $(srctree) -type f -name '*.rs' | xargs $(RUSTFMT) --check
 
+# IDE support targets
+PHONY += rust-analyzer
+rust-analyzer: prepare0
+	$(Q)$(MAKE) $(build)=rust $@
 
 # Misc
 # ---------------------------------------------------------------------------
