@@ -77,7 +77,7 @@ bindgen_c_flags = $(filter-out $(bindgen_skip_c_flags), $(c_flags)) \
 	$(bindgen_extra_c_flags)
 endif
 
-bindgen_opaque_types := xregs_state desc_struct arch_lbr_state
+bindgen_opaque_types := xregs_state desc_struct arch_lbr_state local_apic
 
 # To avoid several recompilations in PowerPC, which inserts `-D_TASK_CPU`
 bindgen_c_flags_final = $(filter-out -D_TASK_CPU=%, $(bindgen_c_flags))
