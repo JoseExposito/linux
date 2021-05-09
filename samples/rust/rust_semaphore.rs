@@ -22,7 +22,7 @@ use core::{
     sync::atomic::{AtomicU64, Ordering},
 };
 use kernel::{
-    condvar_init, cstr, declare_file_operations,
+    c_str, condvar_init, declare_file_operations,
     file::File,
     file_operations::{FileOpener, FileOperations, IoctlCommand, IoctlHandler},
     io_buffer::{IoBufferReader, IoBufferWriter},
@@ -140,7 +140,7 @@ impl KernelModule for RustSemaphore {
         mutex_init!(Pin::new_unchecked(&sema.inner), "Semaphore::inner");
 
         Ok(Self {
-            _dev: Registration::new_pinned::<FileState>(cstr!("rust_semaphore"), None, sema)?,
+            _dev: Registration::new_pinned::<FileState>(c_str!("rust_semaphore"), None, sema)?,
         })
     }
 }

@@ -15,6 +15,7 @@ use core::sync::atomic;
 use crate::{
     bindings, c_types, error,
     io_buffer::IoBufferWriter,
+    str::CStr,
     types,
     user_ptr::{UserSlicePtr, UserSlicePtrWriter},
 };
@@ -130,19 +131,19 @@ unsafe extern "C" fn proc_handler<T: SysctlStorage>(
 impl<T: SysctlStorage> Sysctl<T> {
     /// Registers a single entry in `sysctl`.
     pub fn register(
-        path: types::CStr<'static>,
-        name: types::CStr<'static>,
+        path: &'static CStr,
+        name: &'static CStr,
         storage: T,
         mode: types::Mode,
     ) -> error::Result<Sysctl<T>> {
-        if name.contains('/') {
+        if name.contains(&b'/') {
             return Err(error::Error::EINVAL);
         }
 
         let storage = Box::try_new(storage)?;
         let mut table = vec![
             bindings::ctl_table {
-                procname: name.as_ptr() as *const i8,
+                procname: name.as_char_ptr(),
                 mode: mode.as_int(),
                 data: &*storage as *const T as *mut c_types::c_void,
                 proc_handler: Some(proc_handler::<T>),
@@ -157,8 +158,7 @@ impl<T: SysctlStorage> Sysctl<T> {
         ]
         .into_boxed_slice();
 
-        let result =
-            unsafe { bindings::register_sysctl(path.as_ptr() as *const i8, table.as_mut_ptr()) };
+        let result = unsafe { bindings::register_sysctl(path.as_char_ptr(), table.as_mut_ptr()) };
         if result.is_null() {
             return Err(error::Error::ENOMEM);
         }

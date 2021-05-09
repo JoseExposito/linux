@@ -821,7 +821,7 @@ pub fn module_misc_device(ts: TokenStream) -> TokenStream {
                 fn init() -> kernel::Result<Self> {{
                     Ok(Self {{
                         _dev: kernel::miscdev::Registration::new_pinned::<{type_}>(
-                            kernel::cstr!(\"{name}\"),
+                            kernel::c_str!(\"{name}\"),
                             None,
                             (),
                         )?,

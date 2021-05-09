@@ -7,7 +7,8 @@
 //! See <https://www.kernel.org/doc/Documentation/locking/spinlocks.txt>.
 
 use super::{Guard, Lock, NeedsLockClass};
-use crate::{bindings, c_types, CStr};
+use crate::str::CStr;
+use crate::{bindings, c_types};
 use core::{cell::UnsafeCell, marker::PhantomPinned, pin::Pin};
 
 extern "C" {
@@ -85,8 +86,8 @@ impl<T: ?Sized> SpinLock<T> {
 }
 
 impl<T: ?Sized> NeedsLockClass for SpinLock<T> {
-    unsafe fn init(self: Pin<&Self>, name: CStr<'static>, key: *mut bindings::lock_class_key) {
-        rust_helper_spin_lock_init(self.spin_lock.get(), name.as_ptr() as _, key);
+    unsafe fn init(self: Pin<&Self>, name: &'static CStr, key: *mut bindings::lock_class_key) {
+        rust_helper_spin_lock_init(self.spin_lock.get(), name.as_char_ptr(), key);
     }
 }
 

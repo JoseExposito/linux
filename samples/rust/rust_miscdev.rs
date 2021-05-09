@@ -9,7 +9,7 @@ use alloc::{boxed::Box, sync::Arc};
 use core::pin::Pin;
 use kernel::prelude::*;
 use kernel::{
-    cstr,
+    c_str,
     file::File,
     file_operations::{FileOpener, FileOperations},
     io_buffer::{IoBufferReader, IoBufferWriter},
@@ -135,7 +135,7 @@ impl KernelModule for RustMiscdev {
         let state = SharedState::try_new()?;
 
         Ok(RustMiscdev {
-            _dev: miscdev::Registration::new_pinned::<Token>(cstr!("rust_miscdev"), None, state)?,
+            _dev: miscdev::Registration::new_pinned::<Token>(c_str!("rust_miscdev"), None, state)?,
         })
     }
 }

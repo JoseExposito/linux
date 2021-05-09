@@ -9,7 +9,7 @@ use alloc::boxed::Box;
 use core::pin::Pin;
 use kernel::of::OfMatchTable;
 use kernel::prelude::*;
-use kernel::{cstr, platdev};
+use kernel::{c_str, platdev};
 
 module! {
     type: RngModule,
@@ -25,7 +25,7 @@ struct RngModule {
 
 impl KernelModule for RngModule {
     fn init() -> Result<Self> {
-        let of_match_tbl = OfMatchTable::new(&cstr!("brcm,bcm2835-rng"))?;
+        let of_match_tbl = OfMatchTable::new(&c_str!("brcm,bcm2835-rng"))?;
 
         let pdev = platdev::Registration::new_pinned(
             cstr!("bcm2835-rng-rust"),

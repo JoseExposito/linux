@@ -4,6 +4,7 @@
 //!
 //! C header: [`include/linux/moduleparam.h`](../../../include/linux/moduleparam.h)
 
+use crate::str::CStr;
 use core::fmt::Write;
 
 /// Types that can be used for module parameters.
@@ -70,7 +71,7 @@ pub trait ModuleParam: core::fmt::Display + core::marker::Sized {
         let arg = if val.is_null() {
             None
         } else {
-            Some(crate::c_types::c_string_bytes(val))
+            Some(CStr::from_char_ptr(val).as_bytes())
         };
         match Self::try_from_param_arg(arg) {
             Some(new_value) => {

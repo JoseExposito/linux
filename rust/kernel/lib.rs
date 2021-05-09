@@ -19,6 +19,7 @@
     const_fn,
     const_mut_refs,
     const_panic,
+    const_raw_ptr_deref,
     try_reserve
 )]
 #![deny(clippy::complexity)]
@@ -44,6 +45,7 @@ pub mod file;
 pub mod file_operations;
 pub mod miscdev;
 pub mod pages;
+pub mod str;
 
 pub mod linked_list;
 mod raw_list;
@@ -72,7 +74,7 @@ pub mod user_ptr;
 pub use build_error::build_error;
 
 pub use crate::error::{Error, Result};
-pub use crate::types::{CStr, Mode};
+pub use crate::types::Mode;
 
 /// Page size defined in terms of the `PAGE_SHIFT` macro from C.
 ///

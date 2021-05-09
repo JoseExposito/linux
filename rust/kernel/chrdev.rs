@@ -17,7 +17,7 @@ use crate::bindings;
 use crate::c_types;
 use crate::error::{Error, Result};
 use crate::file_operations;
-use crate::types::CStr;
+use crate::str::CStr;
 
 /// Character device.
 ///
@@ -87,7 +87,7 @@ struct RegistrationInner<const N: usize> {
 ///
 /// May contain up to a fixed number (`N`) of devices. Must be pinned.
 pub struct Registration<const N: usize> {
-    name: CStr<'static>,
+    name: &'static CStr,
     minors_start: u16,
     this_module: &'static crate::ThisModule,
     inner: Option<RegistrationInner<N>>,
@@ -104,7 +104,7 @@ impl<const N: usize> Registration<{ N }> {
     /// are going to pin the registration right away, call
     /// [`Self::new_pinned()`] instead.
     pub fn new(
-        name: CStr<'static>,
+        name: &'static CStr,
         minors_start: u16,
         this_module: &'static crate::ThisModule,
     ) -> Self {
@@ -120,7 +120,7 @@ impl<const N: usize> Registration<{ N }> {
     ///
     /// This does *not* register the device: see [`Self::register()`].
     pub fn new_pinned(
-        name: CStr<'static>,
+        name: &'static CStr,
         minors_start: u16,
         this_module: &'static crate::ThisModule,
     ) -> Result<Pin<Box<Self>>> {
@@ -146,7 +146,7 @@ impl<const N: usize> Registration<{ N }> {
                     &mut dev,
                     this.minors_start.into(),
                     N.try_into()?,
-                    this.name.as_ptr() as *const c_types::c_char,
+                    this.name.as_char_ptr(),
                 )
             };
             if res != 0 {

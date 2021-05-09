@@ -10,7 +10,7 @@
 use alloc::{boxed::Box, sync::Arc};
 use core::pin::Pin;
 use kernel::{
-    cstr,
+    c_str,
     io_buffer::IoBufferWriter,
     linked_list::{GetLinks, GetLinksWrapped, Links},
     miscdev::Registration,
@@ -111,7 +111,7 @@ impl KernelModule for BinderModule {
         let pinned_ctx = Context::new()?;
         let ctx = unsafe { Pin::into_inner_unchecked(pinned_ctx) };
         let reg = Registration::<Arc<Context>>::new_pinned::<process::Process>(
-            cstr!("rust_binder"),
+            c_str!("rust_binder"),
             None,
             ctx,
         )?;

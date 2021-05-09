@@ -5,7 +5,8 @@
 //! This module allows Rust code to use the kernel's [`struct mutex`].
 
 use super::{Guard, Lock, NeedsLockClass};
-use crate::{bindings, CStr};
+use crate::bindings;
+use crate::str::CStr;
 use core::{cell::UnsafeCell, marker::PhantomPinned, pin::Pin};
 
 /// Safely initialises a [`Mutex`] with the given name, generating a new lock class.
@@ -71,8 +72,8 @@ impl<T: ?Sized> Mutex<T> {
 }
 
 impl<T: ?Sized> NeedsLockClass for Mutex<T> {
-    unsafe fn init(self: Pin<&Self>, name: CStr<'static>, key: *mut bindings::lock_class_key) {
-        bindings::__mutex_init(self.mutex.get(), name.as_ptr() as _, key);
+    unsafe fn init(self: Pin<&Self>, name: &'static CStr, key: *mut bindings::lock_class_key) {
+        bindings::__mutex_init(self.mutex.get(), name.as_char_ptr(), key);
     }
 }
 

@@ -6,9 +6,10 @@
 //!
 //! Reference: <https://www.kernel.org/doc/html/latest/driver-api/misc_devices.html>
 
+use crate::bindings;
 use crate::error::{Error, Result};
 use crate::file_operations::{FileOpenAdapter, FileOpener, FileOperationsVtable};
-use crate::{bindings, c_types, CStr};
+use crate::str::CStr;
 use alloc::boxed::Box;
 use core::marker::PhantomPinned;
 use core::pin::Pin;
@@ -41,7 +42,7 @@ impl<T: Sync> Registration<T> {
     ///
     /// Returns a pinned heap-allocated representation of the registration.
     pub fn new_pinned<F: FileOpener<T>>(
-        name: CStr<'static>,
+        name: &'static CStr,
         minor: Option<i32>,
         context: T,
     ) -> Result<Pin<Box<Self>>> {
@@ -56,7 +57,7 @@ impl<T: Sync> Registration<T> {
     /// self-referential. If a minor is not given, the kernel allocates a new one if possible.
     pub fn register<F: FileOpener<T>>(
         self: Pin<&mut Self>,
-        name: CStr<'static>,
+        name: &'static CStr,
         minor: Option<i32>,
     ) -> Result {
         // SAFETY: We must ensure that we never move out of `this`.
@@ -68,7 +69,7 @@ impl<T: Sync> Registration<T> {
 
         // SAFETY: The adapter is compatible with `misc_register`.
         this.mdev.fops = unsafe { FileOperationsVtable::<Self, F>::build() };
-        this.mdev.name = name.as_ptr() as *const c_types::c_char;
+        this.mdev.name = name.as_char_ptr();
         this.mdev.minor = minor.unwrap_or(bindings::MISC_DYNAMIC_MINOR as i32);
 
         let ret = unsafe { bindings::misc_register(&mut this.mdev) };
