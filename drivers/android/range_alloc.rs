@@ -20,7 +20,7 @@ enum DescriptorState {
 }
 
 impl<T> RangeAllocator<T> {
-    pub(crate) fn new(size: usize) -> KernelResult<Self> {
+    pub(crate) fn new(size: usize) -> Result<Self> {
         let desc = Box::try_new(Descriptor::new(0, size))?;
         let mut list = List::new();
         list.push_back(desc);
@@ -49,7 +49,7 @@ impl<T> RangeAllocator<T> {
         best
     }
 
-    pub(crate) fn reserve_new(&mut self, size: usize) -> KernelResult<usize> {
+    pub(crate) fn reserve_new(&mut self, size: usize) -> Result<usize> {
         let desc_ptr = match self.find_best_match(size) {
             None => return Err(Error::ENOMEM),
             Some(found) => found,
@@ -70,7 +70,7 @@ impl<T> RangeAllocator<T> {
         Ok(desc.offset)
     }
 
-    fn free_with_cursor(cursor: &mut CursorMut<Box<Descriptor<T>>>) -> KernelResult {
+    fn free_with_cursor(cursor: &mut CursorMut<Box<Descriptor<T>>>) -> Result {
         let mut size = match cursor.current() {
             None => return Err(Error::EINVAL),
             Some(ref mut entry) => {
@@ -121,13 +121,13 @@ impl<T> RangeAllocator<T> {
         None
     }
 
-    pub(crate) fn reservation_abort(&mut self, offset: usize) -> KernelResult {
+    pub(crate) fn reservation_abort(&mut self, offset: usize) -> Result {
         // TODO: The force case is currently O(n), but could be made O(1) with unsafe.
         let mut cursor = self.find_at_offset(offset).ok_or(Error::EINVAL)?;
         Self::free_with_cursor(&mut cursor)
     }
 
-    pub(crate) fn reservation_commit(&mut self, offset: usize, data: Option<T>) -> KernelResult {
+    pub(crate) fn reservation_commit(&mut self, offset: usize, data: Option<T>) -> Result {
         // TODO: This is currently O(n), make it O(1).
         let mut cursor = self.find_at_offset(offset).ok_or(Error::ENOENT)?;
         let desc = cursor.current().unwrap();
@@ -140,7 +140,7 @@ impl<T> RangeAllocator<T> {
     /// [`DescriptorState::Reserved`].
     ///
     /// Returns the size of the existing entry and the data associated with it.
-    pub(crate) fn reserve_existing(&mut self, offset: usize) -> KernelResult<(usize, Option<T>)> {
+    pub(crate) fn reserve_existing(&mut self, offset: usize) -> Result<(usize, Option<T>)> {
         // TODO: This is currently O(n), make it O(log n).
         let mut cursor = self.find_at_offset(offset).ok_or(Error::ENOENT)?;
         let desc = cursor.current().unwrap();

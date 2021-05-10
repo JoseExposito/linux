@@ -16,7 +16,7 @@ use core::pin::Pin;
 
 use crate::bindings;
 use crate::c_types;
-use crate::error::{Error, KernelResult};
+use crate::error::{Error, Result};
 use crate::file_operations;
 use crate::types::CStr;
 
@@ -67,7 +67,7 @@ impl<const N: usize> Registration<{ N }> {
         name: CStr<'static>,
         minors_start: u16,
         this_module: &'static crate::ThisModule,
-    ) -> KernelResult<Pin<Box<Self>>> {
+    ) -> Result<Pin<Box<Self>>> {
         Ok(Pin::from(Box::try_new(Self::new(
             name,
             minors_start,
@@ -78,7 +78,7 @@ impl<const N: usize> Registration<{ N }> {
     /// Registers a character device.
     ///
     /// You may call this once per device type, up to `N` times.
-    pub fn register<T: file_operations::FileOpener<()>>(self: Pin<&mut Self>) -> KernelResult {
+    pub fn register<T: file_operations::FileOpener<()>>(self: Pin<&mut Self>) -> Result {
         // SAFETY: We must ensure that we never move out of `this`.
         let this = unsafe { self.get_unchecked_mut() };
         if this.inner.is_none() {

@@ -8,7 +8,7 @@ use crate::{
     c_types,
     error::Error,
     io_buffer::{IoBufferReader, IoBufferWriter},
-    KernelResult,
+    Result,
 };
 use alloc::vec::Vec;
 
@@ -75,7 +75,7 @@ impl UserSlicePtr {
     ///
     /// Returns `EFAULT` if the address does not currently point to
     /// mapped, readable memory.
-    pub fn read_all(self) -> KernelResult<Vec<u8>> {
+    pub fn read_all(self) -> Result<Vec<u8>> {
         self.reader().read_all()
     }
 
@@ -90,7 +90,7 @@ impl UserSlicePtr {
     /// mapped, writable memory (in which case some data from before the
     /// fault may be written), or `data` is larger than the user slice
     /// (in which case no data is written).
-    pub fn write_all(self, data: &[u8]) -> KernelResult {
+    pub fn write_all(self, data: &[u8]) -> Result {
         self.writer().write_slice(data)
     }
 
@@ -126,7 +126,7 @@ impl IoBufferReader for UserSlicePtrReader {
     /// # Safety
     ///
     /// The output buffer must be valid.
-    unsafe fn read_raw(&mut self, out: *mut u8, len: usize) -> KernelResult {
+    unsafe fn read_raw(&mut self, out: *mut u8, len: usize) -> Result {
         if len > self.1 || len > u32::MAX as usize {
             return Err(Error::EFAULT);
         }
@@ -153,7 +153,7 @@ impl IoBufferWriter for UserSlicePtrWriter {
         self.1
     }
 
-    fn clear(&mut self, mut len: usize) -> KernelResult {
+    fn clear(&mut self, mut len: usize) -> Result {
         let mut ret = Ok(());
         if len > self.1 {
             ret = Err(Error::EFAULT);
@@ -173,7 +173,7 @@ impl IoBufferWriter for UserSlicePtrWriter {
         ret
     }
 
-    unsafe fn write_raw(&mut self, data: *const u8, len: usize) -> KernelResult {
+    unsafe fn write_raw(&mut self, data: *const u8, len: usize) -> Result {
         if len > self.1 || len > u32::MAX as usize {
             return Err(Error::EFAULT);
         }

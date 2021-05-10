@@ -18,7 +18,7 @@ module! {
 struct RustPrint;
 
 impl KernelModule for RustPrint {
-    fn init() -> KernelResult<Self> {
+    fn init() -> Result<Self> {
         pr_info!("Rust printing macros sample (init)\n");
 
         pr_emerg!("Emergency message (level 0) without args\n");

@@ -434,7 +434,7 @@ impl ModuleInfo {
 /// struct MyKernelModule;
 ///
 /// impl KernelModule for MyKernelModule {
-///     fn init() -> KernelResult<Self> {
+///     fn init() -> Result<Self> {
 ///         // If the parameter is writeable, then the kparam lock must be
 ///         // taken to read the parameter:
 ///         {
@@ -818,7 +818,7 @@ pub fn module_misc_device(ts: TokenStream) -> TokenStream {
             }}
 
             impl kernel::KernelModule for {module} {{
-                fn init() -> kernel::KernelResult<Self> {{
+                fn init() -> kernel::Result<Self> {{
                     Ok(Self {{
                         _dev: kernel::miscdev::Registration::new_pinned::<{type_}>(
                             kernel::cstr!(\"{name}\"),

@@ -20,7 +20,7 @@ struct RustMinimal {
 }
 
 impl KernelModule for RustMinimal {
-    fn init() -> KernelResult<Self> {
+    fn init() -> Result<Self> {
         pr_info!("Rust minimal sample (init)\n");
         pr_info!("Am I built-in? {}\n", !cfg!(MODULE));
 
