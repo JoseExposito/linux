@@ -8,7 +8,7 @@ use crate::{
     bindings, c_types,
     error::Error,
     io_buffer::{IoBufferReader, IoBufferWriter},
-    KernelResult,
+    Result,
 };
 
 extern "C" {
@@ -56,7 +56,7 @@ impl IoBufferWriter for IovIter {
         self.common_len()
     }
 
-    fn clear(&mut self, mut len: usize) -> KernelResult {
+    fn clear(&mut self, mut len: usize) -> Result {
         while len > 0 {
             // SAFETY: `IovIter::ptr` is guaranteed to be valid by the type invariants.
             let written = unsafe { bindings::iov_iter_zero(len, self.ptr) };
@@ -69,7 +69,7 @@ impl IoBufferWriter for IovIter {
         Ok(())
     }
 
-    unsafe fn write_raw(&mut self, data: *const u8, len: usize) -> KernelResult {
+    unsafe fn write_raw(&mut self, data: *const u8, len: usize) -> Result {
         let res = rust_helper_copy_to_iter(data as _, len, self.ptr);
         if res != len {
             Err(Error::EFAULT)
@@ -84,7 +84,7 @@ impl IoBufferReader for IovIter {
         self.common_len()
     }
 
-    unsafe fn read_raw(&mut self, out: *mut u8, len: usize) -> KernelResult {
+    unsafe fn read_raw(&mut self, out: *mut u8, len: usize) -> Result {
         let res = rust_helper_copy_from_iter(out as _, len, self.ptr);
         if res != len {
             Err(Error::EFAULT)

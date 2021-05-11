@@ -19,4 +19,4 @@ pub use super::{pr_alert, pr_cont, pr_crit, pr_emerg, pr_err, pr_info, pr_notice
 
 pub use super::static_assert;
 
-pub use super::{KernelModule, KernelResult};
+pub use super::{KernelModule, Result};

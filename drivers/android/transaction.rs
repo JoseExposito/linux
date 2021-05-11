@@ -137,11 +137,7 @@ impl Transaction {
 }
 
 impl DeliverToRead for Transaction {
-    fn do_work(
-        self: Arc<Self>,
-        thread: &Thread,
-        writer: &mut UserSlicePtrWriter,
-    ) -> KernelResult<bool> {
+    fn do_work(self: Arc<Self>, thread: &Thread, writer: &mut UserSlicePtrWriter) -> Result<bool> {
         /* TODO: Initialise the following fields from tr:
             pub sender_pid: pid_t,
             pub sender_euid: uid_t,

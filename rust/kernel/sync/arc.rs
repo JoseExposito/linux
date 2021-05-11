@@ -13,7 +13,7 @@
 //!
 //! [`Arc`]: https://doc.rust-lang.org/std/sync/struct.Arc.html
 
-use crate::KernelResult;
+use crate::Result;
 use alloc::boxed::Box;
 use core::{
     mem::ManuallyDrop,
@@ -48,7 +48,7 @@ unsafe impl<T: RefCounted + ?Sized + Sync + Send> Sync for Ref<T> {}
 
 impl<T: RefCounted> Ref<T> {
     /// Constructs a new reference counted instance of `T`.
-    pub fn try_new(contents: T) -> KernelResult<Self> {
+    pub fn try_new(contents: T) -> Result<Self> {
         let boxed = Box::try_new(contents)?;
         boxed.get_count().count.store(1, Ordering::Relaxed);
         let ptr = NonNull::from(Box::leak(boxed));

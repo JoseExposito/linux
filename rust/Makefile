@@ -129,6 +129,9 @@ quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L 
 rustc_sysroot = $(shell $(RUSTC) $(rustc_flags) --print sysroot)
 RUST_LIB_SRC ?= $(rustc_sysroot)/lib/rustlib/src/rust/library
 
+rust-analyzer:
+	$(Q)$(srctree)/scripts/generate_rust_analyzer.py $(srctree) $(objtree) $(RUST_LIB_SRC) $(objtree)/rust/bindings_generated.rs > $(objtree)/rust-project.json
+
 .SECONDEXPANSION:
 $(objtree)/rust/core.o: private skip_clippy = 1
 $(objtree)/rust/core.o: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE

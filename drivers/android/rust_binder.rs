@@ -46,11 +46,7 @@ trait DeliverToRead {
     /// Performs work. Returns true if remaining work items in the queue should be processed
     /// immediately, or false if it should return to caller before processing additional work
     /// items.
-    fn do_work(
-        self: Arc<Self>,
-        thread: &Thread,
-        writer: &mut UserSlicePtrWriter,
-    ) -> KernelResult<bool>;
+    fn do_work(self: Arc<Self>, thread: &Thread, writer: &mut UserSlicePtrWriter) -> Result<bool>;
 
     /// Cancels the given work item. This is called instead of [`DeliverToRead::do_work`] when work
     /// won't be delivered.
@@ -89,11 +85,7 @@ impl DeliverCode {
 }
 
 impl DeliverToRead for DeliverCode {
-    fn do_work(
-        self: Arc<Self>,
-        _thread: &Thread,
-        writer: &mut UserSlicePtrWriter,
-    ) -> KernelResult<bool> {
+    fn do_work(self: Arc<Self>, _thread: &Thread, writer: &mut UserSlicePtrWriter) -> Result<bool> {
         writer.write(&self.code)?;
         Ok(true)
     }
@@ -115,7 +107,7 @@ struct BinderModule {
 }
 
 impl KernelModule for BinderModule {
-    fn init() -> KernelResult<Self> {
+    fn init() -> Result<Self> {
         let pinned_ctx = Context::new()?;
         let ctx = unsafe { Pin::into_inner_unchecked(pinned_ctx) };
         let reg = Registration::<Arc<Context>>::new_pinned::<process::Process>(

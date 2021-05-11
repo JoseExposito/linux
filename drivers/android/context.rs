@@ -24,7 +24,7 @@ unsafe impl Send for Context {}
 unsafe impl Sync for Context {}
 
 impl Context {
-    pub(crate) fn new() -> KernelResult<Pin<Arc<Self>>> {
+    pub(crate) fn new() -> Result<Pin<Arc<Self>>> {
         let mut ctx_ref = Arc::try_new(Self {
             // SAFETY: Init is called below.
             manager: unsafe {
@@ -44,7 +44,7 @@ impl Context {
         Ok(unsafe { Pin::new_unchecked(ctx_ref) })
     }
 
-    pub(crate) fn set_manager_node(&self, node_ref: NodeRef) -> KernelResult {
+    pub(crate) fn set_manager_node(&self, node_ref: NodeRef) -> Result {
         let mut manager = self.manager.lock();
         if manager.node.is_some() {
             return Err(Error::EBUSY);

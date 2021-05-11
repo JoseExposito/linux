@@ -23,7 +23,7 @@ use crate::{
     DeliverCode, DeliverToRead, DeliverToReadListAdapter, Either,
 };
 
-pub(crate) type BinderResult<T = ()> = Result<T, BinderError>;
+pub(crate) type BinderResult<T = ()> = core::result::Result<T, BinderError>;
 
 pub(crate) struct BinderError {
     pub(crate) reply: u32,
@@ -157,7 +157,7 @@ impl InnerThread {
     /// Fetches the transaction the thread can reply to. If the thread has a pending transaction
     /// (that it could respond to) but it has also issued a transaction, it must first wait for the
     /// previously-issued transaction to complete.
-    fn pop_transaction_to_reply(&mut self, thread: &Thread) -> KernelResult<Arc<Transaction>> {
+    fn pop_transaction_to_reply(&mut self, thread: &Thread) -> Result<Arc<Transaction>> {
         let transaction = self.current_transaction.take().ok_or(Error::EINVAL)?;
 
         if core::ptr::eq(thread, transaction.from.as_ref()) {
@@ -233,7 +233,7 @@ pub(crate) struct Thread {
 }
 
 impl Thread {
-    pub(crate) fn new(id: i32, process: Ref<Process>) -> KernelResult<Arc<Self>> {
+    pub(crate) fn new(id: i32, process: Ref<Process>) -> Result<Arc<Self>> {
         let return_work = Arc::try_new(ThreadError::new(InnerThread::set_return_work))?;
         let reply_work = Arc::try_new(ThreadError::new(InnerThread::set_reply_work))?;
         let mut arc = Arc::try_new(Self {
@@ -269,7 +269,7 @@ impl Thread {
     /// Attempts to fetch a work item from the thread-local queue. The behaviour if the queue is
     /// empty depends on `wait`: if it is true, the function waits for some work to be queued (or a
     /// signal); otherwise it returns indicating that none is available.
-    fn get_work_local(self: &Arc<Self>, wait: bool) -> KernelResult<Arc<dyn DeliverToRead>> {
+    fn get_work_local(self: &Arc<Self>, wait: bool) -> Result<Arc<dyn DeliverToRead>> {
         // Try once if the caller does not want to wait.
         if !wait {
             return self.inner.lock().pop_work().ok_or(Error::EAGAIN);
@@ -298,7 +298,7 @@ impl Thread {
     ///
     /// This must only be called when the thread is not participating in a transaction chain. If it
     /// is, the local version (`get_work_local`) should be used instead.
-    fn get_work(self: &Arc<Self>, wait: bool) -> KernelResult<Arc<dyn DeliverToRead>> {
+    fn get_work(self: &Arc<Self>, wait: bool) -> Result<Arc<dyn DeliverToRead>> {
         // Try to get work from the thread's work queue, using only a local lock.
         {
             let mut inner = self.inner.lock();
@@ -555,7 +555,7 @@ impl Thread {
     /// Determines the current top of the transaction stack. It fails if the top is in another
     /// thread (i.e., this thread belongs to a stack but it has called another thread). The top is
     /// [`None`] if the thread is not currently participating in a transaction stack.
-    fn top_of_transaction_stack(&self) -> KernelResult<Option<Arc<Transaction>>> {
+    fn top_of_transaction_stack(&self) -> Result<Option<Arc<Transaction>>> {
         let inner = self.inner.lock();
         Ok(if let Some(cur) = &inner.current_transaction {
             if core::ptr::eq(self, cur.from.as_ref()) {
@@ -605,7 +605,7 @@ impl Thread {
         Ok(())
     }
 
-    fn write(self: &Arc<Self>, req: &mut BinderWriteRead) -> KernelResult {
+    fn write(self: &Arc<Self>, req: &mut BinderWriteRead) -> Result {
         let write_start = req.write_buffer.wrapping_add(req.write_consumed);
         let write_len = req.write_size - req.write_consumed;
         let mut reader = unsafe { UserSlicePtr::new(write_start as _, write_len as _).reader() };
@@ -650,7 +650,7 @@ impl Thread {
         Ok(())
     }
 
-    fn read(self: &Arc<Self>, req: &mut BinderWriteRead, wait: bool) -> KernelResult {
+    fn read(self: &Arc<Self>, req: &mut BinderWriteRead, wait: bool) -> Result {
         let read_start = req.read_buffer.wrapping_add(req.read_consumed);
         let read_len = req.read_size - req.read_consumed;
         let mut writer = unsafe { UserSlicePtr::new(read_start as _, read_len as _) }.writer();
@@ -704,7 +704,7 @@ impl Thread {
         Ok(())
     }
 
-    pub(crate) fn write_read(self: &Arc<Self>, data: UserSlicePtr, wait: bool) -> KernelResult {
+    pub(crate) fn write_read(self: &Arc<Self>, data: UserSlicePtr, wait: bool) -> Result {
         let (mut reader, mut writer) = data.reader_writer();
         let mut req = reader.read::<BinderWriteRead>()?;
 
@@ -802,11 +802,7 @@ impl ThreadError {
 }
 
 impl DeliverToRead for ThreadError {
-    fn do_work(
-        self: Arc<Self>,
-        thread: &Thread,
-        writer: &mut UserSlicePtrWriter,
-    ) -> KernelResult<bool> {
+    fn do_work(self: Arc<Self>, thread: &Thread, writer: &mut UserSlicePtrWriter) -> Result<bool> {
         let code = self.error_code;
 
         // Return the `ThreadError` to the thread.

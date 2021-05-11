@@ -91,13 +91,13 @@ impl From<TryReserveError> for Error {
 ///
 /// In Rust, it is idiomatic to model functions that may fail as returning
 /// a [`Result`]. Since in the kernel many functions return an error code,
-/// [`KernelResult`] is a type alias for a [`Result`] that uses [`Error`] as
-/// its error type.
+/// [`Result`] is a type alias for a [`core::result::Result`] that uses
+/// [`Error`] as its error type.
 ///
 /// Note that even if a function does not return anything when it succeeds,
-/// it should still be modeled as returning a `KernelResult` rather than
+/// it should still be modeled as returning a `Result` rather than
 /// just an [`Error`].
-pub type KernelResult<T = ()> = Result<T, Error>;
+pub type Result<T = ()> = core::result::Result<T, Error>;
 
 impl From<AllocError> for Error {
     fn from(_: AllocError) -> Error {

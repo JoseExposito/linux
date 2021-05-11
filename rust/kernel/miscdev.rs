@@ -6,7 +6,7 @@
 //!
 //! Reference: <https://www.kernel.org/doc/html/latest/driver-api/misc_devices.html>
 
-use crate::error::{Error, KernelResult};
+use crate::error::{Error, Result};
 use crate::file_operations::{FileOpenAdapter, FileOpener, FileOperationsVtable};
 use crate::{bindings, c_types, CStr};
 use alloc::boxed::Box;
@@ -44,7 +44,7 @@ impl<T: Sync> Registration<T> {
         name: CStr<'static>,
         minor: Option<i32>,
         context: T,
-    ) -> KernelResult<Pin<Box<Self>>> {
+    ) -> Result<Pin<Box<Self>>> {
         let mut r = Pin::from(Box::try_new(Self::new(context))?);
         r.as_mut().register::<F>(name, minor)?;
         Ok(r)
@@ -58,7 +58,7 @@ impl<T: Sync> Registration<T> {
         self: Pin<&mut Self>,
         name: CStr<'static>,
         minor: Option<i32>,
-    ) -> KernelResult {
+    ) -> Result {
         // SAFETY: We must ensure that we never move out of `this`.
         let this = unsafe { self.get_unchecked_mut() };
         if this.registered {

@@ -5,18 +5,18 @@
 //! C header: [`include/linux/fs.h`](../../../../include/linux/fs.h)
 
 use core::convert::{TryFrom, TryInto};
-use core::{marker, mem, ops::Deref, pin::Pin, ptr};
+use core::{marker, mem, ptr};
 
 use alloc::boxed::Box;
-use alloc::sync::Arc;
 
 use crate::{
     bindings, c_types,
-    error::{Error, KernelResult},
+    error::{Error, Result},
     file::File,
     io_buffer::{IoBufferReader, IoBufferWriter},
     iov_iter::IovIter,
-    sync::{CondVar, Ref, RefCounted},
+    sync::CondVar,
+    types::PointerWrapper,
     user_ptr::{UserSlicePtr, UserSlicePtrReader, UserSlicePtrWriter},
 };
 
@@ -78,7 +78,7 @@ pub enum SeekFrom {
     Current(i64),
 }
 
-fn from_kernel_result<T>(r: KernelResult<T>) -> T
+fn from_kernel_result<T>(r: Result<T>) -> T
 where
     T: TryFrom<c_types::c_int>,
     T::Error: core::fmt::Debug,
@@ -423,30 +423,25 @@ macro_rules! declare_file_operations {
 /// For each macro, there is a handler function that takes the appropriate types as arguments.
 pub trait IoctlHandler: Sync {
     /// Handles ioctls defined with the `_IO` macro, that is, with no buffer as argument.
-    fn pure(&self, _file: &File, _cmd: u32, _arg: usize) -> KernelResult<i32> {
+    fn pure(&self, _file: &File, _cmd: u32, _arg: usize) -> Result<i32> {
         Err(Error::EINVAL)
     }
 
     /// Handles ioctls defined with the `_IOR` macro, that is, with an output buffer provided as
     /// argument.
-    fn read(&self, _file: &File, _cmd: u32, _writer: &mut UserSlicePtrWriter) -> KernelResult<i32> {
+    fn read(&self, _file: &File, _cmd: u32, _writer: &mut UserSlicePtrWriter) -> Result<i32> {
         Err(Error::EINVAL)
     }
 
     /// Handles ioctls defined with the `_IOW` macro, that is, with an input buffer provided as
     /// argument.
-    fn write(
-        &self,
-        _file: &File,
-        _cmd: u32,
-        _reader: &mut UserSlicePtrReader,
-    ) -> KernelResult<i32> {
+    fn write(&self, _file: &File, _cmd: u32, _reader: &mut UserSlicePtrReader) -> Result<i32> {
         Err(Error::EINVAL)
     }
 
     /// Handles ioctls defined with the `_IOWR` macro, that is, with a buffer for both input and
     /// output provided as argument.
-    fn read_write(&self, _file: &File, _cmd: u32, _data: UserSlicePtr) -> KernelResult<i32> {
+    fn read_write(&self, _file: &File, _cmd: u32, _data: UserSlicePtr) -> Result<i32> {
         Err(Error::EINVAL)
     }
 }
@@ -482,7 +477,7 @@ impl IoctlCommand {
     ///
     /// It is meant to be used in implementations of [`FileOperations::ioctl`] and
     /// [`FileOperations::compat_ioctl`].
-    pub fn dispatch<T: IoctlHandler>(&mut self, handler: &T, file: &File) -> KernelResult<i32> {
+    pub fn dispatch<T: IoctlHandler>(&mut self, handler: &T, file: &File) -> Result<i32> {
         let dir = (self.cmd >> bindings::_IOC_DIRSHIFT) & bindings::_IOC_DIRMASK;
         if dir == bindings::_IOC_NONE {
             return handler.pure(file, self.cmd, self.arg);
@@ -534,11 +529,11 @@ pub trait FileOpener<T: ?Sized>: FileOperations {
     /// Creates a new instance of this file.
     ///
     /// Corresponds to the `open` function pointer in `struct file_operations`.
-    fn open(context: &T) -> KernelResult<Self::Wrapper>;
+    fn open(context: &T) -> Result<Self::Wrapper>;
 }
 
 impl<T: FileOperations<Wrapper = Box<T>> + Default> FileOpener<()> for T {
-    fn open(_: &()) -> KernelResult<Self::Wrapper> {
+    fn open(_: &()) -> Result<Self::Wrapper> {
         Ok(Box::try_new(T::default())?)
     }
 }
@@ -555,7 +550,7 @@ pub trait FileOperations: Send + Sync + Sized {
     const TO_USE: ToUse;
 
     /// The pointer type that will be used to hold ourselves.
-    type Wrapper: PointerWrapper<Self> = Box<Self>;
+    type Wrapper: PointerWrapper = Box<Self>;
 
     /// Cleans up after the last reference to the file goes away.
     ///
@@ -568,52 +563,42 @@ pub trait FileOperations: Send + Sync + Sized {
     /// Reads data from this file to the caller's buffer.
     ///
     /// Corresponds to the `read` and `read_iter` function pointers in `struct file_operations`.
-    fn read<T: IoBufferWriter>(
-        &self,
-        _file: &File,
-        _data: &mut T,
-        _offset: u64,
-    ) -> KernelResult<usize> {
+    fn read<T: IoBufferWriter>(&self, _file: &File, _data: &mut T, _offset: u64) -> Result<usize> {
         Err(Error::EINVAL)
     }
 
     /// Writes data from the caller's buffer to this file.
     ///
     /// Corresponds to the `write` and `write_iter` function pointers in `struct file_operations`.
-    fn write<T: IoBufferReader>(
-        &self,
-        _file: &File,
-        _data: &mut T,
-        _offset: u64,
-    ) -> KernelResult<usize> {
+    fn write<T: IoBufferReader>(&self, _file: &File, _data: &mut T, _offset: u64) -> Result<usize> {
         Err(Error::EINVAL)
     }
 
     /// Changes the position of the file.
     ///
     /// Corresponds to the `llseek` function pointer in `struct file_operations`.
-    fn seek(&self, _file: &File, _offset: SeekFrom) -> KernelResult<u64> {
+    fn seek(&self, _file: &File, _offset: SeekFrom) -> Result<u64> {
         Err(Error::EINVAL)
     }
 
     /// Performs IO control operations that are specific to the file.
     ///
     /// Corresponds to the `unlocked_ioctl` function pointer in `struct file_operations`.
-    fn ioctl(&self, _file: &File, _cmd: &mut IoctlCommand) -> KernelResult<i32> {
+    fn ioctl(&self, _file: &File, _cmd: &mut IoctlCommand) -> Result<i32> {
         Err(Error::EINVAL)
     }
 
     /// Performs 32-bit IO control operations on that are specific to the file on 64-bit kernels.
     ///
     /// Corresponds to the `compat_ioctl` function pointer in `struct file_operations`.
-    fn compat_ioctl(&self, _file: &File, _cmd: &mut IoctlCommand) -> KernelResult<i32> {
+    fn compat_ioctl(&self, _file: &File, _cmd: &mut IoctlCommand) -> Result<i32> {
         Err(Error::EINVAL)
     }
 
     /// Syncs pending changes to this file.
     ///
     /// Corresponds to the `fsync` function pointer in `struct file_operations`.
-    fn fsync(&self, _file: &File, _start: u64, _end: u64, _datasync: bool) -> KernelResult<u32> {
+    fn fsync(&self, _file: &File, _start: u64, _end: u64, _datasync: bool) -> Result<u32> {
         Err(Error::EINVAL)
     }
 
@@ -621,7 +606,7 @@ pub trait FileOperations: Send + Sync + Sized {
     ///
     /// Corresponds to the `mmap` function pointer in `struct file_operations`.
     /// TODO: wrap `vm_area_struct` so that we don't have to expose it.
-    fn mmap(&self, _file: &File, _vma: &mut bindings::vm_area_struct) -> KernelResult {
+    fn mmap(&self, _file: &File, _vma: &mut bindings::vm_area_struct) -> Result {
         Err(Error::EINVAL)
     }
 
@@ -629,68 +614,7 @@ pub trait FileOperations: Send + Sync + Sized {
     /// changes.
     ///
     /// Corresponds to the `poll` function pointer in `struct file_operations`.
-    fn poll(&self, _file: &File, _table: &PollTable) -> KernelResult<u32> {
+    fn poll(&self, _file: &File, _table: &PollTable) -> Result<u32> {
         Ok(bindings::POLLIN | bindings::POLLOUT | bindings::POLLRDNORM | bindings::POLLWRNORM)
-    }
-}
-
-/// Used to convert an object into a raw pointer that represents it.
-///
-/// It can eventually be converted back into the object. This is used to store objects as pointers
-/// in kernel data structures, for example, an implementation of [`FileOperations`] in `struct
-/// file::private_data`.
-pub trait PointerWrapper<T> {
-    /// Returns the raw pointer.
-    fn into_pointer(self) -> *const T;
-
-    /// Returns the instance back from the raw pointer.
-    ///
-    /// # Safety
-    ///
-    /// The passed pointer must come from a previous call to [`PointerWrapper::into_pointer()`].
-    unsafe fn from_pointer(ptr: *const T) -> Self;
-}
-
-impl<T> PointerWrapper<T> for Box<T> {
-    fn into_pointer(self) -> *const T {
-        Box::into_raw(self)
-    }
-
-    unsafe fn from_pointer(ptr: *const T) -> Self {
-        Box::from_raw(ptr as _)
-    }
-}
-
-impl<T: RefCounted> PointerWrapper<T> for Ref<T> {
-    fn into_pointer(self) -> *const T {
-        Ref::into_raw(self)
-    }
-
-    unsafe fn from_pointer(ptr: *const T) -> Self {
-        Ref::from_raw(ptr as _)
-    }
-}
-
-impl<T> PointerWrapper<T> for Arc<T> {
-    fn into_pointer(self) -> *const T {
-        Arc::into_raw(self)
-    }
-
-    unsafe fn from_pointer(ptr: *const T) -> Self {
-        Arc::from_raw(ptr)
-    }
-}
-
-impl<T, W: PointerWrapper<T> + Deref> PointerWrapper<T> for Pin<W> {
-    fn into_pointer(self) -> *const T {
-        // SAFETY: We continue to treat the pointer as pinned by returning just a pointer to it to
-        // the caller.
-        let inner = unsafe { Pin::into_inner_unchecked(self) };
-        inner.into_pointer()
-    }
-
-    unsafe fn from_pointer(p: *const T) -> Self {
-        // SAFETY: The object was originally pinned.
-        Pin::new_unchecked(W::from_pointer(p))
     }
 }

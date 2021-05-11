@@ -39,9 +39,9 @@ impl<'a> Allocation<'a> {
         }
     }
 
-    fn iterate<T>(&self, mut offset: usize, mut size: usize, mut cb: T) -> KernelResult
+    fn iterate<T>(&self, mut offset: usize, mut size: usize, mut cb: T) -> Result
     where
-        T: FnMut(&Pages<0>, usize, usize) -> KernelResult,
+        T: FnMut(&Pages<0>, usize, usize) -> Result,
     {
         // Check that the request is within the buffer.
         if offset.checked_add(size).ok_or(Error::EINVAL)? > self.size {
@@ -65,13 +65,13 @@ impl<'a> Allocation<'a> {
         reader: &mut UserSlicePtrReader,
         offset: usize,
         size: usize,
-    ) -> KernelResult {
+    ) -> Result {
         self.iterate(offset, size, |page, offset, to_copy| {
             page.copy_into_page(reader, offset, to_copy)
         })
     }
 
-    pub(crate) fn read<T>(&self, offset: usize) -> KernelResult<T> {
+    pub(crate) fn read<T>(&self, offset: usize) -> Result<T> {
         let mut out = MaybeUninit::<T>::uninit();
         let mut out_offset = 0;
         self.iterate(offset, size_of::<T>(), |page, offset, to_copy| {
@@ -90,7 +90,7 @@ impl<'a> Allocation<'a> {
         Ok(unsafe { out.assume_init() })
     }
 
-    pub(crate) fn write<T>(&self, offset: usize, obj: &T) -> KernelResult {
+    pub(crate) fn write<T>(&self, offset: usize, obj: &T) -> Result {
         let mut obj_offset = 0;
         self.iterate(offset, size_of::<T>(), |page, offset, to_copy| {
             // SAFETY: The sum of `offset` and `to_copy` is bounded by the size of T.
@@ -112,7 +112,7 @@ impl<'a> Allocation<'a> {
         self.allocation_info = Some(info);
     }
 
-    fn cleanup_object(&self, index_offset: usize, view: &AllocationView) -> KernelResult {
+    fn cleanup_object(&self, index_offset: usize, view: &AllocationView) -> Result {
         let offset = self.read(index_offset)?;
         let header = view.read::<bindings::binder_object_header>(offset)?;
         // TODO: Handle other types.
@@ -169,14 +169,14 @@ impl<'a> AllocationView<'a> {
         AllocationView { alloc, limit }
     }
 
-    pub fn read<T>(&self, offset: usize) -> KernelResult<T> {
+    pub fn read<T>(&self, offset: usize) -> Result<T> {
         if offset.checked_add(size_of::<T>()).ok_or(Error::EINVAL)? > self.limit {
             return Err(Error::EINVAL);
         }
         self.alloc.read(offset)
     }
 
-    pub fn write<T>(&self, offset: usize, obj: &T) -> KernelResult {
+    pub fn write<T>(&self, offset: usize, obj: &T) -> Result {
         if offset.checked_add(size_of::<T>()).ok_or(Error::EINVAL)? > self.limit {
             return Err(Error::EINVAL);
         }

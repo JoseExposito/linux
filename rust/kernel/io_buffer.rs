@@ -2,7 +2,7 @@
 
 //! Buffers used in IO.
 
-use crate::KernelResult;
+use crate::Result;
 use alloc::vec::Vec;
 use core::mem::{size_of, MaybeUninit};
 
@@ -23,12 +23,12 @@ pub trait IoBufferReader {
     /// # Safety
     ///
     /// The output buffer must be valid.
-    unsafe fn read_raw(&mut self, out: *mut u8, len: usize) -> KernelResult;
+    unsafe fn read_raw(&mut self, out: *mut u8, len: usize) -> Result;
 
     /// Reads all data remaining in the io buffer.
     ///
     /// Returns `EFAULT` if the address does not currently point to mapped, readable memory.
-    fn read_all(&mut self) -> KernelResult<Vec<u8>> {
+    fn read_all(&mut self) -> Result<Vec<u8>> {
         let mut data = Vec::<u8>::new();
         data.try_reserve_exact(self.len())?;
         data.resize(self.len(), 0);
@@ -42,13 +42,13 @@ pub trait IoBufferReader {
     ///
     /// Returns `EFAULT` if the byte slice is bigger than the remaining size of the user slice or
     /// if the address does not currently point to mapped, readable memory.
-    fn read_slice(&mut self, data: &mut [u8]) -> KernelResult {
+    fn read_slice(&mut self, data: &mut [u8]) -> Result {
         // SAFETY: The output buffer is valid as it's coming from a live reference.
         unsafe { self.read_raw(data.as_mut_ptr(), data.len()) }
     }
 
     /// Reads the contents of a plain old data (POD) type from the io buffer.
-    fn read<T: ReadableFromBytes>(&mut self) -> KernelResult<T> {
+    fn read<T: ReadableFromBytes>(&mut self) -> Result<T> {
         let mut out = MaybeUninit::<T>::uninit();
         // SAFETY: The buffer is valid as it was just allocated.
         unsafe { self.read_raw(out.as_mut_ptr() as _, size_of::<T>()) }?;
@@ -77,13 +77,13 @@ pub trait IoBufferWriter {
     ///
     /// For example, if a caller requests that 100 bytes be cleared but a segfault happens after
     /// 20 bytes, then EFAULT is returned and the writer is advanced by 20 bytes.
-    fn clear(&mut self, len: usize) -> KernelResult;
+    fn clear(&mut self, len: usize) -> Result;
 
     /// Writes a byte slice into the io buffer.
     ///
     /// Returns `EFAULT` if the byte slice is bigger than the remaining size of the io buffer or if
     /// the address does not currently point to mapped, writable memory.
-    fn write_slice(&mut self, data: &[u8]) -> KernelResult {
+    fn write_slice(&mut self, data: &[u8]) -> Result {
         // SAFETY: The input buffer is valid as it's coming from a live reference.
         unsafe { self.write_raw(data.as_ptr(), data.len()) }
     }
@@ -93,10 +93,10 @@ pub trait IoBufferWriter {
     /// # Safety
     ///
     /// The input buffer must be valid.
-    unsafe fn write_raw(&mut self, data: *const u8, len: usize) -> KernelResult;
+    unsafe fn write_raw(&mut self, data: *const u8, len: usize) -> Result;
 
     /// Writes the contents of the given data into the io buffer.
-    fn write<T: WritableToBytes>(&mut self, data: &T) -> KernelResult<()> {
+    fn write<T: WritableToBytes>(&mut self, data: &T) -> Result {
         // SAFETY: The input buffer is valid as it's coming from a live
         // reference to a type that implements `WritableToBytes`.
         unsafe { self.write_raw(data as *const T as _, size_of::<T>()) }

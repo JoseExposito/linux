@@ -5,8 +5,8 @@
 //! TODO: This module is a work in progress.
 
 use crate::{
-    bindings, c_types, io_buffer::IoBufferReader, user_ptr::UserSlicePtrReader, Error,
-    KernelResult, PAGE_SIZE,
+    bindings, c_types, io_buffer::IoBufferReader, user_ptr::UserSlicePtrReader, Error, Result,
+    PAGE_SIZE,
 };
 use core::{marker::PhantomData, ptr};
 
@@ -38,7 +38,7 @@ pub struct Pages<const ORDER: u32> {
 
 impl<const ORDER: u32> Pages<ORDER> {
     /// Allocates a new set of contiguous pages.
-    pub fn new() -> KernelResult<Self> {
+    pub fn new() -> Result<Self> {
         // TODO: Consider whether we want to allow callers to specify flags.
         // SAFETY: This only allocates pages. We check that it succeeds in the next statement.
         let pages = unsafe {
@@ -57,7 +57,7 @@ impl<const ORDER: u32> Pages<ORDER> {
     /// Maps a single page at the given address in the given VM area.
     ///
     /// This is only meant to be used by pages of order 0.
-    pub fn insert_page(&self, vma: &mut bindings::vm_area_struct, address: usize) -> KernelResult {
+    pub fn insert_page(&self, vma: &mut bindings::vm_area_struct, address: usize) -> Result {
         if ORDER != 0 {
             return Err(Error::EINVAL);
         }
@@ -78,7 +78,7 @@ impl<const ORDER: u32> Pages<ORDER> {
         reader: &mut UserSlicePtrReader,
         offset: usize,
         len: usize,
-    ) -> KernelResult {
+    ) -> Result {
         // TODO: For now this only works on the first page.
         let end = offset.checked_add(len).ok_or(Error::EINVAL)?;
         if end > PAGE_SIZE {
@@ -99,7 +99,7 @@ impl<const ORDER: u32> Pages<ORDER> {
     /// Callers must ensure that the destination buffer is valid for the given length.
     /// Additionally, if the raw buffer is intended to be recast, they must ensure that the data
     /// can be safely cast; [`crate::io_buffer::ReadableFromBytes`] has more details about it.
-    pub unsafe fn read(&self, dest: *mut u8, offset: usize, len: usize) -> KernelResult {
+    pub unsafe fn read(&self, dest: *mut u8, offset: usize, len: usize) -> Result {
         // TODO: For now this only works on the first page.
         let end = offset.checked_add(len).ok_or(Error::EINVAL)?;
         if end > PAGE_SIZE {
@@ -119,7 +119,7 @@ impl<const ORDER: u32> Pages<ORDER> {
     /// page is (or will be) mapped by userspace, they must ensure that no kernel data is leaked
     /// through padding if it was cast from another type; [`crate::io_buffer::WritableToBytes`] has
     /// more details about it.
-    pub unsafe fn write(&self, src: *const u8, offset: usize, len: usize) -> KernelResult {
+    pub unsafe fn write(&self, src: *const u8, offset: usize, len: usize) -> Result {
         // TODO: For now this only works on the first page.
         let end = offset.checked_add(len).ok_or(Error::EINVAL)?;
         if end > PAGE_SIZE {
