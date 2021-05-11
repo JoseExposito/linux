@@ -58,7 +58,7 @@ struct FileState {
 }
 
 impl FileState {
-    fn consume(&self) -> KernelResult {
+    fn consume(&self) -> Result {
         let mut inner = self.shared.inner.lock();
         while inner.count == 0 {
             if self.shared.changed.wait(&mut inner) {
@@ -71,7 +71,7 @@ impl FileState {
 }
 
 impl FileOpener<Arc<Semaphore>> for FileState {
-    fn open(shared: &Arc<Semaphore>) -> KernelResult<Box<Self>> {
+    fn open(shared: &Arc<Semaphore>) -> Result<Box<Self>> {
         Ok(Box::try_new(Self {
             read_count: AtomicU64::new(0),
             shared: shared.clone(),
@@ -84,7 +84,7 @@ impl FileOperations for FileState {
 
     declare_file_operations!(read, write, ioctl);
 
-    fn read<T: IoBufferWriter>(&self, _: &File, data: &mut T, offset: u64) -> KernelResult<usize> {
+    fn read<T: IoBufferWriter>(&self, _: &File, data: &mut T, offset: u64) -> Result<usize> {
         if data.is_empty() || offset > 0 {
             return Ok(0);
         }
@@ -94,12 +94,7 @@ impl FileOperations for FileState {
         Ok(1)
     }
 
-    fn write<T: IoBufferReader>(
-        &self,
-        _: &File,
-        data: &mut T,
-        _offset: u64,
-    ) -> KernelResult<usize> {
+    fn write<T: IoBufferReader>(&self, _: &File, data: &mut T, _offset: u64) -> Result<usize> {
         {
             let mut inner = self.shared.inner.lock();
             inner.count = inner.count.saturating_add(data.len());
@@ -112,7 +107,7 @@ impl FileOperations for FileState {
         Ok(data.len())
     }
 
-    fn ioctl(&self, file: &File, cmd: &mut IoctlCommand) -> KernelResult<i32> {
+    fn ioctl(&self, file: &File, cmd: &mut IoctlCommand) -> Result<i32> {
         cmd.dispatch(self, file)
     }
 }
@@ -122,7 +117,7 @@ struct RustSemaphore {
 }
 
 impl KernelModule for RustSemaphore {
-    fn init() -> KernelResult<Self> {
+    fn init() -> Result<Self> {
         pr_info!("Rust semaphore sample (init)\n");
 
         let sema = Arc::try_new(Semaphore {
@@ -160,7 +155,7 @@ const IOCTL_GET_READ_COUNT: u32 = 0x80086301;
 const IOCTL_SET_READ_COUNT: u32 = 0x40086301;
 
 impl IoctlHandler for FileState {
-    fn read(&self, _: &File, cmd: u32, writer: &mut UserSlicePtrWriter) -> KernelResult<i32> {
+    fn read(&self, _: &File, cmd: u32, writer: &mut UserSlicePtrWriter) -> Result<i32> {
         match cmd {
             IOCTL_GET_READ_COUNT => {
                 writer.write(&self.read_count.load(Ordering::Relaxed))?;
@@ -170,7 +165,7 @@ impl IoctlHandler for FileState {
         }
     }
 
-    fn write(&self, _: &File, cmd: u32, reader: &mut UserSlicePtrReader) -> KernelResult<i32> {
+    fn write(&self, _: &File, cmd: u32, reader: &mut UserSlicePtrReader) -> Result<i32> {
         match cmd {
             IOCTL_SET_READ_COUNT => {
                 self.read_count.store(reader.read()?, Ordering::Relaxed);

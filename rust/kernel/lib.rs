@@ -65,7 +65,7 @@ pub mod iov_iter;
 mod types;
 pub mod user_ptr;
 
-pub use crate::error::{Error, KernelResult};
+pub use crate::error::{Error, Result};
 pub use crate::types::{CStr, Mode};
 
 /// Page size defined in terms of the `PAGE_SHIFT` macro from C.
@@ -86,7 +86,7 @@ pub trait KernelModule: Sized + Sync {
     /// should do.
     ///
     /// Equivalent to the `module_init` macro in the C API.
-    fn init() -> KernelResult<Self>;
+    fn init() -> Result<Self>;
 }
 
 /// Equivalent to `THIS_MODULE` in the C API.

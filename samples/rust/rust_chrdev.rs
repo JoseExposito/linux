@@ -30,7 +30,7 @@ struct RustChrdev {
 }
 
 impl KernelModule for RustChrdev {
-    fn init() -> KernelResult<Self> {
+    fn init() -> Result<Self> {
         pr_info!("Rust character device sample (init)\n");
 
         let mut chrdev_reg =

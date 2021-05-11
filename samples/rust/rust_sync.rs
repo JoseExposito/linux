@@ -24,7 +24,7 @@ module! {
 struct RustSync;
 
 impl KernelModule for RustSync {
-    fn init() -> KernelResult<Self> {
+    fn init() -> Result<Self> {
         pr_info!("Rust synchronisation primitives sample (init)\n");
 
         // Test mutexes.

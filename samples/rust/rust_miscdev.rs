@@ -38,7 +38,7 @@ struct SharedState {
 }
 
 impl SharedState {
-    fn try_new() -> KernelResult<Arc<Self>> {
+    fn try_new() -> Result<Arc<Self>> {
         let state = Arc::try_new(Self {
             // SAFETY: `condvar_init!` is called below.
             state_changed: unsafe { CondVar::new() },
@@ -60,7 +60,7 @@ struct Token {
 }
 
 impl FileOpener<Arc<SharedState>> for Token {
-    fn open(shared: &Arc<SharedState>) -> KernelResult<Self::Wrapper> {
+    fn open(shared: &Arc<SharedState>) -> Result<Self::Wrapper> {
         Ok(Box::try_new(Self {
             shared: shared.clone(),
         })?)
@@ -72,7 +72,7 @@ impl FileOperations for Token {
 
     kernel::declare_file_operations!(read, write);
 
-    fn read<T: IoBufferWriter>(&self, _: &File, data: &mut T, offset: u64) -> KernelResult<usize> {
+    fn read<T: IoBufferWriter>(&self, _: &File, data: &mut T, offset: u64) -> Result<usize> {
         // Succeed if the caller doesn't provide a buffer or if not at the start.
         if data.is_empty() || offset != 0 {
             return Ok(0);
@@ -100,12 +100,7 @@ impl FileOperations for Token {
         Ok(1)
     }
 
-    fn write<T: IoBufferReader>(
-        &self,
-        _: &File,
-        data: &mut T,
-        _offset: u64,
-    ) -> KernelResult<usize> {
+    fn write<T: IoBufferReader>(&self, _: &File, data: &mut T, _offset: u64) -> Result<usize> {
         {
             let mut inner = self.shared.inner.lock();
 
@@ -131,7 +126,7 @@ struct RustMiscdev {
 }
 
 impl KernelModule for RustMiscdev {
-    fn init() -> KernelResult<Self> {
+    fn init() -> Result<Self> {
         pr_info!("Rust miscellaneous device sample (init)\n");
 
         let state = SharedState::try_new()?;
