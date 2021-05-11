@@ -186,10 +186,9 @@ impl ProcessInner {
         strong: bool,
         thread: Option<&Thread>,
     ) -> Result<Option<NodeRef>> {
-        Ok(match self.get_existing_node(ptr, cookie)? {
-            None => None,
-            Some(node) => Some(self.new_node_ref(node, strong, thread)),
-        })
+        Ok(self
+            .get_existing_node(ptr, cookie)?
+            .map(|node| self.new_node_ref(node, strong, thread)))
     }
 
     fn register_thread(&mut self) -> bool {
