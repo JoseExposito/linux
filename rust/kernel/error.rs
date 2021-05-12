@@ -6,6 +6,7 @@
 
 use crate::{bindings, c_types};
 use alloc::{alloc::AllocError, collections::TryReserveError};
+use core::convert::TryFrom;
 use core::{num::TryFromIntError, str::Utf8Error};
 
 /// Generic integer kernel error.
@@ -103,4 +104,24 @@ impl From<AllocError> for Error {
     fn from(_: AllocError) -> Error {
         Error::ENOMEM
     }
+}
+
+pub fn from_kernel_result_helper<T>(r: Result<T>) -> T
+where
+    T: TryFrom<c_types::c_int>,
+    T::Error: core::fmt::Debug,
+{
+    match r {
+        Ok(v) => v,
+        Err(e) => T::try_from(e.to_kernel_errno()).unwrap(),
+    }
+}
+
+#[macro_export]
+macro_rules! from_kernel_result {
+    ($($tt:tt)*) => {{
+        $crate::error::from_kernel_result_helper((|| {
+            $($tt)*
+        })())
+    }};
 }

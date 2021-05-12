@@ -13,6 +13,7 @@ use crate::{
     bindings, c_types,
     error::{Error, Result},
     file::File,
+    from_kernel_result,
     io_buffer::{IoBufferReader, IoBufferWriter},
     iov_iter::IovIter,
     sync::CondVar,
@@ -76,25 +77,6 @@ pub enum SeekFrom {
 
     /// Equivalent to C's `SEEK_CUR`.
     Current(i64),
-}
-
-fn from_kernel_result<T>(r: Result<T>) -> T
-where
-    T: TryFrom<c_types::c_int>,
-    T::Error: core::fmt::Debug,
-{
-    match r {
-        Ok(v) => v,
-        Err(e) => T::try_from(e.to_kernel_errno()).unwrap(),
-    }
-}
-
-macro_rules! from_kernel_result {
-    ($($tt:tt)*) => {{
-        from_kernel_result((|| {
-            $($tt)*
-        })())
-    }};
 }
 
 unsafe extern "C" fn open_callback<A: FileOpenAdapter, T: FileOpener<A::Arg>>(
