@@ -6,7 +6,7 @@
 
 use crate::{bindings, c_types};
 use alloc::{alloc::AllocError, collections::TryReserveError};
-use core::convert::TryFrom;
+use core::convert::From;
 use core::{num::TryFromIntError, str::Utf8Error};
 
 /// Generic integer kernel error.
@@ -106,15 +106,20 @@ impl From<AllocError> for Error {
     }
 }
 
+// # Invariant: `-bindings::MAX_ERRNO` fits in an `i16`.
+crate::static_assert!(bindings::MAX_ERRNO <= -(i16::MIN as i32) as u32);
+
 #[doc(hidden)]
 pub fn from_kernel_result_helper<T>(r: Result<T>) -> T
 where
-    T: TryFrom<c_types::c_int>,
-    T::Error: core::fmt::Debug,
+    T: From<i16>,
 {
     match r {
         Ok(v) => v,
-        Err(e) => T::try_from(e.to_kernel_errno()).unwrap(),
+        // NO-OVERFLOW: negative `errno`s are no smaller than `-bindings::MAX_ERRNO`,
+        // `-bindings::MAX_ERRNO` fits in an `i16` as per invariant above,
+        // therefore a negative `errno` always fits in an `i16` and will not overflow.
+        Err(e) => T::from(e.to_kernel_errno() as i16),
     }
 }
 
@@ -124,7 +129,7 @@ where
 /// from inside `extern "C"` functions that need to return an integer
 /// error result.
 ///
-/// `T` should be convertible to an integer via `TryFrom<c_types::c_int>`.
+/// `T` should be convertible to an `i16` via `From<i16>`.
 ///
 /// # Examples
 ///
