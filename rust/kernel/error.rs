@@ -106,6 +106,7 @@ impl From<AllocError> for Error {
     }
 }
 
+#[doc(hidden)]
 pub fn from_kernel_result_helper<T>(r: Result<T>) -> T
 where
     T: TryFrom<c_types::c_int>,
@@ -117,6 +118,27 @@ where
     }
 }
 
+/// Transforms a [`crate::error::Result<T>`] to a kernel C integer result.
+///
+/// This is useful when calling Rust functions that return [`crate::error::Result<T>`]
+/// from inside `extern "C"` functions that need to return an integer
+/// error result.
+///
+/// `T` should be convertible to an integer via `TryFrom<c_types::c_int>`.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// unsafe extern "C" fn probe_callback(
+///     pdev: *mut bindings::platform_device,
+/// ) -> c_types::c_int {
+///     from_kernel_result! {
+///         let ptr = devm_alloc(pdev)?;
+///         rust_helper_platform_set_drvdata(pdev, ptr);
+///         Ok(0)
+///     }
+/// }
+/// ```
 #[macro_export]
 macro_rules! from_kernel_result {
     ($($tt:tt)*) => {{
