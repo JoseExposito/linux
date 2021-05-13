@@ -105,6 +105,18 @@ size_t rust_helper_copy_to_iter(const void *addr, size_t bytes, struct iov_iter 
 }
 EXPORT_SYMBOL_GPL(rust_helper_copy_to_iter);
 
+bool rust_helper_is_err(__force const void *ptr)
+{
+	return IS_ERR(ptr);
+}
+EXPORT_SYMBOL_GPL(rust_helper_is_err);
+
+long rust_helper_ptr_err(__force const void *ptr)
+{
+	return PTR_ERR(ptr);
+}
+EXPORT_SYMBOL_GPL(rust_helper_ptr_err);
+
 #if !defined(CONFIG_ARM)
 // See https://github.com/rust-lang/rust-bindgen/issues/1671
 static_assert(__builtin_types_compatible_p(size_t, uintptr_t),
