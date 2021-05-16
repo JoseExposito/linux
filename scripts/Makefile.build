@@ -291,7 +291,9 @@ $(obj)/%.lst: $(src)/%.c FORCE
 # Compile Rust sources (.rs)
 # ---------------------------------------------------------------------------
 
-rustc_cross_flags := --target=$(KBUILD_RUSTC_TARGET)
+# Need to use absolute path here and have symbolic links resolved;
+# otherwise rustdoc and rustc compute different hashes for the target.
+rustc_cross_flags := --target=$(realpath $(KBUILD_RUSTC_TARGET))
 
 quiet_cmd_rustc_o_rs = $(RUSTC_OR_CLIPPY_QUIET) $(quiet_modtag) $@
       cmd_rustc_o_rs = \

@@ -13,10 +13,18 @@ obj-$(CONFIG_RUST) += exports.o
 
 RUSTDOC = rustdoc
 
+quiet_cmd_rustdoc_host = RUSTDOC $<
+      cmd_rustdoc_host = \
+	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
+	$(RUSTDOC) $(filter-out --emit=%, $(rustc_flags)) \
+		$(rustdoc_target_flags) -L $(objtree)/rust/ \
+		--output $(objtree)/rust/doc --crate-name $(subst rustdoc-,,$@) \
+		-Fmissing-docs @$(objtree)/include/generated/rustc_cfg $<
+
 quiet_cmd_rustdoc = RUSTDOC $<
       cmd_rustdoc = \
 	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
-	$(RUSTDOC) $(filter-out --emit=%, $(rustc_flags)) \
+	$(RUSTDOC) $(rustc_cross_flags) $(filter-out --emit=%, $(rustc_flags)) \
 		$(rustdoc_target_flags) -L $(objtree)/rust/ \
 		--output $(objtree)/rust/doc --crate-name $(subst rustdoc-,,$@) \
 		-Fmissing-docs @$(objtree)/include/generated/rustc_cfg $<
@@ -26,7 +34,7 @@ rustdoc: rustdoc-module rustdoc-compiler_builtins rustdoc-kernel
 rustdoc-module: private rustdoc_target_flags = --crate-type proc-macro \
     --extern proc_macro
 rustdoc-module: $(srctree)/rust/module.rs FORCE
-	$(call if_changed,rustdoc)
+	$(call if_changed,rustdoc_host)
 
 rustdoc-compiler_builtins: $(srctree)/rust/compiler_builtins.rs FORCE
 	$(call if_changed,rustdoc)
