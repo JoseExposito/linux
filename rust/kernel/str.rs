@@ -91,18 +91,34 @@ impl CStr {
     ///
     /// The provided slice must be `NUL`-terminated, does not contain any
     /// interior `NUL` bytes.
-    pub fn from_bytes_with_nul(bytes: &[u8]) -> Result<&Self, CStrConvertError> {
+    pub const fn from_bytes_with_nul(bytes: &[u8]) -> Result<&Self, CStrConvertError> {
         if bytes.is_empty() {
             return Err(CStrConvertError::NotNulTerminated);
         }
         if bytes[bytes.len() - 1] != 0 {
             return Err(CStrConvertError::NotNulTerminated);
         }
-        if bytes[..bytes.len()].contains(&0) {
-            return Err(CStrConvertError::InteriorNul);
+        let mut i = 0;
+        while i < bytes.len() - 1 {
+            if bytes[i] == 0 {
+                return Err(CStrConvertError::InteriorNul);
+            }
+            i += 1;
         }
         // SAFETY: We just checked that all properties hold.
         Ok(unsafe { Self::from_bytes_with_nul_unchecked(bytes) })
+    }
+
+    /// Creates a [`CStr`] from a `[u8]`, panic if input is not valid.
+    ///
+    /// This function is only meant to be used by `c_str!` macro, so
+    /// crates using `c_str!` macro don't have to enable `const_panic` feature.
+    #[doc(hidden)]
+    pub const fn from_bytes_with_nul_unwrap(bytes: &[u8]) -> &Self {
+        match Self::from_bytes_with_nul(bytes) {
+            Ok(v) => v,
+            Err(_) => panic!("string contains interior NUL"),
+        }
     }
 
     /// Creates a [`CStr`] from a `[u8]` without performing any additional
@@ -220,10 +236,8 @@ where
 #[macro_export]
 macro_rules! c_str {
     ($str:literal) => {{
-        // FIXME: Check that `$str` does not contain interior `NUL`.
         const S: &str = concat!($str, "\0");
-        const C: &$crate::str::CStr =
-            { unsafe { $crate::str::CStr::from_bytes_with_nul_unchecked(S.as_bytes()) } };
+        const C: &$crate::str::CStr = $crate::str::CStr::from_bytes_with_nul_unwrap(S.as_bytes());
         C
     }};
 }
