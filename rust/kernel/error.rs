@@ -152,3 +152,54 @@ macro_rules! from_kernel_result {
         })())
     }};
 }
+
+/// Transform a kernel "error pointer" to a normal pointer.
+///
+/// Some kernel C API functions return an "error pointer" which optionally
+/// embeds an `errno`. Callers are supposed to check the returned pointer
+/// for errors. This function performs the check and converts the "error pointer"
+/// to a normal pointer in an idiomatic fashion.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// fn devm_platform_ioremap_resource(
+///     pdev: &mut PlatformDevice,
+///     index: u32,
+/// ) -> Result<*mut c_types::c_void> {
+///     // SAFETY: FFI call.
+///     unsafe {
+///         from_kernel_err_ptr(bindings::devm_platform_ioremap_resource(
+///             pdev.to_ptr(),
+///             index,
+///         ))
+///     }
+/// }
+/// ```
+// TODO: remove `dead_code` marker once an in-kernel client is available.
+#[allow(dead_code)]
+pub(crate) fn from_kernel_err_ptr<T>(ptr: *mut T) -> Result<*mut T> {
+    extern "C" {
+        #[allow(improper_ctypes)]
+        fn rust_helper_is_err(ptr: *const c_types::c_void) -> bool;
+
+        #[allow(improper_ctypes)]
+        fn rust_helper_ptr_err(ptr: *const c_types::c_void) -> c_types::c_long;
+    }
+
+    // CAST: casting a pointer to `*const c_types::c_void` is always valid.
+    let const_ptr: *const c_types::c_void = ptr.cast();
+    // SAFETY: the FFI function does not deref the pointer.
+    if unsafe { rust_helper_is_err(const_ptr) } {
+        // SAFETY: the FFI function does not deref the pointer.
+        let err = unsafe { rust_helper_ptr_err(const_ptr) };
+        // CAST: if `rust_helper_is_err()` returns `true`,
+        // then `rust_helper_ptr_err()` is guaranteed to return a
+        // negative value greater-or-equal to `-bindings::MAX_ERRNO`,
+        // which always fits in an `i16`, as per the invariant above.
+        // And an `i16` always fits in an `i32`. So casting `err` to
+        // an `i32` can never overflow, and is always valid.
+        return Err(Error::from_kernel_errno(err as i32));
+    }
+    Ok(ptr)
+}
