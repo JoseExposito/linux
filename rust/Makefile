@@ -9,6 +9,10 @@ extra-$(CONFIG_RUST) += bindings_generated.rs
 obj-$(CONFIG_RUST) += alloc.o kernel.o
 extra-$(CONFIG_RUST) += exports_alloc_generated.h exports_kernel_generated.h
 
+ifndef CONFIG_RUST_BUILD_ASSERT_DENY
+obj-$(CONFIG_RUST) += build_error.o
+endif
+
 obj-$(CONFIG_RUST) += exports.o
 
 RUSTDOC = rustdoc
@@ -40,6 +44,7 @@ rustdoc-compiler_builtins: $(srctree)/rust/compiler_builtins.rs FORCE
 	$(call if_changed,rustdoc)
 
 rustdoc-kernel: private rustdoc_target_flags = --extern alloc \
+    --extern build_error \
     --extern module=$(objtree)/rust/libmodule.so
 rustdoc-kernel: $(srctree)/rust/kernel/lib.rs rustdoc-module \
     $(objtree)/rust/libmodule.so $(objtree)/rust/bindings_generated.rs FORCE
@@ -77,7 +82,7 @@ bindgen_c_flags = $(filter-out $(bindgen_skip_c_flags), $(c_flags)) \
 	$(bindgen_extra_c_flags)
 endif
 
-bindgen_opaque_types := xregs_state desc_struct arch_lbr_state
+bindgen_opaque_types := xregs_state desc_struct arch_lbr_state local_apic
 
 # To avoid several recompilations in PowerPC, which inserts `-D_TASK_CPU`
 bindgen_c_flags_final = $(filter-out -D_TASK_CPU=%, $(bindgen_c_flags))
@@ -155,9 +160,15 @@ $(objtree)/rust/alloc.o: $$(RUST_LIB_SRC)/alloc/src/lib.rs \
     $(objtree)/rust/compiler_builtins.o FORCE
 	$(call if_changed_dep,rustc_library)
 
+$(objtree)/rust/build_error.o: $(srctree)/rust/build_error.rs \
+    $(objtree)/rust/compiler_builtins.o FORCE
+	$(call if_changed_dep,rustc_library)
+
 # ICE on `--extern module`: https://github.com/rust-lang/rust/issues/56935
 $(objtree)/rust/kernel.o: private rustc_target_flags = --extern alloc \
+    --extern build_error \
     --extern module=$(objtree)/rust/libmodule.so
 $(objtree)/rust/kernel.o: $(srctree)/rust/kernel/lib.rs $(objtree)/rust/alloc.o \
+    $(objtree)/rust/build_error.o \
     $(objtree)/rust/libmodule.so $(objtree)/rust/bindings_generated.rs FORCE
 	$(call if_changed_dep,rustc_library)

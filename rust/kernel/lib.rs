@@ -51,6 +51,7 @@ mod raw_list;
 #[doc(hidden)]
 pub mod module_param;
 
+mod build_assert;
 pub mod prelude;
 pub mod print;
 pub mod random;
@@ -65,6 +66,9 @@ pub mod iov_iter;
 pub mod platdev;
 mod types;
 pub mod user_ptr;
+
+#[doc(hidden)]
+pub use build_error::build_error;
 
 pub use crate::error::{Error, Result};
 pub use crate::types::{CStr, Mode};
