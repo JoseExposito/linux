@@ -62,6 +62,17 @@ jobs:
       # Setup: checkout
       - uses: actions/checkout@v2
 
+      # Setup: Store matrix name
+      - run: echo 'MATRIX_NAME=${{ matrix.arch }}-${{ matrix.toolchain }}-${{ matrix.config }}' >> $GITHUB_ENV
+
+      # Setup: Github cache
+      - uses: actions/cache@v2
+        with:
+          path: ~/.ccache
+          key: ${{ env.MATRIX_NAME  }}-ccache-${{ github.run_id }}
+          restore-keys: |
+              ${{ env.MATRIX_NAME  }}-ccache-
+
       # Setup: variables
       - if: matrix.arch == 'x86_64'
         run: |
@@ -194,6 +205,15 @@ jobs:
       - run: |
           curl -o bin/bindgen https://raw.githubusercontent.com/Rust-for-Linux/ci-bin/master/bindgen-0.56.0/bin/bindgen
           chmod u+x bin/bindgen
+      
+      # Setup: ccache
+      - run: |
+          sudo apt-get install ccache
+          echo '/usr/lib/ccache:$PATH' >> $GITHUB_PATH
+          echo 'CCACHE_COMPRESS=true' >> $GITHUB_ENV
+                
+      # Setup: Check existing ccache
+      - run: ccache -s
 
       # Setup: busybox
       - run: git clone --depth 1 -b 1_30_1 https://github.com/mirror/busybox
@@ -376,3 +396,6 @@ jobs:
 
       # Formatting
       - run: make rustfmtcheck
+
+      # View changes to ccache
+      - run: ccache -s
