@@ -9,7 +9,9 @@ extra-$(CONFIG_RUST) += bindings_generated.rs
 obj-$(CONFIG_RUST) += alloc.o kernel.o
 extra-$(CONFIG_RUST) += exports_alloc_generated.h exports_kernel_generated.h
 
-ifndef CONFIG_RUST_BUILD_ASSERT_DENY
+ifdef CONFIG_RUST_BUILD_ASSERT_DENY
+extra-$(CONFIG_RUST) += build_error.o
+else
 obj-$(CONFIG_RUST) += build_error.o
 endif
 
