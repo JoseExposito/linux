@@ -59,12 +59,18 @@ impl CStr {
     /// Returns the length of this string excluding `NUL`.
     #[inline]
     pub const fn len(&self) -> usize {
-        self.0.len() - 1
+        self.len_with_nul() - 1
     }
 
     /// Returns the length of this string with `NUL`.
     #[inline]
     pub const fn len_with_nul(&self) -> usize {
+        // SAFETY: This is one of the invariant of `CStr`.
+        // We add a `unreachable_unchecked` here to hint the optimizer that
+        // the value returned from this function is non-zero.
+        if self.0.is_empty() {
+            unsafe { core::hint::unreachable_unchecked() };
+        }
         self.0.len()
     }
 
@@ -99,7 +105,9 @@ impl CStr {
             return Err(CStrConvertError::NotNulTerminated);
         }
         let mut i = 0;
-        while i < bytes.len() - 1 {
+        // `i + 1 < bytes.len()` allows LLVM to optimize away bounds checking,
+        // while it couldn't optimize away bounds checks for `i < bytes.len() - 1`.
+        while i + 1 < bytes.len() {
             if bytes[i] == 0 {
                 return Err(CStrConvertError::InteriorNul);
             }
@@ -148,7 +156,7 @@ impl CStr {
     /// Convert the string to a byte slice without the trailing 0 byte.
     #[inline]
     pub fn as_bytes(&self) -> &[u8] {
-        &self.0[..self.0.len() - 1]
+        &self.0[..self.len()]
     }
 
     /// Convert the string to a byte slice containing the trailing 0 byte.
@@ -178,14 +186,12 @@ impl Index<ops::RangeFrom<usize>> for CStr {
     type Output = CStr;
 
     #[inline]
+    // Clippy false positive
+    #[allow(clippy::unnecessary_operation)]
     fn index(&self, index: ops::RangeFrom<usize>) -> &Self::Output {
-        assert!(
-            index.start <= self.len(),
-            "range start index {} out of range for slice of length {}",
-            index.start,
-            self.len()
-        );
-        // SAFETY: We just checked the length.
+        // Delegate bounds checking to slice.
+        &self.as_bytes()[index.start..];
+        // SAFETY: We just checked the bounds.
         unsafe { Self::from_bytes_with_nul_unchecked(&self.0[index.start..]) }
     }
 }

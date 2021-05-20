@@ -20,6 +20,7 @@
     const_mut_refs,
     const_panic,
     const_raw_ptr_deref,
+    const_unreachable_unchecked,
     try_reserve
 )]
 #![deny(clippy::complexity)]
