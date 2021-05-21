@@ -126,7 +126,11 @@ quiet_cmd_rustc_procmacro = $(RUSTC_OR_CLIPPY_QUIET) P $@
 	mv $(objtree)/rust/$(patsubst lib%.so,%,$(notdir $@)).d $(depfile); \
 	sed -i '/^\#/d' $(depfile)
 
-$(objtree)/rust/libmodule.so: $(srctree)/rust/module.rs FORCE
+# Procedural macros can only be used with the `rustc` that compiled it.
+# Therefore, to get `libmodule.so` automatically recompiled when the compiler
+# version changes, we add `core.o` as a dependency (even if it is not needed).
+$(objtree)/rust/libmodule.so: $(srctree)/rust/module.rs \
+	$(objtree)/rust/core.o FORCE
 	$(call if_changed_dep,rustc_procmacro)
 
 quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L $@
