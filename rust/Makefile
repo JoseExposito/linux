@@ -84,18 +84,17 @@ bindgen_c_flags = $(filter-out $(bindgen_skip_c_flags), $(c_flags)) \
 	$(bindgen_extra_c_flags)
 endif
 
-bindgen_opaque_types := xregs_state desc_struct arch_lbr_state local_apic
-
 # To avoid several recompilations in PowerPC, which inserts `-D_TASK_CPU`
 bindgen_c_flags_final = $(filter-out -D_TASK_CPU=%, $(bindgen_c_flags))
 
 quiet_cmd_bindgen = BINDGEN $@
       cmd_bindgen = \
-	$(BINDGEN) $< $(addprefix --opaque-type , $(bindgen_opaque_types)) \
+	$(BINDGEN) $< $(shell grep -v '^\#\|^$$' $(srctree)/rust/bindgen_parameters) \
 		--use-core --with-derive-default --ctypes-prefix c_types \
 		--size_t-is-usize -o $@ -- $(bindgen_c_flags_final) -DMODULE
 
-$(objtree)/rust/bindings_generated.rs: $(srctree)/rust/kernel/bindings_helper.h FORCE
+$(objtree)/rust/bindings_generated.rs: $(srctree)/rust/kernel/bindings_helper.h \
+	$(srctree)/rust/bindgen_parameters FORCE
 	$(call if_changed_dep,bindgen)
 
 quiet_cmd_exports = EXPORTS $@
