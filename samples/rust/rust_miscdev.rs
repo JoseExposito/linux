@@ -38,13 +38,16 @@ struct SharedState {
 }
 
 impl SharedState {
-    fn try_new() -> Result<Arc<Self>> {
-        let state = Arc::try_new(Self {
-            // SAFETY: `condvar_init!` is called below.
-            state_changed: unsafe { CondVar::new() },
-            // SAFETY: `mutex_init!` is called below.
-            inner: unsafe { Mutex::new(SharedStateInner { token_count: 0 }) },
-        })?;
+    fn try_new() -> Result<Pin<Arc<Self>>> {
+        // SAFETY: `state` is pinning `Arc`, which implements `Unpin`.
+        let state = unsafe {
+            Pin::new_unchecked(Arc::try_new(Self {
+                // SAFETY: `condvar_init!` is called below.
+                state_changed: CondVar::new(),
+                // SAFETY: `mutex_init!` is called below.
+                inner: Mutex::new(SharedStateInner { token_count: 0 }),
+            })?)
+        };
         // SAFETY: `state_changed` is pinned behind `Arc`.
         let state_changed = unsafe { Pin::new_unchecked(&state.state_changed) };
         kernel::condvar_init!(state_changed, "SharedState::state_changed");
@@ -56,11 +59,11 @@ impl SharedState {
 }
 
 struct Token {
-    shared: Arc<SharedState>,
+    shared: Pin<Arc<SharedState>>,
 }
 
-impl FileOpener<Arc<SharedState>> for Token {
-    fn open(shared: &Arc<SharedState>) -> Result<Self::Wrapper> {
+impl FileOpener<Pin<Arc<SharedState>>> for Token {
+    fn open(shared: &Pin<Arc<SharedState>>) -> Result<Self::Wrapper> {
         Ok(Box::try_new(Self {
             shared: shared.clone(),
         })?)
@@ -122,7 +125,7 @@ impl FileOperations for Token {
 }
 
 struct RustMiscdev {
-    _dev: Pin<Box<miscdev::Registration<Arc<SharedState>>>>,
+    _dev: Pin<Box<miscdev::Registration<Pin<Arc<SharedState>>>>>,
 }
 
 impl KernelModule for RustMiscdev {
