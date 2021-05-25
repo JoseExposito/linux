@@ -63,6 +63,7 @@ pub mod sysctl;
 
 pub mod io_buffer;
 pub mod iov_iter;
+pub mod of;
 pub mod platdev;
 mod types;
 pub mod user_ptr;
