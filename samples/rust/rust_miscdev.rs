@@ -39,19 +39,16 @@ struct SharedState {
 
 impl SharedState {
     fn try_new() -> Result<Pin<Arc<Self>>> {
-        // SAFETY: `state` is pinning `Arc`, which implements `Unpin`.
-        let state = unsafe {
-            Pin::new_unchecked(Arc::try_new(Self {
-                // SAFETY: `condvar_init!` is called below.
-                state_changed: CondVar::new(),
-                // SAFETY: `mutex_init!` is called below.
-                inner: Mutex::new(SharedStateInner { token_count: 0 }),
-            })?)
-        };
-        // SAFETY: `state_changed` is pinned behind `Arc`.
+        let state = Arc::try_pin(Self {
+            // SAFETY: `condvar_init!` is called below.
+            state_changed: unsafe { CondVar::new() },
+            // SAFETY: `mutex_init!` is called below.
+            inner: unsafe { Mutex::new(SharedStateInner { token_count: 0 }) },
+        })?;
+        // SAFETY: `state_changed` is pinned behind `Pin<Arc>`.
         let state_changed = unsafe { Pin::new_unchecked(&state.state_changed) };
         kernel::condvar_init!(state_changed, "SharedState::state_changed");
-        // SAFETY: `inner` is pinned behind `Arc`.
+        // SAFETY: `inner` is pinned behind `Pin<Arc>`.
         let inner = unsafe { Pin::new_unchecked(&state.inner) };
         kernel::mutex_init!(inner, "SharedState::inner");
         Ok(state)
