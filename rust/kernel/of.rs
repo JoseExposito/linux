@@ -33,7 +33,7 @@ pub struct OfMatchTable(InnerTable);
 impl OfMatchTable {
     /// Creates a [`OfMatchTable`] from a single `compatible` string.
     pub fn new(compatible: &CStr<'static>) -> Result<Self> {
-        let tbl: InnerTable = Box::try_new([
+        let tbl = Box::try_new([
             Self::new_of_device_id(compatible)?,
             bindings::of_device_id::default(),
         ])?;
