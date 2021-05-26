@@ -84,18 +84,17 @@ bindgen_c_flags = $(filter-out $(bindgen_skip_c_flags), $(c_flags)) \
 	$(bindgen_extra_c_flags)
 endif
 
-bindgen_opaque_types := xregs_state desc_struct arch_lbr_state local_apic
-
 # To avoid several recompilations in PowerPC, which inserts `-D_TASK_CPU`
 bindgen_c_flags_final = $(filter-out -D_TASK_CPU=%, $(bindgen_c_flags))
 
 quiet_cmd_bindgen = BINDGEN $@
       cmd_bindgen = \
-	$(BINDGEN) $< $(addprefix --opaque-type , $(bindgen_opaque_types)) \
+	$(BINDGEN) $< $(shell grep -v '^\#\|^$$' $(srctree)/rust/bindgen_parameters) \
 		--use-core --with-derive-default --ctypes-prefix c_types \
 		--size_t-is-usize -o $@ -- $(bindgen_c_flags_final) -DMODULE
 
-$(objtree)/rust/bindings_generated.rs: $(srctree)/rust/kernel/bindings_helper.h FORCE
+$(objtree)/rust/bindings_generated.rs: $(srctree)/rust/kernel/bindings_helper.h \
+	$(srctree)/rust/bindgen_parameters FORCE
 	$(call if_changed_dep,bindgen)
 
 quiet_cmd_exports = EXPORTS $@
@@ -126,7 +125,11 @@ quiet_cmd_rustc_procmacro = $(RUSTC_OR_CLIPPY_QUIET) P $@
 	mv $(objtree)/rust/$(patsubst lib%.so,%,$(notdir $@)).d $(depfile); \
 	sed -i '/^\#/d' $(depfile)
 
-$(objtree)/rust/libmodule.so: $(srctree)/rust/module.rs FORCE
+# Procedural macros can only be used with the `rustc` that compiled it.
+# Therefore, to get `libmodule.so` automatically recompiled when the compiler
+# version changes, we add `core.o` as a dependency (even if it is not needed).
+$(objtree)/rust/libmodule.so: $(srctree)/rust/module.rs \
+	$(objtree)/rust/core.o FORCE
 	$(call if_changed_dep,rustc_procmacro)
 
 quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L $@

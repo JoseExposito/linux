@@ -2645,6 +2645,7 @@ choice
 	prompt "Build-time assertions"
 	default RUST_BUILD_ASSERT_ALLOW if RUST_OPT_LEVEL_0
 	default RUST_BUILD_ASSERT_DENY if !RUST_OPT_LEVEL_0
+	depends on RUST
 	help
 	  Controls how are `build_error!` and `build_assert!` handled during build.
 

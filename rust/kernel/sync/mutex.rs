@@ -64,7 +64,7 @@ impl<T> Mutex<T> {
 impl<T: ?Sized> Mutex<T> {
     /// Locks the mutex and gives the caller access to the data protected by it. Only one thread at
     /// a time is allowed to access the protected data.
-    pub fn lock(&self) -> Guard<Self> {
+    pub fn lock(&self) -> Guard<'_, Self> {
         self.lock_noguard();
         // SAFETY: The mutex was just acquired.
         unsafe { Guard::new(self) }

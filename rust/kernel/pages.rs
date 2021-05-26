@@ -132,7 +132,7 @@ impl<const ORDER: u32> Pages<ORDER> {
     }
 
     /// Maps the page at index `index`.
-    fn kmap(&self, index: usize) -> Option<PageMapping> {
+    fn kmap(&self, index: usize) -> Option<PageMapping<'_>> {
         if index >= 1usize << ORDER {
             return None;
         }

@@ -27,6 +27,7 @@
 #![deny(clippy::correctness)]
 #![deny(clippy::perf)]
 #![deny(clippy::style)]
+#![deny(rust_2018_idioms)]
 
 // Ensure conditional compilation based on the kernel configuration works;
 // otherwise we may silently break things like initcall handling.

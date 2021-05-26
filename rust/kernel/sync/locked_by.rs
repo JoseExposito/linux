@@ -78,7 +78,7 @@ impl<T, L: Lock + ?Sized> LockedBy<T, L> {
 impl<T: ?Sized, L: Lock + ?Sized> LockedBy<T, L> {
     /// Returns a reference to the protected data when the caller provides evidence (via a
     /// [`Guard`]) that the owner is locked.
-    pub fn access<'a>(&'a self, guard: &'a Guard<L>) -> &'a T {
+    pub fn access<'a>(&'a self, guard: &'a Guard<'_, L>) -> &'a T {
         if !ptr::eq(guard.deref(), self.owner) {
             panic!("guard does not match owner");
         }
@@ -89,7 +89,7 @@ impl<T: ?Sized, L: Lock + ?Sized> LockedBy<T, L> {
 
     /// Returns a mutable reference to the protected data when the caller provides evidence (via a
     /// mutable [`Guard`]) that the owner is locked mutably.
-    pub fn access_mut<'a>(&'a self, guard: &'a mut Guard<L>) -> &'a mut T {
+    pub fn access_mut<'a>(&'a self, guard: &'a mut Guard<'_, L>) -> &'a mut T {
         if !ptr::eq(guard.deref().deref(), self.owner) {
             panic!("guard does not match owner");
         }
