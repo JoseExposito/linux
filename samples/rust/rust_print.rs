@@ -5,6 +5,7 @@
 #![no_std]
 #![feature(allocator_api, global_asm)]
 
+use kernel::pr_cont;
 use kernel::prelude::*;
 
 module! {
