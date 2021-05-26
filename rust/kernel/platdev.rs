@@ -11,8 +11,8 @@ use crate::{
     error::{Error, Result},
     of::OfMatchTable,
     pr_info,
+    str::CStr,
     types::PointerWrapper,
-    CStr,
 };
 use alloc::boxed::Box;
 use core::{marker::PhantomPinned, pin::Pin};
@@ -43,7 +43,7 @@ extern "C" fn remove_callback(_pdev: *mut bindings::platform_device) -> c_types:
 impl Registration {
     fn register(
         self: Pin<&mut Self>,
-        name: CStr<'static>,
+        name: &'static CStr,
         of_match_table: Option<OfMatchTable>,
         module: &'static crate::ThisModule,
     ) -> Result {
@@ -53,7 +53,7 @@ impl Registration {
             // Already registered.
             return Err(Error::EINVAL);
         }
-        this.pdrv.driver.name = name.as_ptr() as *const c_types::c_char;
+        this.pdrv.driver.name = name.as_char_ptr();
         if let Some(tbl) = of_match_table {
             let ptr = tbl.into_pointer();
             this.of_table = Some(ptr);
@@ -82,7 +82,7 @@ impl Registration {
     ///
     /// Returns a pinned heap-allocated representation of the registration.
     pub fn new_pinned(
-        name: CStr<'static>,
+        name: &'static CStr,
         of_match_tbl: Option<OfMatchTable>,
         module: &'static crate::ThisModule,
     ) -> Result<Pin<Box<Self>>> {

@@ -17,7 +17,8 @@
 //! }
 //! ```
 
-use crate::{bindings, c_types, CStr};
+use crate::str::CStr;
+use crate::{bindings, c_types};
 use core::pin::Pin;
 
 mod arc;
@@ -51,7 +52,7 @@ macro_rules! init_with_lockdep {
         // SAFETY: `CLASS` is never used by Rust code directly; the kernel may change it though.
         #[allow(unused_unsafe)]
         unsafe {
-            $crate::sync::NeedsLockClass::init($obj, $crate::cstr!($name), CLASS.as_mut_ptr())
+            $crate::sync::NeedsLockClass::init($obj, $crate::c_str!($name), CLASS.as_mut_ptr())
         };
     }};
 }
@@ -69,7 +70,7 @@ pub trait NeedsLockClass {
     /// # Safety
     ///
     /// `key` must point to a valid memory location as it will be used by the kernel.
-    unsafe fn init(self: Pin<&Self>, name: CStr<'static>, key: *mut bindings::lock_class_key);
+    unsafe fn init(self: Pin<&Self>, name: &'static CStr, key: *mut bindings::lock_class_key);
 }
 
 /// Determines if a signal is pending on the current process.

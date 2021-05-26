@@ -9,8 +9,8 @@ use alloc::boxed::Box;
 use crate::{
     bindings, c_types,
     error::{Error, Result},
+    str::CStr,
     types::PointerWrapper,
-    CStr,
 };
 
 use core::mem::transmute;
@@ -32,7 +32,7 @@ pub struct OfMatchTable(InnerTable);
 
 impl OfMatchTable {
     /// Creates a [`OfMatchTable`] from a single `compatible` string.
-    pub fn new(compatible: &CStr<'static>) -> Result<Self> {
+    pub fn new(compatible: &'static CStr) -> Result<Self> {
         let tbl = Box::try_new([
             Self::new_of_device_id(compatible)?,
             bindings::of_device_id::default(),
@@ -43,7 +43,7 @@ impl OfMatchTable {
         Ok(Self(tbl))
     }
 
-    fn new_of_device_id(compatible: &CStr<'static>) -> Result<bindings::of_device_id> {
+    fn new_of_device_id(compatible: &'static CStr) -> Result<bindings::of_device_id> {
         let mut buf = [0_u8; 128];
         if compatible.len() > buf.len() {
             return Err(Error::EINVAL);

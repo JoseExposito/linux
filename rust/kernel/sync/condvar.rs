@@ -6,7 +6,8 @@
 //! variable.
 
 use super::{Guard, Lock, NeedsLockClass};
-use crate::{bindings, CStr};
+use crate::bindings;
+use crate::str::CStr;
 use core::{cell::UnsafeCell, marker::PhantomPinned, mem::MaybeUninit, pin::Pin};
 
 extern "C" {
@@ -130,7 +131,7 @@ impl CondVar {
 }
 
 impl NeedsLockClass for CondVar {
-    unsafe fn init(self: Pin<&Self>, name: CStr<'static>, key: *mut bindings::lock_class_key) {
-        bindings::__init_waitqueue_head(self.wait_list.get(), name.as_ptr() as _, key);
+    unsafe fn init(self: Pin<&Self>, name: &'static CStr, key: *mut bindings::lock_class_key) {
+        bindings::__init_waitqueue_head(self.wait_list.get(), name.as_char_ptr(), key);
     }
 }
