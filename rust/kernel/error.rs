@@ -4,16 +4,19 @@
 //!
 //! C header: [`include/uapi/asm-generic/errno-base.h`](../../../include/uapi/asm-generic/errno-base.h)
 
+use crate::str::CStr;
 use crate::{bindings, c_types};
 use alloc::{alloc::AllocError, collections::TryReserveError};
 use core::convert::From;
-use core::{num::TryFromIntError, str::Utf8Error};
+use core::fmt;
+use core::num::TryFromIntError;
+use core::str::{self, Utf8Error};
 
 /// Generic integer kernel error.
 ///
 /// The kernel defines a set of integer generic error codes based on C and
 /// POSIX ones. These codes may have a more specific meaning in some contexts.
-#[derive(Debug)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Error(c_types::c_int);
 
 impl Error {
@@ -58,6 +61,27 @@ impl Error {
     /// Returns the kernel error code.
     pub fn to_kernel_errno(&self) -> c_types::c_int {
         self.0
+    }
+}
+
+impl fmt::Debug for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // SAFETY: FFI call.
+        #[cfg(CONFIG_SYMBOLIC_ERRNAME)]
+        let name = unsafe { crate::bindings::errname(-self.0) };
+        #[cfg(not(CONFIG_SYMBOLIC_ERRNAME))]
+        let name: *const c_types::c_char = core::ptr::null();
+
+        if name.is_null() {
+            // Print out number if no name can be found.
+            return f.debug_tuple("Error").field(&-self.0).finish();
+        }
+
+        // SAFETY: `'static` string from C, and is not NULL.
+        let cstr = unsafe { CStr::from_char_ptr(name) };
+        // SAFETY: These strings are ASCII-only.
+        let str = unsafe { str::from_utf8_unchecked(&cstr) };
+        f.debug_tuple(str).finish()
     }
 }
 
