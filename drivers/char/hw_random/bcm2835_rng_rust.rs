@@ -28,7 +28,7 @@ impl KernelModule for RngModule {
         let of_match_tbl = OfMatchTable::new(&c_str!("brcm,bcm2835-rng"))?;
 
         let pdev = platdev::Registration::new_pinned(
-            cstr!("bcm2835-rng-rust"),
+            c_str!("bcm2835-rng-rust"),
             Some(of_match_tbl),
             &THIS_MODULE,
         )?;
