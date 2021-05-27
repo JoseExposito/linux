@@ -212,13 +212,14 @@ pub(crate) struct Node {
     pub(crate) global_id: u64,
     ptr: usize,
     cookie: usize,
+    pub(crate) flags: u32,
     pub(crate) owner: Ref<Process>,
     inner: LockedBy<NodeInner, Mutex<ProcessInner>>,
     links: Links<dyn DeliverToRead>,
 }
 
 impl Node {
-    pub(crate) fn new(ptr: usize, cookie: usize, owner: Ref<Process>) -> Self {
+    pub(crate) fn new(ptr: usize, cookie: usize, flags: u32, owner: Ref<Process>) -> Self {
         static NEXT_ID: AtomicU64 = AtomicU64::new(1);
         let inner = LockedBy::new(
             &owner.inner,
@@ -232,6 +233,7 @@ impl Node {
             global_id: NEXT_ID.fetch_add(1, Ordering::Relaxed),
             ptr,
             cookie,
+            flags,
             owner,
             inner,
             links: Links::new(),

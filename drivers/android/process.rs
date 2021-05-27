@@ -367,12 +367,18 @@ impl Process {
     }
 
     fn set_as_manager(&self, info: Option<FlatBinderObject>, thread: &Thread) -> Result {
-        let (ptr, cookie) = if let Some(obj) = info {
-            (unsafe { obj.__bindgen_anon_1.binder }, obj.cookie)
+        let (ptr, cookie, flags) = if let Some(obj) = info {
+            (
+                // SAFETY: The object type for this ioctl is implicitly `BINDER_TYPE_BINDER`, so it
+                // is safe to access the `binder` field.
+                unsafe { obj.__bindgen_anon_1.binder },
+                obj.cookie,
+                obj.flags,
+            )
         } else {
-            (0, 0)
+            (0, 0, 0)
         };
-        let node_ref = self.get_node(ptr as _, cookie as _, true, Some(thread))?;
+        let node_ref = self.get_node(ptr as _, cookie as _, flags as _, true, Some(thread))?;
         let node = node_ref.node.clone();
         self.ctx.set_manager_node(node_ref)?;
         self.inner.lock().is_manager = true;
@@ -387,6 +393,7 @@ impl Process {
         &self,
         ptr: usize,
         cookie: usize,
+        flags: u32,
         strong: bool,
         thread: Option<&Thread>,
     ) -> Result<NodeRef> {
@@ -399,7 +406,7 @@ impl Process {
         }
 
         // Allocate the node before reacquiring the lock.
-        let node = Arc::try_new(Node::new(ptr, cookie, Ref::new_from(self)))?;
+        let node = Arc::try_new(Node::new(ptr, cookie, flags, Ref::new_from(self)))?;
 
         let mut inner = self.inner.lock();
         if let Some(node) = inner.get_existing_node_ref(ptr, cookie, strong, thread)? {

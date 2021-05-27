@@ -389,7 +389,10 @@ impl Thread {
                     // SAFETY: The type is `BINDER_TYPE_{WEAK_}BINDER`, so `binder` is populated.
                     let ptr = unsafe { obj.__bindgen_anon_1.binder } as _;
                     let cookie = obj.cookie as _;
-                    Ok(self.process.get_node(ptr, cookie, strong, Some(self))?)
+                    let flags = obj.flags as _;
+                    Ok(self
+                        .process
+                        .get_node(ptr, cookie, flags, strong, Some(self))?)
                 })?;
             }
             bindings::BINDER_TYPE_WEAK_HANDLE | bindings::BINDER_TYPE_HANDLE => {
