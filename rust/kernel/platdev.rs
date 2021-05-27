@@ -9,8 +9,8 @@
 use crate::{
     bindings, c_types,
     error::{Error, Result},
+    from_kernel_result,
     of::OfMatchTable,
-    pr_info,
     str::CStr,
     types::PointerWrapper,
 };
@@ -30,18 +30,30 @@ pub struct Registration {
 // (it is fine for multiple threads to have a shared reference to it).
 unsafe impl Sync for Registration {}
 
-extern "C" fn probe_callback(_pdev: *mut bindings::platform_device) -> c_types::c_int {
-    pr_info!("Rust platform_device probed\n");
-    0
+extern "C" fn probe_callback<P: PlatformDriver>(
+    pdev: *mut bindings::platform_device,
+) -> c_types::c_int {
+    from_kernel_result! {
+        // SAFETY: `pdev` is guaranteed to be a valid, non-null pointer.
+        let device_id = unsafe { (*pdev).id };
+        P::probe(device_id)?;
+        Ok(0)
+    }
 }
 
-extern "C" fn remove_callback(_pdev: *mut bindings::platform_device) -> c_types::c_int {
-    pr_info!("Rust platform_device removed\n");
-    0
+extern "C" fn remove_callback<P: PlatformDriver>(
+    pdev: *mut bindings::platform_device,
+) -> c_types::c_int {
+    from_kernel_result! {
+        // SAFETY: `pdev` is guaranteed to be a valid, non-null pointer.
+        let device_id = unsafe { (*pdev).id };
+        P::remove(device_id)?;
+        Ok(0)
+    }
 }
 
 impl Registration {
-    fn register(
+    fn register<P: PlatformDriver>(
         self: Pin<&mut Self>,
         name: &'static CStr,
         of_match_table: Option<OfMatchTable>,
@@ -59,8 +71,8 @@ impl Registration {
             this.of_table = Some(ptr);
             this.pdrv.driver.of_match_table = ptr.cast();
         }
-        this.pdrv.probe = Some(probe_callback);
-        this.pdrv.remove = Some(remove_callback);
+        this.pdrv.probe = Some(probe_callback::<P>);
+        this.pdrv.remove = Some(remove_callback::<P>);
         // SAFETY:
         //   - `this.pdrv` lives at least until the call to `platform_driver_unregister()` returns.
         //   - `name` pointer has static lifetime.
@@ -81,13 +93,13 @@ impl Registration {
     /// Registers a platform device.
     ///
     /// Returns a pinned heap-allocated representation of the registration.
-    pub fn new_pinned(
+    pub fn new_pinned<P: PlatformDriver>(
         name: &'static CStr,
         of_match_tbl: Option<OfMatchTable>,
         module: &'static crate::ThisModule,
     ) -> Result<Pin<Box<Self>>> {
         let mut r = Pin::from(Box::try_new(Self::default())?);
-        r.as_mut().register(name, of_match_tbl, module)?;
+        r.as_mut().register::<P>(name, of_match_tbl, module)?;
         Ok(r)
     }
 }
@@ -106,4 +118,21 @@ impl Drop for Registration {
             drop(tbl);
         }
     }
+}
+
+/// Trait for implementers of platform drivers.
+///
+/// Implement this trait whenever you create a platform driver.
+pub trait PlatformDriver {
+    /// Platform driver probe.
+    ///
+    /// Called when a new platform device is added or discovered.
+    /// Implementers should attempt to initialize the device here.
+    fn probe(device_id: i32) -> Result;
+
+    /// Platform driver remove.
+    ///
+    /// Called when a platform device is removed.
+    /// Implementers should prepare the device for complete removal here.
+    fn remove(device_id: i32) -> Result;
 }
