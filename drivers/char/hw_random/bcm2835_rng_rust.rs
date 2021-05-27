@@ -7,10 +7,16 @@
 
 use alloc::boxed::Box;
 use core::pin::Pin;
-use kernel::of::OfMatchTable;
-use kernel::platdev::PlatformDriver;
-use kernel::prelude::*;
-use kernel::{c_str, platdev};
+use kernel::{
+    file::File,
+    file_operations::{FileOpener, FileOperations},
+    io_buffer::IoBufferWriter,
+    miscdev,
+    of::OfMatchTable,
+    platdev::PlatformDriver,
+    prelude::*,
+    {c_str, platdev},
+};
 
 module! {
     type: RngModule,
@@ -20,15 +26,41 @@ module! {
     license: b"GPL v2",
 }
 
+struct RngDevice;
+
+impl FileOpener<()> for RngDevice {
+    fn open(_state: &()) -> Result<Self::Wrapper> {
+        Ok(Box::try_new(RngDevice)?)
+    }
+}
+
+impl FileOperations for RngDevice {
+    kernel::declare_file_operations!(read);
+
+    fn read<T: IoBufferWriter>(&self, _: &File, data: &mut T, offset: u64) -> Result<usize> {
+        // Succeed if the caller doesn't provide a buffer or if not at the start.
+        if data.is_empty() || offset != 0 {
+            return Ok(0);
+        }
+
+        data.write(&0_u32)?;
+        Ok(4)
+    }
+}
+
 struct RngDriver;
 
 impl PlatformDriver for RngDriver {
-    fn probe(device_id: i32) -> Result {
+    type DrvData = Pin<Box<miscdev::Registration<()>>>;
+
+    fn probe(device_id: i32) -> Result<Self::DrvData> {
         pr_info!("probing discovered hwrng with id {}\n", device_id);
-        Ok(())
+        let drv_data =
+            miscdev::Registration::new_pinned::<RngDevice>(c_str!("rust_hwrng"), None, ())?;
+        Ok(drv_data)
     }
 
-    fn remove(device_id: i32) -> Result {
+    fn remove(device_id: i32, _drv_data: Self::DrvData) -> Result {
         pr_info!("removing hwrng with id {}\n", device_id);
         Ok(())
     }
