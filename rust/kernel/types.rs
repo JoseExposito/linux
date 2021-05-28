@@ -91,3 +91,66 @@ impl<T: PointerWrapper + Deref> PointerWrapper for Pin<T> {
         Pin::new_unchecked(T::from_pointer(p))
     }
 }
+
+/// Runs a cleanup function/closure when dropped.
+///
+/// The [`ScopeGuard::dismiss`] function prevents the cleanup function from running.
+///
+/// # Examples
+///
+/// In the example below, we have multiple exit paths and we want to log regardless of which one is
+/// taken:
+/// ```
+/// fn example1(arg: bool) {
+///     let _log = ScopeGuard::new(|| pr_info!("example1 completed\n"));
+///
+///     if arg {
+///         return;
+///     }
+///
+///     // Do something...
+/// }
+/// ```
+///
+/// In the example below, we want to log the same message on all early exits but a different one on
+/// the main exit path:
+/// ```
+/// fn example2(arg: bool) {
+///     let log = ScopeGuard::new(|| pr_info!("example2 returned early\n"));
+///
+///     if arg {
+///         return;
+///     }
+///
+///     // (Other early returns...)
+///
+///     log.dismiss();
+///     pr_info!("example2 no early return\n");
+/// }
+/// ```
+pub struct ScopeGuard<T: FnOnce()> {
+    cleanup_func: Option<T>,
+}
+
+impl<T: FnOnce()> ScopeGuard<T> {
+    /// Creates a new cleanup object with the given cleanup function.
+    pub fn new(cleanup_func: T) -> Self {
+        Self {
+            cleanup_func: Some(cleanup_func),
+        }
+    }
+
+    /// Prevents the cleanup function from running.
+    pub fn dismiss(mut self) {
+        self.cleanup_func.take();
+    }
+}
+
+impl<T: FnOnce()> Drop for ScopeGuard<T> {
+    fn drop(&mut self) {
+        // Run the cleanup function if one is still present.
+        if let Some(cleanup) = self.cleanup_func.take() {
+            cleanup();
+        }
+    }
+}
