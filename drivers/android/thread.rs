@@ -383,8 +383,8 @@ impl Thread {
         let header = view.read::<bindings::binder_object_header>(offset)?;
         // TODO: Handle other types.
         match header.type_ {
-            bindings::BINDER_TYPE_WEAK_BINDER | bindings::BINDER_TYPE_BINDER => {
-                let strong = header.type_ == bindings::BINDER_TYPE_BINDER;
+            BINDER_TYPE_WEAK_BINDER | BINDER_TYPE_BINDER => {
+                let strong = header.type_ == BINDER_TYPE_BINDER;
                 view.transfer_binder_object(offset, strong, |obj| {
                     // SAFETY: The type is `BINDER_TYPE_{WEAK_}BINDER`, so `binder` is populated.
                     let ptr = unsafe { obj.__bindgen_anon_1.binder } as _;
@@ -392,8 +392,8 @@ impl Thread {
                     Ok(self.process.get_node(ptr, cookie, strong, Some(self))?)
                 })?;
             }
-            bindings::BINDER_TYPE_WEAK_HANDLE | bindings::BINDER_TYPE_HANDLE => {
-                let strong = header.type_ == bindings::BINDER_TYPE_HANDLE;
+            BINDER_TYPE_WEAK_HANDLE | BINDER_TYPE_HANDLE => {
+                let strong = header.type_ == BINDER_TYPE_HANDLE;
                 view.transfer_binder_object(offset, strong, |obj| {
                     // SAFETY: The type is `BINDER_TYPE_{WEAK_}HANDLE`, so `handle` is populated.
                     let handle = unsafe { obj.__bindgen_anon_1.handle } as _;
@@ -615,7 +615,7 @@ impl Thread {
             match reader.read::<u32>()? {
                 BC_TRANSACTION => {
                     let tr = reader.read::<BinderTransactionData>()?;
-                    if tr.flags & bindings::transaction_flags_TF_ONE_WAY != 0 {
+                    if tr.flags & TF_ONE_WAY != 0 {
                         self.transaction(&tr, Self::oneway_transaction_inner)
                     } else {
                         self.transaction(&tr, Self::transaction_inner)

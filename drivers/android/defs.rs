@@ -51,6 +51,13 @@ pub_no_prefix!(
     BC_DEAD_BINDER_DONE
 );
 
+pub_no_prefix!(transaction_flags_, TF_ONE_WAY, TF_ACCEPT_FDS);
+
+pub(crate) use bindings::{
+    BINDER_TYPE_BINDER, BINDER_TYPE_FD, BINDER_TYPE_HANDLE, BINDER_TYPE_WEAK_BINDER,
+    BINDER_TYPE_WEAK_HANDLE, FLAT_BINDER_FLAG_ACCEPTS_FDS,
+};
+
 macro_rules! decl_wrapper {
     ($newname:ident, $wrapped:ty) => {
         #[derive(Copy, Clone, Default)]
