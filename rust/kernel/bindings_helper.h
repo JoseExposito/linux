@@ -13,6 +13,7 @@
 #include <linux/miscdevice.h>
 #include <linux/poll.h>
 #include <linux/mm.h>
+#include <linux/file.h>
 #include <uapi/linux/android/binder.h>
 #include <linux/platform_device.h>
 #include <linux/of_platform.h>

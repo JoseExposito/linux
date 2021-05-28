@@ -53,6 +53,9 @@ impl Error {
     /// Interrupted system call.
     pub const EINTR: Self = Error(-(bindings::EINTR as i32));
 
+    /// Bad file number.
+    pub const EBADF: Self = Error(-(bindings::EBADF as i32));
+
     /// Creates an [`Error`] from a kernel error code.
     pub fn from_kernel_errno(errno: c_types::c_int) -> Error {
         Error(errno)
