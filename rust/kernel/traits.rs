@@ -8,7 +8,7 @@ use alloc::{alloc::AllocError, sync::Arc};
 
 /// Trait which provides a fallible version of `pin()` for pointer types.
 ///
-/// Common pointer types which implement a `pin()` method include [`Box`], [`Arc`] and [`Rc`].
+/// Common pointer types which implement a `pin()` method include [`Box`](alloc::boxed::Box) and [`Arc`].
 pub trait TryPin<P: Deref> {
     /// Constructs a new `Pin<pointer<T>>`. If `T` does not implement [`Unpin`], then data
     /// will be pinned in memory and unable to be moved. An error will be returned
