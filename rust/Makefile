@@ -91,6 +91,7 @@ quiet_cmd_bindgen = BINDGEN $@
       cmd_bindgen = \
 	$(BINDGEN) $< $(shell grep -v '^\#\|^$$' $(srctree)/rust/bindgen_parameters) \
 		--use-core --with-derive-default --ctypes-prefix c_types \
+		--no-debug '.*' \
 		--size_t-is-usize -o $@ -- $(bindgen_c_flags_final) -DMODULE
 
 $(objtree)/rust/bindings_generated.rs: $(srctree)/rust/kernel/bindings_helper.h \
