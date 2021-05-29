@@ -121,8 +121,9 @@ impl Drop for Allocation<'_> {
         }
 
         if let Some(info) = &self.allocation_info {
-            let view = AllocationView::new(self, info.offsets.start);
-            for i in info.offsets.clone().step_by(size_of::<usize>()) {
+            let offsets = info.offsets.clone();
+            let view = AllocationView::new(self, offsets.start);
+            for i in offsets.step_by(size_of::<usize>()) {
                 if view.cleanup_object(i).is_err() {
                     pr_warn!("Error cleaning up object at offset {}\n", i)
                 }
@@ -133,13 +134,13 @@ impl Drop for Allocation<'_> {
     }
 }
 
-pub(crate) struct AllocationView<'a> {
-    alloc: &'a Allocation<'a>,
+pub(crate) struct AllocationView<'a, 'b> {
+    pub(crate) alloc: &'a mut Allocation<'b>,
     limit: usize,
 }
 
-impl<'a> AllocationView<'a> {
-    pub(crate) fn new(alloc: &'a Allocation, limit: usize) -> Self {
+impl<'a, 'b> AllocationView<'a, 'b> {
+    pub(crate) fn new(alloc: &'a mut Allocation<'b>, limit: usize) -> Self {
         AllocationView { alloc, limit }
     }
 
