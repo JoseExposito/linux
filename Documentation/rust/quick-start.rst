@@ -24,15 +24,12 @@ rustc
 *****
 
 A recent *nightly* Rust toolchain (with, at least, ``rustc``) is required,
-e.g. ``nightly-2021-02-20``. Our goal is to use a stable toolchain as soon
+e.g. ``nightly-2021-05-29``. Our goal is to use a stable toolchain as soon
 as possible, but for the moment we depend on a handful of nightly features.
 
 If you are using ``rustup``, run::
 
-    rustup default nightly-2021-02-20
-
-Please avoid the very latest nightlies (>= nightly-2021-03-05) until
-https://github.com/Rust-for-Linux/linux/issues/135 is resolved.
+    rustup default nightly-2021-05-29
 
 Otherwise, fetch a standalone installer or install ``rustup`` from:
 
