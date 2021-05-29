@@ -4,7 +4,7 @@
 
 #![no_std]
 #![feature(allocator_api, global_asm)]
-#![feature(test)]
+#![feature(bench_black_box)]
 
 use kernel::prelude::*;
 

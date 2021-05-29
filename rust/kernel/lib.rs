@@ -16,7 +16,7 @@
     allocator_api,
     alloc_error_handler,
     associated_type_defaults,
-    const_fn,
+    const_fn_trait_bound,
     const_mut_refs,
     const_panic,
     const_raw_ptr_deref,
