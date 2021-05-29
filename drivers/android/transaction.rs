@@ -24,7 +24,7 @@ pub(crate) struct Transaction {
     to: Ref<Process>,
     free_allocation: AtomicBool,
     code: u32,
-    flags: u32,
+    pub(crate) flags: u32,
     data_size: usize,
     offsets_size: usize,
     data_address: usize,
@@ -38,8 +38,9 @@ impl Transaction {
         from: &Arc<Thread>,
         tr: &BinderTransactionData,
     ) -> BinderResult<Self> {
+        let allow_fds = node_ref.node.flags & FLAT_BINDER_FLAG_ACCEPTS_FDS != 0;
         let to = node_ref.node.owner.clone();
-        let alloc = from.copy_transaction_data(&to, tr)?;
+        let alloc = from.copy_transaction_data(&to, tr, allow_fds)?;
         let data_address = alloc.ptr;
         alloc.keep_alive();
         Ok(Self {
@@ -61,8 +62,9 @@ impl Transaction {
         from: &Arc<Thread>,
         to: Ref<Process>,
         tr: &BinderTransactionData,
+        allow_fds: bool,
     ) -> BinderResult<Self> {
-        let alloc = from.copy_transaction_data(&to, tr)?;
+        let alloc = from.copy_transaction_data(&to, tr, allow_fds)?;
         let data_address = alloc.ptr;
         alloc.keep_alive();
         Ok(Self {

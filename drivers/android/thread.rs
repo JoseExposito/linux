@@ -378,6 +378,7 @@ impl Thread {
         index_offset: usize,
         alloc: &Allocation,
         view: &AllocationView,
+        allow_fds: bool,
     ) -> BinderResult {
         let offset = alloc.read(index_offset)?;
         let header = view.read::<bindings::binder_object_header>(offset)?;
@@ -403,15 +404,26 @@ impl Thread {
                     self.process.get_node_from_handle(handle, strong)
                 })?;
             }
+            BINDER_TYPE_FD => {
+                if !allow_fds {
+                    return Err(BinderError::new_failed());
+                }
+            }
             _ => pr_warn!("Unsupported binder object type: {:x}\n", header.type_),
         }
         Ok(())
     }
 
-    fn translate_objects(&self, alloc: &mut Allocation, start: usize, end: usize) -> BinderResult {
+    fn translate_objects(
+        &self,
+        alloc: &mut Allocation,
+        start: usize,
+        end: usize,
+        allow_fds: bool,
+    ) -> BinderResult {
         let view = AllocationView::new(&alloc, start);
         for i in (start..end).step_by(size_of::<usize>()) {
-            if let Err(err) = self.translate_object(i, alloc, &view) {
+            if let Err(err) = self.translate_object(i, alloc, &view, allow_fds) {
                 alloc.set_info(AllocationInfo { offsets: start..i });
                 return Err(err);
             }
@@ -426,6 +438,7 @@ impl Thread {
         &self,
         to_process: &'a Process,
         tr: &BinderTransactionData,
+        allow_fds: bool,
     ) -> BinderResult<Allocation<'a>> {
         let data_size = tr.data_size as _;
         let adata_size = ptr_align(data_size);
@@ -450,7 +463,12 @@ impl Thread {
             alloc.copy_into(&mut reader, adata_size, offsets_size)?;
 
             // Traverse the objects specified.
-            self.translate_objects(&mut alloc, adata_size, adata_size + aoffsets_size)?;
+            self.translate_objects(
+                &mut alloc,
+                adata_size,
+                adata_size + aoffsets_size,
+                allow_fds,
+            )?;
         }
 
         Ok(alloc)
@@ -540,7 +558,8 @@ impl Thread {
         (|| -> BinderResult<_> {
             let completion = Arc::try_new(DeliverCode::new(BR_TRANSACTION_COMPLETE))?;
             let process = orig.from.process.clone();
-            let reply = Arc::try_new(Transaction::new_reply(self, process, tr)?)?;
+            let allow_fds = orig.flags & TF_ACCEPT_FDS != 0;
+            let reply = Arc::try_new(Transaction::new_reply(self, process, tr, allow_fds)?)?;
             self.inner.lock().push_work(completion);
             orig.from.deliver_reply(Either::Left(reply), &orig);
             Ok(())
