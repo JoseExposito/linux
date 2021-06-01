@@ -4,7 +4,7 @@ use alloc::sync::Arc;
 use core::sync::atomic::{AtomicBool, Ordering};
 use kernel::{
     io_buffer::IoBufferWriter, linked_list::Links, prelude::*, sync::Ref,
-    user_ptr::UserSlicePtrWriter,
+    user_ptr::UserSlicePtrWriter, ScopeGuard,
 };
 
 use crate::{
@@ -144,6 +144,10 @@ impl DeliverToRead for Transaction {
             pub sender_pid: pid_t,
             pub sender_euid: uid_t,
         */
+        let send_failed_reply = ScopeGuard::new(|| {
+            let reply = Either::Right(BR_FAILED_REPLY);
+            self.from.deliver_reply(reply, &self);
+        });
         let mut tr = BinderTransactionData::default();
 
         if let Some(nref) = &self.node_ref {
@@ -171,13 +175,13 @@ impl DeliverToRead for Transaction {
             BR_TRANSACTION
         };
 
-        // Write the transaction code and data to the user buffer. On failure we complete the
-        // transaction with an error.
-        if let Err(err) = writer.write(&code).and_then(|_| writer.write(&tr)) {
-            let reply = Either::Right(BR_FAILED_REPLY);
-            self.from.deliver_reply(reply, &self);
-            return Err(err);
-        }
+        // Write the transaction code and data to the user buffer.
+        writer.write(&code)?;
+        writer.write(&tr)?;
+
+        // Dismiss the completion of transaction with a failure. No failure paths are allowed from
+        // here on out.
+        send_failed_reply.dismiss();
 
         // When this is not a reply and not an async transaction, update `current_transaction`. If
         // it's a reply, `current_transaction` has already been updated appropriately.
