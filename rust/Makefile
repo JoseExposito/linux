@@ -151,19 +151,9 @@ RUST_LIB_SRC ?= $(rustc_sysroot)/lib/rustlib/src/rust/library
 rust-analyzer:
 	$(Q)$(srctree)/scripts/generate_rust_analyzer.py $(srctree) $(objtree) $(RUST_LIB_SRC) $(objtree)/rust/bindings_generated.rs > $(objtree)/rust-project.json
 
-.SECONDEXPANSION:
-$(objtree)/rust/core.o: private skip_clippy = 1
-$(objtree)/rust/core.o: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
-	$(call if_changed_dep,rustc_library)
-
 $(objtree)/rust/compiler_builtins.o: private rustc_objcopy = -w -W '__*'
 $(objtree)/rust/compiler_builtins.o: $(srctree)/rust/compiler_builtins.rs \
     $(objtree)/rust/core.o FORCE
-	$(call if_changed_dep,rustc_library)
-
-$(objtree)/rust/alloc.o: private skip_clippy = 1
-$(objtree)/rust/alloc.o: $$(RUST_LIB_SRC)/alloc/src/lib.rs \
-    $(objtree)/rust/compiler_builtins.o FORCE
 	$(call if_changed_dep,rustc_library)
 
 $(objtree)/rust/build_error.o: $(srctree)/rust/build_error.rs \
@@ -177,4 +167,15 @@ $(objtree)/rust/kernel.o: private rustc_target_flags = --extern alloc \
 $(objtree)/rust/kernel.o: $(srctree)/rust/kernel/lib.rs $(objtree)/rust/alloc.o \
     $(objtree)/rust/build_error.o \
     $(objtree)/rust/libmacros.so $(objtree)/rust/bindings_generated.rs FORCE
+	$(call if_changed_dep,rustc_library)
+
+# Targets that need to expand twice
+.SECONDEXPANSION:
+$(objtree)/rust/core.o: private skip_clippy = 1
+$(objtree)/rust/core.o: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
+	$(call if_changed_dep,rustc_library)
+
+$(objtree)/rust/alloc.o: private skip_clippy = 1
+$(objtree)/rust/alloc.o: $$(RUST_LIB_SRC)/alloc/src/lib.rs \
+    $(objtree)/rust/compiler_builtins.o FORCE
 	$(call if_changed_dep,rustc_library)
