@@ -16,6 +16,10 @@ use core::str::{self, Utf8Error};
 ///
 /// The kernel defines a set of integer generic error codes based on C and
 /// POSIX ones. These codes may have a more specific meaning in some contexts.
+///
+/// # Invariants
+///
+/// The value is a valid `errno` (i.e. `>= -MAX_ERRNO && < 0`).
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Error(c_types::c_int);
 
@@ -57,7 +61,32 @@ impl Error {
     pub const EBADF: Self = Error(-(bindings::EBADF as i32));
 
     /// Creates an [`Error`] from a kernel error code.
-    pub fn from_kernel_errno(errno: c_types::c_int) -> Error {
+    ///
+    /// It is a bug to pass an out-of-range `errno`. `EINVAL` would
+    /// be returned in such a case.
+    pub(crate) fn from_kernel_errno(errno: c_types::c_int) -> Error {
+        if errno < -(bindings::MAX_ERRNO as i32) || errno >= 0 {
+            // TODO: make it a `WARN_ONCE` once available.
+            crate::pr_warn!(
+                "attempted to create `Error` with out of range `errno`: {}",
+                errno
+            );
+            return Error::EINVAL;
+        }
+
+        // INVARIANT: the check above ensures the type invariant
+        // will hold.
+        Error(errno)
+    }
+
+    /// Creates an [`Error`] from a kernel error code.
+    ///
+    /// # Safety
+    ///
+    /// `errno` must be within error code range (i.e. `>= -MAX_ERRNO && < 0`).
+    pub(crate) unsafe fn from_kernel_errno_unchecked(errno: c_types::c_int) -> Error {
+        // INVARIANT: the contract ensures the type invariant
+        // will hold.
         Error(errno)
     }
 
@@ -227,7 +256,10 @@ pub(crate) fn from_kernel_err_ptr<T>(ptr: *mut T) -> Result<*mut T> {
         // which always fits in an `i16`, as per the invariant above.
         // And an `i16` always fits in an `i32`. So casting `err` to
         // an `i32` can never overflow, and is always valid.
-        return Err(Error::from_kernel_errno(err as i32));
+        //
+        // SAFETY: `rust_helper_is_err()` ensures `err` is a
+        // negative value greater-or-equal to `-bindings::MAX_ERRNO`
+        return Err(unsafe { Error::from_kernel_errno_unchecked(err as i32) });
     }
     Ok(ptr)
 }
