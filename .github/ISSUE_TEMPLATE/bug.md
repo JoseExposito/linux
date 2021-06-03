@@ -1,10 +1,11 @@
 ---
 name: Bug
 about: Related to runtime bugs, panics, warnings...
-labels: bug
+labels: • bug
 ---
 **Description**
-<!-- What the bug is and/or how to reproduce it.
+<!--
+What the bug is and/or how to reproduce it.
 
 Some common details that are typically useful to know are below -- please fill/remove as needed.
 
@@ -30,7 +31,6 @@ Other details that may be useful to know, if relevant:
   - QEMU:
 
 
-**Kernel log**
 <details><summary><strong>Kernel log</strong></summary>
 <p>
 
@@ -42,7 +42,6 @@ Paste it here -- feel free to reduce it to the relevant parts.
 </details>
 
 
-**Kernel config**
 <details><summary><strong>Kernel config</strong></summary>
 <p>
 
