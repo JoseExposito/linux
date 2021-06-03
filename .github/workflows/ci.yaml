@@ -116,7 +116,7 @@ jobs:
           echo 'QEMU_ARGS=-bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.elf' >> $GITHUB_ENV
 
       - if: matrix.toolchain == 'clang'
-        run: echo 'MAKE_TOOLCHAIN=CC=clang-11' >> $GITHUB_ENV
+        run: echo 'MAKE_TOOLCHAIN=CC=clang-12' >> $GITHUB_ENV
       - if: matrix.toolchain == 'llvm'
         run: echo 'MAKE_TOOLCHAIN=LLVM=1' >> $GITHUB_ENV
 
@@ -137,10 +137,10 @@ jobs:
 
       # Setup: LLVM
       - run: curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-      - run: sudo add-apt-repository 'deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main'
+      - run: sudo add-apt-repository 'deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main'
       - run: sudo apt-get update -y
-      - run: sudo apt-get install -y llvm-11 clang-11 lld-11
-      - run: echo $(llvm-config-11 --bindir) >> $GITHUB_PATH
+      - run: sudo apt-get install -y llvm-12 clang-12 lld-12
+      - run: echo $(llvm-config-12 --bindir) >> $GITHUB_PATH
 
       # Setup: GCC
       - if: matrix.arch == 'arm'
