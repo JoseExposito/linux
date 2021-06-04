@@ -213,6 +213,3 @@ macro_rules! container_of {
         unsafe { ($ptr as *const _ as *const u8).offset(-offset) as *const $type }
     }}
 }
-
-#[global_allocator]
-static ALLOCATOR: allocator::KernelAllocator = allocator::KernelAllocator;
