@@ -70,7 +70,7 @@ impl IoBufferWriter for IovIter {
     }
 
     unsafe fn write_raw(&mut self, data: *const u8, len: usize) -> Result {
-        let res = rust_helper_copy_to_iter(data as _, len, self.ptr);
+        let res = unsafe { rust_helper_copy_to_iter(data as _, len, self.ptr) };
         if res != len {
             Err(Error::EFAULT)
         } else {
@@ -85,7 +85,7 @@ impl IoBufferReader for IovIter {
     }
 
     unsafe fn read_raw(&mut self, out: *mut u8, len: usize) -> Result {
-        let res = rust_helper_copy_from_iter(out as _, len, self.ptr);
+        let res = unsafe { rust_helper_copy_from_iter(out as _, len, self.ptr) };
         if res != len {
             Err(Error::EFAULT)
         } else {

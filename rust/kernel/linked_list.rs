@@ -33,7 +33,7 @@ impl<T: ?Sized> Wrapper<T> for Box<T> {
     }
 
     unsafe fn from_pointer(ptr: NonNull<T>) -> Self {
-        Box::from_raw(ptr.as_ptr())
+        unsafe { Box::from_raw(ptr.as_ptr()) }
     }
 
     fn as_ref(&self) -> &T {
@@ -47,7 +47,7 @@ impl<T: ?Sized> Wrapper<T> for Arc<T> {
     }
 
     unsafe fn from_pointer(ptr: NonNull<T>) -> Self {
-        Arc::from_raw(ptr.as_ptr())
+        unsafe { Arc::from_raw(ptr.as_ptr()) }
     }
 
     fn as_ref(&self) -> &T {
@@ -61,7 +61,7 @@ impl<T: ?Sized> Wrapper<T> for &T {
     }
 
     unsafe fn from_pointer(ptr: NonNull<T>) -> Self {
-        &*ptr.as_ptr()
+        unsafe { &*ptr.as_ptr() }
     }
 
     fn as_ref(&self) -> &T {
@@ -149,10 +149,10 @@ impl<G: GetLinksWrapped> List<G> {
     /// Callers must ensure that `existing` points to a valid entry that is on the list.
     pub unsafe fn insert_after(&mut self, existing: NonNull<G::EntryType>, data: G::Wrapped) {
         let ptr = data.into_pointer();
-        let entry = &*existing.as_ptr();
-        if !self.list.insert_after(entry, ptr.as_ref()) {
+        let entry = unsafe { &*existing.as_ptr() };
+        if unsafe { !self.list.insert_after(entry, ptr.as_ref()) } {
             // If insertion failed, rebuild object so that it can be freed.
-            G::Wrapped::from_pointer(ptr);
+            unsafe { G::Wrapped::from_pointer(ptr) };
         }
     }
 
@@ -164,8 +164,8 @@ impl<G: GetLinksWrapped> List<G> {
     /// list leads to memory unsafety.
     pub unsafe fn remove(&mut self, data: &G::Wrapped) -> Option<G::Wrapped> {
         let entry_ref = Wrapper::as_ref(data);
-        if self.list.remove(entry_ref) {
-            Some(G::Wrapped::from_pointer(NonNull::from(entry_ref)))
+        if unsafe { self.list.remove(entry_ref) } {
+            Some(unsafe { G::Wrapped::from_pointer(NonNull::from(entry_ref)) })
         } else {
             None
         }

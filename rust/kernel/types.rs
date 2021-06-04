@@ -54,7 +54,7 @@ impl<T> PointerWrapper for Box<T> {
     }
 
     unsafe fn from_pointer(ptr: *const c_types::c_void) -> Self {
-        Box::from_raw(ptr as _)
+        unsafe { Box::from_raw(ptr as _) }
     }
 }
 
@@ -64,7 +64,7 @@ impl<T: RefCounted> PointerWrapper for Ref<T> {
     }
 
     unsafe fn from_pointer(ptr: *const c_types::c_void) -> Self {
-        Ref::from_raw(ptr as _)
+        unsafe { Ref::from_raw(ptr as _) }
     }
 }
 
@@ -74,7 +74,7 @@ impl<T> PointerWrapper for Arc<T> {
     }
 
     unsafe fn from_pointer(ptr: *const c_types::c_void) -> Self {
-        Arc::from_raw(ptr as _)
+        unsafe { Arc::from_raw(ptr as _) }
     }
 }
 
@@ -87,8 +87,8 @@ impl<T: PointerWrapper + Deref> PointerWrapper for Pin<T> {
     }
 
     unsafe fn from_pointer(p: *const c_types::c_void) -> Self {
-        // SAFETY: The object was originally pinned.
-        Pin::new_unchecked(T::from_pointer(p))
+        // TODO: Review: SAFETY: The object was originally pinned.
+        unsafe { Pin::new_unchecked(T::from_pointer(p)) }
     }
 }
 

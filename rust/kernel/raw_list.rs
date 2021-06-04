@@ -132,7 +132,7 @@ impl<G: GetLinks> RawList<G> {
         }
 
         // SAFETY: The links are now owned by the list, so it is safe to get a mutable reference.
-        let new_entry = &mut *links.entry.get();
+        let new_entry = unsafe { &mut *links.entry.get() };
         self.insert_after_priv(existing, new_entry, Some(NonNull::from(new)));
         true
     }

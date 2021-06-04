@@ -210,7 +210,7 @@ macro_rules! offset_of {
 macro_rules! container_of {
     ($ptr:expr, $type:ty, $($f:tt)*) => {{
         let offset = $crate::offset_of!($type, $($f)*);
-        ($ptr as *const _ as *const u8).offset(-offset) as *const $type
+        unsafe { ($ptr as *const _ as *const u8).offset(-offset) as *const $type }
     }}
 }
 

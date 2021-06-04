@@ -53,7 +53,7 @@ unsafe fn rust_fmt_argument(buf: *mut c_char, end: *mut c_char, ptr: *const c_vo
         buf: buf as _,
         end: end as _,
     };
-    let _ = w.write_fmt(*(ptr as *const fmt::Arguments<'_>));
+    let _ = w.write_fmt(unsafe { *(ptr as *const fmt::Arguments<'_>) });
     w.buf as _
 }
 
@@ -132,11 +132,13 @@ pub unsafe fn call_printk(
     args: fmt::Arguments<'_>,
 ) {
     // `printk` does not seem to fail in any path.
-    bindings::printk(
-        format_string.as_ptr() as _,
-        module_name.as_ptr(),
-        &args as *const _ as *const c_void,
-    );
+    unsafe {
+        bindings::printk(
+            format_string.as_ptr() as _,
+            module_name.as_ptr(),
+            &args as *const _ as *const c_void,
+        );
+    }
 }
 
 /// Prints a message via the kernel's [`printk`] for the `CONT` level.

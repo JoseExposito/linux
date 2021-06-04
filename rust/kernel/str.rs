@@ -89,8 +89,10 @@ impl CStr {
     /// must not be mutated.
     #[inline]
     pub unsafe fn from_char_ptr<'a>(ptr: *const c_types::c_char) -> &'a Self {
-        let len = bindings::strlen(ptr) + 1;
-        Self::from_bytes_with_nul_unchecked(core::slice::from_raw_parts(ptr as _, len as _))
+        let len = unsafe { bindings::strlen(ptr) } + 1;
+        unsafe {
+            Self::from_bytes_with_nul_unchecked(core::slice::from_raw_parts(ptr as _, len as _))
+        }
     }
 
     /// Creates a [`CStr`] from a `[u8]`.
@@ -144,7 +146,7 @@ impl CStr {
         // requires `ptr_metadata`).
         // While none of them are current stable, it is very likely that one of
         // them will eventually be.
-        &*(bytes as *const [u8] as *const Self)
+        unsafe { &*(bytes as *const [u8] as *const Self) }
     }
 
     /// Returns a C pointer to the string.
