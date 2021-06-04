@@ -132,6 +132,6 @@ impl CondVar {
 
 impl NeedsLockClass for CondVar {
     unsafe fn init(self: Pin<&Self>, name: &'static CStr, key: *mut bindings::lock_class_key) {
-        bindings::__init_waitqueue_head(self.wait_list.get(), name.as_char_ptr(), key);
+        unsafe { bindings::__init_waitqueue_head(self.wait_list.get(), name.as_char_ptr(), key) };
     }
 }

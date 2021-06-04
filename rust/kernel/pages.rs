@@ -107,7 +107,7 @@ impl<const ORDER: u32> Pages<ORDER> {
         }
 
         let mapping = self.kmap(0).ok_or(Error::EINVAL)?;
-        ptr::copy((mapping.ptr as *mut u8).add(offset), dest, len);
+        unsafe { ptr::copy((mapping.ptr as *mut u8).add(offset), dest, len) };
         Ok(())
     }
 
@@ -127,7 +127,7 @@ impl<const ORDER: u32> Pages<ORDER> {
         }
 
         let mapping = self.kmap(0).ok_or(Error::EINVAL)?;
-        ptr::copy(src, (mapping.ptr as *mut u8).add(offset), len);
+        unsafe { ptr::copy(src, (mapping.ptr as *mut u8).add(offset), len) };
         Ok(())
     }
 

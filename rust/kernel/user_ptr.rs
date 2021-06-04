@@ -130,7 +130,7 @@ impl IoBufferReader for UserSlicePtrReader {
         if len > self.1 || len > u32::MAX as usize {
             return Err(Error::EFAULT);
         }
-        let res = rust_helper_copy_from_user(out as _, self.0, len as _);
+        let res = unsafe { rust_helper_copy_from_user(out as _, self.0, len as _) };
         if res != 0 {
             return Err(Error::EFAULT);
         }
@@ -177,7 +177,7 @@ impl IoBufferWriter for UserSlicePtrWriter {
         if len > self.1 || len > u32::MAX as usize {
             return Err(Error::EFAULT);
         }
-        let res = rust_helper_copy_to_user(self.0, data as _, len as _);
+        let res = unsafe { rust_helper_copy_to_user(self.0, data as _, len as _) };
         if res != 0 {
             return Err(Error::EFAULT);
         }

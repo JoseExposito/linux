@@ -69,6 +69,6 @@ impl PointerWrapper for OfMatchTable {
     }
 
     unsafe fn from_pointer(p: *const c_types::c_void) -> Self {
-        Self(InnerTable::from_pointer(p))
+        Self(unsafe { InnerTable::from_pointer(p) })
     }
 }

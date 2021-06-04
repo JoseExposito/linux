@@ -71,12 +71,12 @@ pub trait ModuleParam: core::fmt::Display + core::marker::Sized {
         let arg = if val.is_null() {
             None
         } else {
-            Some(CStr::from_char_ptr(val).as_bytes())
+            Some(unsafe { CStr::from_char_ptr(val).as_bytes() })
         };
         match Self::try_from_param_arg(arg) {
             Some(new_value) => {
-                let old_value = (*param).__bindgen_anon_1.arg as *mut Self;
-                let _ = core::ptr::replace(old_value, new_value);
+                let old_value = unsafe { (*param).__bindgen_anon_1.arg as *mut Self };
+                let _ = unsafe { core::ptr::replace(old_value, new_value) };
                 0
             }
             None => crate::error::Error::EINVAL.to_kernel_errno(),
@@ -95,9 +95,9 @@ pub trait ModuleParam: core::fmt::Display + core::marker::Sized {
         buf: *mut crate::c_types::c_char,
         param: *const crate::bindings::kernel_param,
     ) -> crate::c_types::c_int {
-        let slice = core::slice::from_raw_parts_mut(buf as *mut u8, crate::PAGE_SIZE);
+        let slice = unsafe { core::slice::from_raw_parts_mut(buf as *mut u8, crate::PAGE_SIZE) };
         let mut buf = crate::buffer::Buffer::new(slice);
-        match write!(buf, "{}\0", *((*param).__bindgen_anon_1.arg as *mut Self)) {
+        match unsafe { write!(buf, "{}\0", *((*param).__bindgen_anon_1.arg as *mut Self)) } {
             Err(_) => crate::error::Error::EINVAL.to_kernel_errno(),
             Ok(()) => buf.bytes_written() as crate::c_types::c_int,
         }
@@ -111,7 +111,7 @@ pub trait ModuleParam: core::fmt::Display + core::marker::Sized {
     ///
     /// The `arg` field of `param` must be an instance of `Self`.
     unsafe extern "C" fn free(arg: *mut crate::c_types::c_void) {
-        core::ptr::drop_in_place(arg as *mut Self);
+        unsafe { core::ptr::drop_in_place(arg as *mut Self) };
     }
 }
 

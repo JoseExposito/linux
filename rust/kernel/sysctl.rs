@@ -103,13 +103,13 @@ unsafe extern "C" fn proc_handler<T: SysctlStorage>(
 ) -> c_types::c_int {
     // If we are reading from some offset other than the beginning of the file,
     // return an empty read to signal EOF.
-    if *ppos != 0 && write == 0 {
-        *len = 0;
+    if unsafe { *ppos } != 0 && write == 0 {
+        unsafe { *len = 0 };
         return 0;
     }
 
-    let data = UserSlicePtr::new(buffer, *len);
-    let storage = &*((*ctl).data as *const T);
+    let data = unsafe { UserSlicePtr::new(buffer, *len) };
+    let storage = unsafe { &*((*ctl).data as *const T) };
     let (bytes_processed, result) = if write != 0 {
         let data = match data.read_all() {
             Ok(r) => r,
@@ -120,8 +120,8 @@ unsafe extern "C" fn proc_handler<T: SysctlStorage>(
         let mut writer = data.writer();
         storage.read_value(&mut writer)
     };
-    *len = bytes_processed;
-    *ppos += *len as bindings::loff_t;
+    unsafe { *len = bytes_processed };
+    unsafe { *ppos += *len as bindings::loff_t };
     match result {
         Ok(()) => 0,
         Err(e) => e.to_kernel_errno(),
