@@ -193,11 +193,10 @@ impl Index<ops::RangeFrom<usize>> for CStr {
     type Output = CStr;
 
     #[inline]
-    // Clippy false positive
-    #[allow(clippy::unnecessary_operation)]
     fn index(&self, index: ops::RangeFrom<usize>) -> &Self::Output {
         // Delegate bounds checking to slice.
-        &self.as_bytes()[index.start..];
+        // Assign to _ to mute clippy's unnecessary operation warning.
+        let _ = &self.as_bytes()[index.start..];
         // SAFETY: We just checked the bounds.
         unsafe { Self::from_bytes_with_nul_unchecked(&self.0[index.start..]) }
     }
