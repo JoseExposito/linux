@@ -83,12 +83,14 @@ impl NodeDeath {
             cookie,
             work_links: Links::new(),
             death_links: Links::new(),
-            inner: SpinLock::new(NodeDeathInner {
-                dead: false,
-                cleared: false,
-                notification_done: false,
-                aborted: false,
-            }),
+            inner: unsafe {
+                SpinLock::new(NodeDeathInner {
+                    dead: false,
+                    cleared: false,
+                    notification_done: false,
+                    aborted: false,
+                })
+            },
         }
     }
 
