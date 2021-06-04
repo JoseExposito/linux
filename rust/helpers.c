@@ -7,6 +7,7 @@
 #include <linux/gfp.h>
 #include <linux/highmem.h>
 #include <linux/uio.h>
+#include <linux/errname.h>
 
 void rust_helper_BUG(void)
 {
@@ -116,6 +117,11 @@ long rust_helper_ptr_err(__force const void *ptr)
 	return PTR_ERR(ptr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_ptr_err);
+
+const char *rust_helper_errname(int err)
+{
+	return errname(err);
+}
 
 /* We use bindgen's --size_t-is-usize option to bind the C size_t type
  * as the Rust usize type, so we can use it in contexts where Rust
