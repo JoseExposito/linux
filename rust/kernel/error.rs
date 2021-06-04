@@ -98,11 +98,11 @@ impl Error {
 
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        extern "C" {
+            fn rust_helper_errname(err: c_types::c_int) -> *const c_types::c_char;
+        }
         // SAFETY: FFI call.
-        #[cfg(CONFIG_SYMBOLIC_ERRNAME)]
-        let name = unsafe { crate::bindings::errname(-self.0) };
-        #[cfg(not(CONFIG_SYMBOLIC_ERRNAME))]
-        let name: *const c_types::c_char = core::ptr::null();
+        let name = unsafe { rust_helper_errname(-self.0) };
 
         if name.is_null() {
             // Print out number if no name can be found.
