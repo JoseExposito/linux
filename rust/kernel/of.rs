@@ -69,6 +69,7 @@ impl PointerWrapper for OfMatchTable {
     }
 
     unsafe fn from_pointer(p: *const c_types::c_void) -> Self {
+        // SAFETY: The passed pointer comes from a previous call to [`InnerTable::into_pointer()`].
         Self(unsafe { InnerTable::from_pointer(p) })
     }
 }
