@@ -34,6 +34,8 @@
 #[cfg(not(CONFIG_RUST))]
 compile_error!("Missing kernel configuration for conditional compilation");
 
+#[cfg(not(test))]
+#[cfg(not(testlib))]
 mod allocator;
 
 #[doc(hidden)]
