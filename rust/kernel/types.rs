@@ -105,6 +105,8 @@ impl<T: PointerWrapper + Deref> PointerWrapper for Pin<T> {
 /// In the example below, we have multiple exit paths and we want to log regardless of which one is
 /// taken:
 /// ```
+/// # use kernel::prelude::*;
+/// # use kernel::ScopeGuard;
 /// fn example1(arg: bool) {
 ///     let _log = ScopeGuard::new(|| pr_info!("example1 completed\n"));
 ///
@@ -119,6 +121,8 @@ impl<T: PointerWrapper + Deref> PointerWrapper for Pin<T> {
 /// In the example below, we want to log the same message on all early exits but a different one on
 /// the main exit path:
 /// ```
+/// # use kernel::prelude::*;
+/// # use kernel::ScopeGuard;
 /// fn example2(arg: bool) {
 ///     let log = ScopeGuard::new(|| pr_info!("example2 returned early\n"));
 ///

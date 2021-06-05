@@ -155,6 +155,8 @@ impl<'a> Drop for KParamGuard<'a> {
 /// # Example
 ///
 /// ```
+/// # use kernel::prelude::*;
+/// # use kernel::offset_of;
 /// struct Test {
 ///     a: u64,
 ///     b: u32,
@@ -193,6 +195,8 @@ macro_rules! offset_of {
 /// # Example
 ///
 /// ```
+/// # use kernel::prelude::*;
+/// # use kernel::container_of;
 /// struct Test {
 ///     a: u64,
 ///     b: u32,

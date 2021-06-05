@@ -7,7 +7,7 @@
 //!
 //! # Examples
 //!
-//! ```rust,no_run
+//! ```
 //! use kernel::prelude::*;
 //! ```
 

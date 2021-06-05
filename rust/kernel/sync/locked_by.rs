@@ -24,8 +24,8 @@ use core::{cell::UnsafeCell, ops::Deref, ptr};
 /// locked; we enforce at run time that the right `InnerDirectory` is locked.
 ///
 /// ```
-/// use super::Mutex;
-/// use alloc::{string::String, vec::Vec};
+/// # use kernel::prelude::*;
+/// use kernel::sync::{LockedBy, Mutex};
 ///
 /// struct InnerFile {
 ///     bytes_used: u64,

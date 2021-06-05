@@ -22,7 +22,7 @@ use proc_macro::TokenStream;
 ///
 /// # Examples
 ///
-/// ```rust,no_run
+/// ```ignore
 /// use kernel::prelude::*;
 ///
 /// module!{
@@ -108,7 +108,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
 ///
 /// # Examples
 ///
-/// ```rust,no_run
+/// ```ignore
 /// use kernel::prelude::*;
 ///
 /// module_misc_device! {
