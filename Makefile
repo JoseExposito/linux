@@ -1834,6 +1834,7 @@ rustfmt:
 		-o -path $(abs_objtree)/rust/test -prune \
 		| grep -Fv $(abs_srctree)/rust/alloc \
 		| grep -Fv $(abs_objtree)/rust/test \
+		| grep -Fv generated \
 		| xargs $(RUSTFMT) $(rustfmt_flags)
 
 rustfmtcheck: rustfmt_flags = --check
