@@ -42,10 +42,6 @@ macro_rules! define_panicking_intrinsics(
     }
 );
 
-define_panicking_intrinsics!("non-inline stack probes should not be used", {
-    __rust_probestack,
-});
-
 define_panicking_intrinsics!("`f32` should not be used", {
     __addsf3,
     __addsf3vfp,

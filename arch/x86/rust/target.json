@@ -28,12 +28,7 @@
   "relocation-model": "static",
   "relro-level": "full",
   "stack-probes": {
-    "kind": "inline-or-call",
-    "min-llvm-version-for-inline": [
-      11,
-      0,
-      1
-    ]
+    "kind": "none"
   },
   "target-c-int-width": "32",
   "target-endian": "little",
