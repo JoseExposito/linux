@@ -190,7 +190,10 @@ where
 ///
 /// # Examples
 ///
-/// ```rust,no_run
+/// ```ignore
+/// # use kernel::from_kernel_result;
+/// # use kernel::c_types;
+/// # use kernel::bindings;
 /// unsafe extern "C" fn probe_callback(
 ///     pdev: *mut bindings::platform_device,
 /// ) -> c_types::c_int {
@@ -219,7 +222,11 @@ macro_rules! from_kernel_result {
 ///
 /// # Examples
 ///
-/// ```rust,no_run
+/// ```ignore
+/// # use kernel::prelude::*;
+/// # use kernel::from_kernel_err_ptr;
+/// # use kernel::c_types;
+/// # use kernel::bindings;
 /// fn devm_platform_ioremap_resource(
 ///     pdev: &mut PlatformDevice,
 ///     index: u32,

@@ -4,6 +4,11 @@
 //!
 //! Imports the generated bindings by `bindgen`.
 
+// See https://github.com/rust-lang/rust-bindgen/issues/1651.
+#![cfg_attr(test, allow(deref_nullptr))]
+#![cfg_attr(test, allow(unaligned_references))]
+#![cfg_attr(test, allow(unsafe_op_in_unsafe_fn))]
+
 #[allow(
     clippy::all,
     non_camel_case_types,

@@ -24,6 +24,9 @@ unsafe impl GlobalAlloc for KernelAllocator {
     }
 }
 
+#[global_allocator]
+static ALLOCATOR: KernelAllocator = KernelAllocator;
+
 #[alloc_error_handler]
 fn oom(_layout: Layout) -> ! {
     panic!("Out of memory!");

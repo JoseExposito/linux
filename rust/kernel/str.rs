@@ -19,7 +19,9 @@ pub type BStr = [u8];
 ///
 /// # Examples
 ///
-/// ```rust,no_run
+/// ```
+/// # use kernel::b_str;
+/// # use kernel::str::BStr;
 /// const MY_BSTR: &'static BStr = b_str!("My awesome BStr!");
 /// ```
 #[macro_export]
@@ -242,7 +244,9 @@ where
 ///
 /// # Examples
 ///
-/// ```rust,no_run
+/// ```
+/// # use kernel::c_str;
+/// # use kernel::str::CStr;
 /// const MY_CSTR: &'static CStr = c_str!("My awesome CStr!");
 /// ```
 #[macro_export]

@@ -8,3 +8,6 @@
 # If SMP is disabled, `arch_spinlock_t` is defined as a ZST which triggers a Rust
 # warning. We don't need to peek into it anyway.
 --opaque-type spinlock
+
+# `seccomp`'s comment gets understood as a doctest
+--no-doc-comments

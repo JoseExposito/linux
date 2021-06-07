@@ -163,6 +163,7 @@ pub fn call_printk_cont(args: fmt::Arguments<'_>) {
 ///
 /// Public but hidden since it should only be used from public macros.
 #[doc(hidden)]
+#[cfg(not(testlib))]
 #[macro_export]
 macro_rules! print_macro (
     // The non-continuation cases (most of them, e.g. `INFO`).
@@ -186,6 +187,15 @@ macro_rules! print_macro (
         $crate::print::call_printk_cont(
             format_args!($($arg)+),
         );
+    );
+);
+
+// Stub for doctests
+#[cfg(testlib)]
+#[macro_export]
+macro_rules! print_macro (
+    ($format_string:path, $e:expr, $($arg:tt)+) => (
+        ()
     );
 );
 
@@ -213,6 +223,7 @@ macro_rules! print_macro (
 /// # Examples
 ///
 /// ```
+/// # use kernel::prelude::*;
 /// pr_emerg!("hello {}\n", "there");
 /// ```
 #[macro_export]
@@ -237,6 +248,7 @@ macro_rules! pr_emerg (
 /// # Examples
 ///
 /// ```
+/// # use kernel::prelude::*;
 /// pr_alert!("hello {}\n", "there");
 /// ```
 #[macro_export]
@@ -261,6 +273,7 @@ macro_rules! pr_alert (
 /// # Examples
 ///
 /// ```
+/// # use kernel::prelude::*;
 /// pr_crit!("hello {}\n", "there");
 /// ```
 #[macro_export]
@@ -285,6 +298,7 @@ macro_rules! pr_crit (
 /// # Examples
 ///
 /// ```
+/// # use kernel::prelude::*;
 /// pr_err!("hello {}\n", "there");
 /// ```
 #[macro_export]
@@ -309,6 +323,7 @@ macro_rules! pr_err (
 /// # Examples
 ///
 /// ```
+/// # use kernel::prelude::*;
 /// pr_warn!("hello {}\n", "there");
 /// ```
 #[macro_export]
@@ -333,6 +348,7 @@ macro_rules! pr_warn (
 /// # Examples
 ///
 /// ```
+/// # use kernel::prelude::*;
 /// pr_notice!("hello {}\n", "there");
 /// ```
 #[macro_export]
@@ -357,6 +373,7 @@ macro_rules! pr_notice (
 /// # Examples
 ///
 /// ```
+/// # use kernel::prelude::*;
 /// pr_info!("hello {}\n", "there");
 /// ```
 #[macro_export]
@@ -382,6 +399,8 @@ macro_rules! pr_info (
 /// # Examples
 ///
 /// ```
+/// # use kernel::prelude::*;
+/// # use kernel::pr_cont;
 /// pr_info!("hello");
 /// pr_cont!(" {}\n", "there");
 /// ```

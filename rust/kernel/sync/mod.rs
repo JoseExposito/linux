@@ -7,14 +7,15 @@
 //!
 //! # Example
 //!
-//! ```
-//! fn test() {
-//!     // SAFETY: `init` is called below.
-//!     let data = alloc::sync::Arc::pin(unsafe { Mutex::new(0) });
-//!     mutex_init!(data.as_ref(), "test::data");
-//!     *data.lock() = 10;
-//!     pr_info!("{}\n", *data.lock());
-//! }
+//! ```no_run
+//! # use kernel::prelude::*;
+//! # use kernel::mutex_init;
+//! # use kernel::sync::Mutex;
+//! // SAFETY: `init` is called below.
+//! let data = alloc::sync::Arc::pin(unsafe { Mutex::new(0) });
+//! mutex_init!(data.as_ref(), "test::data");
+//! *data.lock() = 10;
+//! pr_info!("{}\n", *data.lock());
 //! ```
 
 use crate::str::CStr;

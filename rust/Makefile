@@ -19,37 +19,79 @@ obj-$(CONFIG_RUST) += exports.o
 
 RUSTDOC = rustdoc
 
-quiet_cmd_rustdoc_host = RUSTDOC $<
-      cmd_rustdoc_host = \
-	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
-	$(RUSTDOC) $(filter-out --emit=%, $(rustc_flags)) \
-		$(rustdoc_target_flags) -L $(objtree)/rust/ \
-		--output $(objtree)/rust/doc --crate-name $(subst rustdoc-,,$@) \
-		-Fmissing-docs @$(objtree)/include/generated/rustc_cfg $<
-
-quiet_cmd_rustdoc = RUSTDOC $<
+quiet_cmd_rustdoc = RUSTDOC $(if $(filter --test,$(rustdoc_target_flags)),T, ) $(if $(rustdoc_host),H, ) $<
       cmd_rustdoc = \
 	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
-	$(RUSTDOC) $(rustc_cross_flags) $(filter-out --emit=%, $(rustc_flags)) \
-		$(rustdoc_target_flags) -L $(objtree)/rust/ \
-		--output $(objtree)/rust/doc --crate-name $(subst rustdoc-,,$@) \
+	$(RUSTDOC) $(if $(rustdoc_host),,$(rustc_cross_flags)) \
+		$(filter-out --emit=%, $(rustc_flags)) $(rustc_target_flags) $(rustdoc_target_flags) \
+		-L $(objtree)/rust/$(if $(filter --test,$(rustdoc_target_flags)),test/) \
+		--output $(objtree)/rust/doc --crate-name $(subst rusttest-,,$(subst rustdoc-,,$@)) \
 		-Fmissing-docs @$(objtree)/include/generated/rustc_cfg $<
 
 rustdoc: rustdoc-macros rustdoc-compiler_builtins rustdoc-kernel
 
-rustdoc-macros: private rustdoc_target_flags = --crate-type proc-macro \
+rustdoc-macros: private rustdoc_host = yes
+rustdoc-macros: private rustc_target_flags = --crate-type proc-macro \
     --extern proc_macro
 rustdoc-macros: $(srctree)/rust/macros/lib.rs FORCE
-	$(call if_changed,rustdoc_host)
+	$(call if_changed,rustdoc)
 
 rustdoc-compiler_builtins: $(srctree)/rust/compiler_builtins.rs FORCE
 	$(call if_changed,rustdoc)
 
-rustdoc-kernel: private rustdoc_target_flags = --extern alloc \
+rustdoc-kernel: private rustc_target_flags = --extern alloc \
     --extern build_error \
     --extern macros=$(objtree)/rust/libmacros.so
 rustdoc-kernel: $(srctree)/rust/kernel/lib.rs rustdoc-macros \
     $(objtree)/rust/libmacros.so $(objtree)/rust/bindings_generated.rs FORCE
+	$(call if_changed,rustdoc)
+
+quiet_cmd_rustc_test_library = RUSTC TL $<
+      cmd_rustc_test_library = \
+	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
+	$(RUSTC) $(filter-out -Cpanic=abort, $(filter-out --emit=%, $(rustc_flags))) \
+		$(rustc_target_flags) --crate-type $(if $(rustc_test_library_proc),proc-macro,rlib) \
+		--out-dir $(objtree)/rust/test/ --cfg testlib \
+		-L $(objtree)/rust/test/ --crate-name $(subst rusttest-,,$(subst rusttestlib-,,$@)) $<
+
+rusttestlib-build_error: $(srctree)/rust/build_error.rs FORCE
+	$(call if_changed,rustc_test_library)
+
+rusttestlib-macros: private rustc_target_flags = --extern proc_macro
+rusttestlib-macros: private rustc_test_library_proc = yes
+rusttestlib-macros: $(srctree)/rust/macros/lib.rs FORCE
+	$(call if_changed,rustc_test_library)
+
+# We cannot use `-Zpanic-abort-tests` because some tests are dynamic,
+# so for the moment we skip `-Cpanic=abort`.
+quiet_cmd_rustc_test = RUSTC T  $<
+      cmd_rustc_test = \
+	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
+	$(RUSTC) --test $(filter-out -Cpanic=abort, $(filter-out --emit=%, $(rustc_flags))) \
+		$(rustc_target_flags) --out-dir $(objtree)/rust/test \
+		-L $(objtree)/rust/test/ --crate-name $(subst rusttest-,,$@) $<; \
+		$(objtree)/rust/test/$(subst rusttest-,,$@) $(rustc_test_run_flags)
+
+rusttest: rusttest-macros rusttest-kernel
+
+rusttest-macros: private rustc_target_flags = --extern proc_macro
+rusttest-macros: private rustdoc_host = yes
+rusttest-macros: private rustdoc_target_flags = --test --crate-type proc-macro
+rusttest-macros: $(srctree)/rust/macros/lib.rs FORCE
+	$(call if_changed,rustc_test)
+	$(call if_changed,rustdoc)
+
+rusttest-kernel: private rustc_target_flags = --extern alloc \
+    --extern build_error \
+    --extern macros=$(objtree)/rust/test/libmacros.so
+rusttest-kernel: private rustc_test_run_flags = \
+    --skip bindgen_test_layout_
+rusttest-kernel: private rustdoc_host = yes
+rusttest-kernel: private rustdoc_target_flags = --test
+rusttest-kernel: $(srctree)/rust/kernel/lib.rs rusttestlib-build_error \
+    rusttestlib-macros FORCE
+	$(call if_changed,rustc_test)
+	$(call if_changed,rustc_test_library)
 	$(call if_changed,rustdoc)
 
 ifdef CONFIG_CC_IS_CLANG

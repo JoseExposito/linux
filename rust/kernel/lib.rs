@@ -34,6 +34,8 @@
 #[cfg(not(CONFIG_RUST))]
 compile_error!("Missing kernel configuration for conditional compilation");
 
+#[cfg(not(test))]
+#[cfg(not(testlib))]
 mod allocator;
 
 #[doc(hidden)]
@@ -155,6 +157,8 @@ impl<'a> Drop for KParamGuard<'a> {
 /// # Example
 ///
 /// ```
+/// # use kernel::prelude::*;
+/// # use kernel::offset_of;
 /// struct Test {
 ///     a: u64,
 ///     b: u32,
@@ -193,6 +197,8 @@ macro_rules! offset_of {
 /// # Example
 ///
 /// ```
+/// # use kernel::prelude::*;
+/// # use kernel::container_of;
 /// struct Test {
 ///     a: u64,
 ///     b: u32,
@@ -213,6 +219,3 @@ macro_rules! container_of {
         unsafe { ($ptr as *const _ as *const u8).offset(-offset) as *const $type }
     }}
 }
-
-#[global_allocator]
-static ALLOCATOR: allocator::KernelAllocator = allocator::KernelAllocator;

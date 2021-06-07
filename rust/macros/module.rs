@@ -741,3 +741,32 @@ pub fn module_misc_device(ts: TokenStream) -> TokenStream {
     .parse()
     .expect("Error parsing formatted string into token stream.")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_permissions_are_readonly() {
+        assert!(permissions_are_readonly("0b000000000"));
+        assert!(permissions_are_readonly("0o000"));
+        assert!(permissions_are_readonly("000"));
+        assert!(permissions_are_readonly("0x000"));
+
+        assert!(!permissions_are_readonly("0b111111111"));
+        assert!(!permissions_are_readonly("0o777"));
+        assert!(!permissions_are_readonly("511"));
+        assert!(!permissions_are_readonly("0x1ff"));
+
+        assert!(permissions_are_readonly("0o014"));
+        assert!(permissions_are_readonly("0o015"));
+
+        assert!(!permissions_are_readonly("0o214"));
+        assert!(!permissions_are_readonly("0o024"));
+        assert!(!permissions_are_readonly("0o012"));
+
+        assert!(!permissions_are_readonly("0o315"));
+        assert!(!permissions_are_readonly("0o065"));
+        assert!(!permissions_are_readonly("0o017"));
+    }
+}

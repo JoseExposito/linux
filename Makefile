@@ -1739,6 +1739,8 @@ help:
 	@echo  '		    is formatted, printing a diff otherwise.'
 	@echo  '  rustdoc	  - Generate Rust documentation'
 	@echo  '		    (requires kernel .config)'
+	@echo  '  rusttest        - Runs the Rust tests'
+	@echo  '                    (requires kernel .config)'
 	@echo  '  rust-analyzer	  - Generate rust-project.json rust-analyzer support file'
 	@echo  '		    (requires kernel .config)'
 	@echo  ''
@@ -1822,6 +1824,11 @@ $(DOC_TARGETS):
 # Using the singular to avoid running afoul of `no-dot-config-targets`.
 PHONY += rustdoc
 rustdoc: prepare0
+	$(Q)$(MAKE) $(build)=rust $@
+
+# Testing target
+PHONY += rusttest
+rusttest: prepare0
 	$(Q)$(MAKE) $(build)=rust $@
 
 # Formatting targets

@@ -210,7 +210,7 @@ macro_rules! impl_module_param {
 /// Generate a static [`kernel_param_ops`](../../../include/linux/moduleparam.h) struct.
 ///
 /// # Example
-/// ```rust
+/// ```ignore
 /// make_param_ops!(
 ///     /// Documentation for new param ops.
 ///     PARAM_OPS_MYTYPE, // Name for the static.
