@@ -245,16 +245,16 @@ impl Thread {
             work_condvar: unsafe { CondVar::new() },
             links: Links::new(),
         })?;
-        {
-            let mut inner = arc.inner.lock();
-            inner.set_reply_work(reply_work);
-            inner.set_return_work(return_work);
-        }
         let thread = Arc::get_mut(&mut arc).unwrap();
         // SAFETY: `inner` is pinned behind the `Arc` reference.
         let inner = unsafe { Pin::new_unchecked(&thread.inner) };
         kernel::spinlock_init!(inner, "Thread::inner");
         kernel::condvar_init!(thread.pinned_condvar(), "Thread::work_condvar");
+        {
+            let mut inner = arc.inner.lock();
+            inner.set_reply_work(reply_work);
+            inner.set_return_work(return_work);
+        }
         Ok(arc)
     }
 
