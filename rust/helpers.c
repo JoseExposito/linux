@@ -8,6 +8,7 @@
 #include <linux/highmem.h>
 #include <linux/uio.h>
 #include <linux/errname.h>
+#include <linux/mutex.h>
 
 void rust_helper_BUG(void)
 {
@@ -122,6 +123,12 @@ const char *rust_helper_errname(int err)
 {
 	return errname(err);
 }
+
+void rust_helper_mutex_lock(struct mutex *lock)
+{
+	mutex_lock(lock);
+}
+EXPORT_SYMBOL_GPL(rust_helper_mutex_lock);
 
 /* We use bindgen's --size_t-is-usize option to bind the C size_t type
  * as the Rust usize type, so we can use it in contexts where Rust
