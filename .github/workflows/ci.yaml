@@ -278,7 +278,7 @@ jobs:
 
       # The kernel should not be generating any warnings
       - run: |
-          ! grep '] WARNING:' qemu-stdout.log
+          ! grep -v 'at mm/debug_vm_pgtable.c:' qemu-stdout.log | grep '] WARNING:'
 
       # Check
       - run: |
