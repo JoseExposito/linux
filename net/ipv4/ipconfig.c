@@ -309,7 +309,7 @@ have_carrier:
  */
 static void __init ic_close_devs(void)
 {
-	struct net_device *selected_dev = ic_dev->dev;
+	struct net_device *selected_dev = ic_dev ? ic_dev->dev : NULL;
 	struct ic_device *d, *next;
 	struct net_device *dev;
 
@@ -317,16 +317,18 @@ static void __init ic_close_devs(void)
 	next = ic_first_dev;
 	while ((d = next)) {
 		bool bring_down = (d != ic_dev);
-		struct net_device *lower_dev;
+		struct net_device *lower;
 		struct list_head *iter;
 
 		next = d->next;
 		dev = d->dev;
 
-		netdev_for_each_lower_dev(selected_dev, lower_dev, iter) {
-			if (dev == lower_dev) {
-				bring_down = false;
-				break;
+		if (selected_dev) {
+			netdev_for_each_lower_dev(selected_dev, lower, iter) {
+				if (dev == lower) {
+					bring_down = false;
+					break;
+				}
 			}
 		}
 		if (bring_down) {
@@ -884,7 +886,7 @@ static void __init ic_bootp_send_if(struct ic_device *d, unsigned long jiffies_d
 
 
 /*
- *  Copy BOOTP-supplied string if not already set.
+ *  Copy BOOTP-supplied string
  */
 static int __init ic_bootp_string(char *dest, char *src, int len, int max)
 {
@@ -933,12 +935,15 @@ static void __init ic_do_bootp_ext(u8 *ext)
 		}
 		break;
 	case 12:	/* Host name */
-		ic_bootp_string(utsname()->nodename, ext+1, *ext,
-				__NEW_UTS_LEN);
-		ic_host_name_set = 1;
+		if (!ic_host_name_set) {
+			ic_bootp_string(utsname()->nodename, ext+1, *ext,
+					__NEW_UTS_LEN);
+			ic_host_name_set = 1;
+		}
 		break;
 	case 15:	/* Domain name (DNS) */
-		ic_bootp_string(ic_domain, ext+1, *ext, sizeof(ic_domain));
+		if (!ic_domain[0])
+			ic_bootp_string(ic_domain, ext+1, *ext, sizeof(ic_domain));
 		break;
 	case 17:	/* Root path */
 		if (!root_server_path[0])
