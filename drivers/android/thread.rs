@@ -376,11 +376,10 @@ impl Thread {
     fn translate_object(
         &self,
         index_offset: usize,
-        alloc: &Allocation,
         view: &AllocationView,
         allow_fds: bool,
     ) -> BinderResult {
-        let offset = alloc.read(index_offset)?;
+        let offset = view.alloc.read(index_offset)?;
         let header = view.read::<bindings::binder_object_header>(offset)?;
         // TODO: Handle other types.
         match header.type_ {
@@ -421,9 +420,9 @@ impl Thread {
         end: usize,
         allow_fds: bool,
     ) -> BinderResult {
-        let view = AllocationView::new(&alloc, start);
+        let view = AllocationView::new(alloc, start);
         for i in (start..end).step_by(size_of::<usize>()) {
-            if let Err(err) = self.translate_object(i, alloc, &view, allow_fds) {
+            if let Err(err) = self.translate_object(i, &view, allow_fds) {
                 alloc.set_info(AllocationInfo { offsets: start..i });
                 return Err(err);
             }
