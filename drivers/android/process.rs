@@ -545,7 +545,7 @@ impl Process {
     pub(crate) fn buffer_get(&self, ptr: usize) -> Option<Allocation> {
         let mut inner = self.inner.lock();
         let mapping = inner.mapping.as_mut()?;
-        let offset = ptr - mapping.address;
+        let offset = ptr.checked_sub(mapping.address)?;
         let (size, odata) = mapping.alloc.reserve_existing(offset).ok()?;
         let mut alloc = Allocation::new(self, offset, size, ptr, mapping.pages.clone());
         if let Some(data) = odata {
@@ -557,12 +557,17 @@ impl Process {
     pub(crate) fn buffer_raw_free(&self, ptr: usize) {
         let mut inner = self.inner.lock();
         if let Some(ref mut mapping) = &mut inner.mapping {
-            if mapping
-                .alloc
-                .reservation_abort(ptr - mapping.address)
-                .is_err()
+            if ptr < mapping.address
+                || mapping
+                    .alloc
+                    .reservation_abort(ptr - mapping.address)
+                    .is_err()
             {
-                pr_warn!("Offset {} failed to free\n", ptr - mapping.address);
+                pr_warn!(
+                    "Pointer {:x} failed to free, base = {:x}\n",
+                    ptr,
+                    mapping.address
+                );
             }
         }
     }
