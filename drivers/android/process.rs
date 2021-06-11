@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-use core::{
-    mem::{take, MaybeUninit},
-    ops::Range,
-};
+use core::{convert::TryFrom, mem::take, ops::Range};
 use kernel::{
     bindings, c_types,
     file::File,
@@ -13,7 +10,7 @@ use kernel::{
     pages::Pages,
     prelude::*,
     rbtree::RBTree,
-    sync::{Guard, Mutex, Ref},
+    sync::{Guard, Mutex, Ref, UniqueRef},
     task::Task,
     user_ptr::{UserSlicePtr, UserSlicePtrReader},
 };
@@ -39,11 +36,11 @@ pub(crate) struct AllocationInfo {
 struct Mapping {
     address: usize,
     alloc: RangeAllocator<AllocationInfo>,
-    pages: Arc<[Pages<0>]>,
+    pages: Ref<[Pages<0>]>,
 }
 
 impl Mapping {
-    fn new(address: usize, size: usize, pages: Arc<[Pages<0>]>) -> Result<Self> {
+    fn new(address: usize, size: usize, pages: Ref<[Pages<0>]>) -> Result<Self> {
         let alloc = RangeAllocator::new(size)?;
         Ok(Self {
             address,
@@ -57,13 +54,13 @@ impl Mapping {
 pub(crate) struct ProcessInner {
     is_manager: bool,
     is_dead: bool,
-    threads: RBTree<i32, Arc<Thread>>,
-    ready_threads: List<Arc<Thread>>,
+    threads: RBTree<i32, Ref<Thread>>,
+    ready_threads: List<Ref<Thread>>,
     work: List<DeliverToReadListAdapter>,
     mapping: Option<Mapping>,
-    nodes: RBTree<usize, Arc<Node>>,
+    nodes: RBTree<usize, Ref<Node>>,
 
-    delivered_deaths: List<Arc<NodeDeath>>,
+    delivered_deaths: List<Ref<NodeDeath>>,
 
     /// The number of requested threads that haven't registered yet.
     requested_thread_count: u32,
@@ -92,7 +89,7 @@ impl ProcessInner {
         }
     }
 
-    fn push_work(&mut self, work: Arc<dyn DeliverToRead>) -> BinderResult {
+    fn push_work(&mut self, work: Ref<dyn DeliverToRead>) -> BinderResult {
         // Try to find a ready thread to which to push the work.
         if let Some(thread) = self.ready_threads.pop_front() {
             // Push to thread while holding state lock. This prevents the thread from giving up
@@ -121,7 +118,7 @@ impl ProcessInner {
     // TODO: Decide if this should be private.
     pub(crate) fn update_node_refcount(
         &mut self,
-        node: &Arc<Node>,
+        node: &Ref<Node>,
         inc: bool,
         strong: bool,
         biased: bool,
@@ -145,7 +142,7 @@ impl ProcessInner {
     // TODO: Make this private.
     pub(crate) fn new_node_ref(
         &mut self,
-        node: Arc<Node>,
+        node: Ref<Node>,
         strong: bool,
         thread: Option<&Thread>,
     ) -> NodeRef {
@@ -157,7 +154,7 @@ impl ProcessInner {
     /// Returns an existing node with the given pointer and cookie, if one exists.
     ///
     /// Returns an error if a node with the given pointer but a different cookie exists.
-    fn get_existing_node(&self, ptr: usize, cookie: usize) -> Result<Option<Arc<Node>>> {
+    fn get_existing_node(&self, ptr: usize, cookie: usize) -> Result<Option<Ref<Node>>> {
         match self.nodes.get(&ptr) {
             None => Ok(None),
             Some(node) => {
@@ -198,7 +195,7 @@ impl ProcessInner {
 
     /// Finds a delivered death notification with the given cookie, removes it from the thread's
     /// delivered list, and returns it.
-    fn pull_delivered_death(&mut self, cookie: usize) -> Option<Arc<NodeDeath>> {
+    fn pull_delivered_death(&mut self, cookie: usize) -> Option<Ref<NodeDeath>> {
         let mut cursor = self.delivered_deaths.cursor_front_mut();
         while let Some(death) = cursor.current() {
             if death.cookie == cookie {
@@ -209,40 +206,14 @@ impl ProcessInner {
         None
     }
 
-    pub(crate) fn death_delivered(&mut self, death: Arc<NodeDeath>) {
+    pub(crate) fn death_delivered(&mut self, death: Ref<NodeDeath>) {
         self.delivered_deaths.push_back(death);
-    }
-}
-
-struct ArcReservation<T> {
-    mem: Arc<MaybeUninit<T>>,
-}
-
-impl<T> ArcReservation<T> {
-    fn new() -> Result<Self> {
-        Ok(Self {
-            mem: Arc::try_new(MaybeUninit::<T>::uninit())?,
-        })
-    }
-
-    fn commit(mut self, data: T) -> Arc<T> {
-        // SAFETY: Memory was allocated and properly aligned by using `MaybeUninit`.
-        unsafe {
-            Arc::get_mut(&mut self.mem)
-                .unwrap()
-                .as_mut_ptr()
-                .write(data);
-        }
-
-        // SAFETY: We have just initialised the memory block, and we know it's compatible with `T`
-        // because we used `MaybeUninit`.
-        unsafe { Arc::from_raw(Arc::into_raw(self.mem) as _) }
     }
 }
 
 struct NodeRefInfo {
     node_ref: NodeRef,
-    death: Option<Arc<NodeDeath>>,
+    death: Option<Ref<NodeDeath>>,
 }
 
 impl NodeRefInfo {
@@ -311,7 +282,7 @@ impl Process {
     }
 
     /// Attemps to fetch a work item from the process queue.
-    pub(crate) fn get_work(&self) -> Option<Arc<dyn DeliverToRead>> {
+    pub(crate) fn get_work(&self) -> Option<Ref<dyn DeliverToRead>> {
         self.inner.lock().work.pop_front()
     }
 
@@ -323,8 +294,8 @@ impl Process {
     /// queue).
     pub(crate) fn get_work_or_register<'a>(
         &'a self,
-        thread: &'a Arc<Thread>,
-    ) -> Either<Arc<dyn DeliverToRead>, Registration<'a>> {
+        thread: &'a Ref<Thread>,
+    ) -> Either<Ref<dyn DeliverToRead>, Registration<'a>> {
         let mut inner = self.inner.lock();
 
         // Try to get work from the process queue.
@@ -336,7 +307,7 @@ impl Process {
         Either::Right(Registration::new(self, thread, &mut inner))
     }
 
-    fn get_thread(self: &Ref<Self>, id: i32) -> Result<Arc<Thread>> {
+    fn get_thread(self: &Ref<Self>, id: i32) -> Result<Ref<Thread>> {
         // TODO: Consider using read/write locks here instead.
         {
             let inner = self.inner.lock();
@@ -360,7 +331,7 @@ impl Process {
         Ok(ta)
     }
 
-    pub(crate) fn push_work(&self, work: Arc<dyn DeliverToRead>) -> BinderResult {
+    pub(crate) fn push_work(&self, work: Ref<dyn DeliverToRead>) -> BinderResult {
         self.inner.lock().push_work(work)
     }
 
@@ -404,7 +375,7 @@ impl Process {
         }
 
         // Allocate the node before reacquiring the lock.
-        let node = Arc::try_new(Node::new(ptr, cookie, flags, self.clone()))?;
+        let node = Ref::try_new(Node::new(ptr, cookie, flags, self.clone()))?;
         let rbnode = RBTree::try_allocate_node(ptr, node.clone())?;
 
         let mut inner = self.inner.lock();
@@ -489,7 +460,7 @@ impl Process {
             .clone(strong)
     }
 
-    pub(crate) fn remove_from_delivered_deaths(&self, death: &Arc<NodeDeath>) {
+    pub(crate) fn remove_from_delivered_deaths(&self, death: &Ref<NodeDeath>) {
         let mut inner = self.inner.lock();
         let removed = unsafe { inner.delivered_deaths.remove(death) };
         drop(inner);
@@ -616,12 +587,12 @@ impl Process {
             address += 1 << bindings::PAGE_SHIFT;
         }
 
-        let arc = Arc::try_from_vec(pages)?;
+        let ref_pages = Ref::try_from(pages)?;
 
         // Save pages for later.
         let mut inner = self.inner.lock();
         match &inner.mapping {
-            None => inner.mapping = Some(Mapping::new(vma.vm_start as _, size, arc)?),
+            None => inner.mapping = Some(Mapping::new(vma.vm_start as _, size, ref_pages)?),
             Some(_) => return Err(Error::EBUSY),
         }
         Ok(())
@@ -635,7 +606,7 @@ impl Process {
         self.inner.lock().register_thread()
     }
 
-    fn remove_thread(&self, thread: Arc<Thread>) {
+    fn remove_thread(&self, thread: Ref<Thread>) {
         self.inner.lock().threads.remove(&thread.id);
         thread.release();
     }
@@ -720,7 +691,7 @@ impl Process {
         // TODO: Do we care about the context manager dying?
 
         // Queue BR_ERROR if we can't allocate memory for the death notification.
-        let death = ArcReservation::new().map_err(|err| {
+        let death = UniqueRef::try_new_uninit().map_err(|err| {
             thread.push_return_work(BR_ERROR);
             err
         })?;
@@ -733,15 +704,12 @@ impl Process {
             return Ok(());
         }
 
-        // SAFETY: `init` is called below.
-        let mut death = death
-            .commit(unsafe { NodeDeath::new(info.node_ref.node.clone(), self.clone(), cookie) });
-
-        {
-            let mutable = Arc::get_mut(&mut death).ok_or(Error::EINVAL)?;
-            // SAFETY: `mutable` is pinned behind the `Arc` reference.
-            unsafe { Pin::new_unchecked(mutable) }.init();
-        }
+        let death = death
+            .write(
+                // SAFETY: `init` is called below.
+                unsafe { NodeDeath::new(info.node_ref.node.clone(), self.clone(), cookie) },
+            )
+            .pin_init_and_share(|pinned_death| pinned_death.init());
 
         info.death = Some(death.clone());
 
@@ -950,13 +918,13 @@ impl FileOperations for Process {
 
 pub(crate) struct Registration<'a> {
     process: &'a Process,
-    thread: &'a Arc<Thread>,
+    thread: &'a Ref<Thread>,
 }
 
 impl<'a> Registration<'a> {
     fn new(
         process: &'a Process,
-        thread: &'a Arc<Thread>,
+        thread: &'a Ref<Thread>,
         guard: &mut Guard<'_, Mutex<ProcessInner>>,
     ) -> Self {
         guard.ready_threads.push_back(thread.clone());
