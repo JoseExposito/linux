@@ -72,7 +72,7 @@ impl<T: ?Sized> Mutex<T> {
 }
 
 impl<T: ?Sized> NeedsLockClass for Mutex<T> {
-    unsafe fn init(self: Pin<&Self>, name: &'static CStr, key: *mut bindings::lock_class_key) {
+    unsafe fn init(self: Pin<&mut Self>, name: &'static CStr, key: *mut bindings::lock_class_key) {
         unsafe { bindings::__mutex_init(self.mutex.get(), name.as_char_ptr(), key) };
     }
 }

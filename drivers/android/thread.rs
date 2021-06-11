@@ -247,19 +247,18 @@ impl Thread {
         })?;
         let thread = Arc::get_mut(&mut arc).unwrap();
         // SAFETY: `inner` is pinned behind the `Arc` reference.
-        let inner = unsafe { Pin::new_unchecked(&thread.inner) };
+        let inner = unsafe { Pin::new_unchecked(&mut thread.inner) };
         kernel::spinlock_init!(inner, "Thread::inner");
-        kernel::condvar_init!(thread.pinned_condvar(), "Thread::work_condvar");
+
+        // SAFETY: `work_condvar` is pinned behind the `Arc` reference.
+        let condvar = unsafe { Pin::new_unchecked(&mut thread.work_condvar) };
+        kernel::condvar_init!(condvar, "Thread::work_condvar");
         {
             let mut inner = arc.inner.lock();
             inner.set_reply_work(reply_work);
             inner.set_return_work(return_work);
         }
         Ok(arc)
-    }
-
-    fn pinned_condvar(&self) -> Pin<&CondVar> {
-        unsafe { Pin::new_unchecked(&self.work_condvar) }
     }
 
     pub(crate) fn set_current_transaction(&self, transaction: Arc<Transaction>) {
@@ -276,7 +275,6 @@ impl Thread {
         }
 
         // Loop waiting only on the local queue (i.e., not registering with the process queue).
-        let cv = self.pinned_condvar();
         let mut inner = self.inner.lock();
         loop {
             if let Some(work) = inner.pop_work() {
@@ -284,7 +282,7 @@ impl Thread {
             }
 
             inner.looper_flags |= LOOPER_WAITING;
-            let signal_pending = cv.wait(&mut inner);
+            let signal_pending = self.work_condvar.wait(&mut inner);
             inner.looper_flags &= !LOOPER_WAITING;
 
             if signal_pending {
@@ -321,7 +319,6 @@ impl Thread {
             Either::Right(reg) => reg,
         };
 
-        let cv = self.pinned_condvar();
         let mut inner = self.inner.lock();
         loop {
             if let Some(work) = inner.pop_work() {
@@ -329,7 +326,7 @@ impl Thread {
             }
 
             inner.looper_flags |= LOOPER_WAITING;
-            let signal_pending = cv.wait(&mut inner);
+            let signal_pending = self.work_condvar.wait(&mut inner);
             inner.looper_flags &= !LOOPER_WAITING;
 
             if signal_pending {
@@ -352,7 +349,7 @@ impl Thread {
             }
             inner.push_work(work);
         }
-        self.pinned_condvar().notify_one();
+        self.work_condvar.notify_one();
         Ok(())
     }
 
@@ -535,7 +532,7 @@ impl Thread {
         }
 
         // Notify the thread now that we've released the inner lock.
-        self.pinned_condvar().notify_one();
+        self.work_condvar.notify_one();
         false
     }
 
@@ -779,7 +776,7 @@ impl Thread {
 
         // Now that the lock is no longer held, notify the waiters if we have to.
         if notify {
-            self.pinned_condvar().notify_one();
+            self.work_condvar.notify_one();
         }
     }
 
@@ -802,7 +799,7 @@ impl Thread {
         // Remove epoll items if polling was ever used on the thread.
         let poller = self.inner.lock().looper_flags & LOOPER_POLL != 0;
         if poller {
-            self.pinned_condvar().free_waiters();
+            self.work_condvar.free_waiters();
 
             unsafe { bindings::synchronize_rcu() };
         }

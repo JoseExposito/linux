@@ -94,9 +94,9 @@ impl NodeDeath {
         }
     }
 
-    pub(crate) fn init(self: Pin<&Self>) {
+    pub(crate) fn init(self: Pin<&mut Self>) {
         // SAFETY: `inner` is pinned when `self` is.
-        let inner = unsafe { self.map_unchecked(|s| &s.inner) };
+        let inner = unsafe { self.map_unchecked_mut(|n| &mut n.inner) };
         kernel::spinlock_init!(inner, "NodeDeath::inner");
     }
 

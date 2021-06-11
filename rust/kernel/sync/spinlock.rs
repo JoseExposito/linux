@@ -86,7 +86,7 @@ impl<T: ?Sized> SpinLock<T> {
 }
 
 impl<T: ?Sized> NeedsLockClass for SpinLock<T> {
-    unsafe fn init(self: Pin<&Self>, name: &'static CStr, key: *mut bindings::lock_class_key) {
+    unsafe fn init(self: Pin<&mut Self>, name: &'static CStr, key: *mut bindings::lock_class_key) {
         unsafe { rust_helper_spin_lock_init(self.spin_lock.get(), name.as_char_ptr(), key) };
     }
 }

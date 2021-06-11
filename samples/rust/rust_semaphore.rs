@@ -131,13 +131,13 @@ impl KernelModule for RustSemaphore {
                     })
                 },
             },
-            |sema| {
+            |mut sema| {
                 // SAFETY: `changed` is pinned when `sema` is.
-                let pinned = unsafe { Pin::new_unchecked(&sema.changed) };
+                let pinned = unsafe { sema.as_mut().map_unchecked_mut(|s| &mut s.changed) };
                 condvar_init!(pinned, "Semaphore::changed");
 
                 // SAFETY: `inner` is pinned when `sema` is.
-                let pinned = unsafe { Pin::new_unchecked(&sema.inner) };
+                let pinned = unsafe { sema.as_mut().map_unchecked_mut(|s| &mut s.inner) };
                 mutex_init!(pinned, "Semaphore::inner");
             },
         )?;

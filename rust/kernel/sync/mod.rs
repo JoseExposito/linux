@@ -11,9 +11,11 @@
 //! # use kernel::prelude::*;
 //! # use kernel::mutex_init;
 //! # use kernel::sync::Mutex;
+//! # use alloc::boxed::Box;
+//! # use core::pin::Pin;
 //! // SAFETY: `init` is called below.
-//! let data = alloc::sync::Arc::pin(unsafe { Mutex::new(0) });
-//! mutex_init!(data.as_ref(), "test::data");
+//! let mut data = Pin::from(Box::new(unsafe { Mutex::new(0) }));
+//! mutex_init!(data.as_mut(), "test::data");
 //! *data.lock() = 10;
 //! pr_info!("{}\n", *data.lock());
 //! ```
@@ -73,7 +75,7 @@ pub trait NeedsLockClass {
     /// # Safety
     ///
     /// `key` must point to a valid memory location as it will be used by the kernel.
-    unsafe fn init(self: Pin<&Self>, name: &'static CStr, key: *mut bindings::lock_class_key);
+    unsafe fn init(self: Pin<&mut Self>, name: &'static CStr, key: *mut bindings::lock_class_key);
 }
 
 /// Determines if a signal is pending on the current process.
