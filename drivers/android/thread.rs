@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-use alloc::sync::Arc;
+use alloc::{boxed::Box, sync::Arc};
 use core::{alloc::AllocError, mem::size_of, pin::Pin};
 use kernel::{
     bindings,
@@ -19,7 +19,7 @@ use crate::{
     defs::*,
     process::{AllocationInfo, Process},
     ptr_align,
-    transaction::Transaction,
+    transaction::{FileInfo, Transaction},
     DeliverCode, DeliverToRead, DeliverToReadListAdapter, Either,
 };
 
@@ -376,7 +376,7 @@ impl Thread {
     fn translate_object(
         &self,
         index_offset: usize,
-        view: &AllocationView,
+        view: &mut AllocationView,
         allow_fds: bool,
     ) -> BinderResult {
         let offset = view.alloc.read(index_offset)?;
@@ -386,7 +386,8 @@ impl Thread {
             BINDER_TYPE_WEAK_BINDER | BINDER_TYPE_BINDER => {
                 let strong = header.type_ == BINDER_TYPE_BINDER;
                 view.transfer_binder_object(offset, strong, |obj| {
-                    // SAFETY: The type is `BINDER_TYPE_{WEAK_}BINDER`, so `binder` is populated.
+                    // SAFETY: `binder` is a `binder_uintptr_t`; any bit pattern is a valid
+                    // representation.
                     let ptr = unsafe { obj.__bindgen_anon_1.binder } as _;
                     let cookie = obj.cookie as _;
                     let flags = obj.flags as _;
@@ -398,7 +399,7 @@ impl Thread {
             BINDER_TYPE_WEAK_HANDLE | BINDER_TYPE_HANDLE => {
                 let strong = header.type_ == BINDER_TYPE_HANDLE;
                 view.transfer_binder_object(offset, strong, |obj| {
-                    // SAFETY: The type is `BINDER_TYPE_{WEAK_}HANDLE`, so `handle` is populated.
+                    // SAFETY: `handle` is a `u32`; any bit pattern is a valid representation.
                     let handle = unsafe { obj.__bindgen_anon_1.handle } as _;
                     self.process.get_node_from_handle(handle, strong)
                 })?;
@@ -407,6 +408,15 @@ impl Thread {
                 if !allow_fds {
                     return Err(BinderError::new_failed());
                 }
+
+                let obj = view.read::<bindings::binder_fd_object>(offset)?;
+                // SAFETY: `fd` is a `u32`; any bit pattern is a valid representation.
+                let fd = unsafe { obj.__bindgen_anon_1.fd };
+                let file = File::from_fd(fd)?;
+                let field_offset =
+                    kernel::offset_of!(bindings::binder_fd_object, __bindgen_anon_1.fd) as usize;
+                let file_info = Box::try_new(FileInfo::new(file, offset + field_offset))?;
+                view.alloc.add_file_info(file_info);
             }
             _ => pr_warn!("Unsupported binder object type: {:x}\n", header.type_),
         }
@@ -420,9 +430,9 @@ impl Thread {
         end: usize,
         allow_fds: bool,
     ) -> BinderResult {
-        let view = AllocationView::new(alloc, start);
+        let mut view = AllocationView::new(alloc, start);
         for i in (start..end).step_by(size_of::<usize>()) {
-            if let Err(err) = self.translate_object(i, &view, allow_fds) {
+            if let Err(err) = self.translate_object(i, &mut view, allow_fds) {
                 alloc.set_info(AllocationInfo { offsets: start..i });
                 return Err(err);
             }
@@ -558,7 +568,7 @@ impl Thread {
             let completion = Arc::try_new(DeliverCode::new(BR_TRANSACTION_COMPLETE))?;
             let process = orig.from.process.clone();
             let allow_fds = orig.flags & TF_ACCEPT_FDS != 0;
-            let reply = Arc::try_new(Transaction::new_reply(self, process, tr, allow_fds)?)?;
+            let reply = Transaction::new_reply(self, process, tr, allow_fds)?;
             self.inner.lock().push_work(completion);
             orig.from.deliver_reply(Either::Left(reply), &orig);
             Ok(())
@@ -592,7 +602,7 @@ impl Thread {
         let handle = unsafe { tr.target.handle };
         let node_ref = self.process.get_transaction_node(handle)?;
         let completion = Arc::try_new(DeliverCode::new(BR_TRANSACTION_COMPLETE))?;
-        let transaction = Arc::try_new(Transaction::new(node_ref, None, self, tr)?)?;
+        let transaction = Transaction::new(node_ref, None, self, tr)?;
         self.inner.lock().push_work(completion);
         // TODO: Remove the completion on error?
         transaction.submit()?;
@@ -606,7 +616,7 @@ impl Thread {
         // could this happen?
         let top = self.top_of_transaction_stack()?;
         let completion = Arc::try_new(DeliverCode::new(BR_TRANSACTION_COMPLETE))?;
-        let transaction = Arc::try_new(Transaction::new(node_ref, top, self, tr)?)?;
+        let transaction = Transaction::new(node_ref, top, self, tr)?;
 
         // Check that the transaction stack hasn't changed while the lock was released, then update
         // it with the new transaction.

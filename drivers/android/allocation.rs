@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0
 
-use alloc::sync::Arc;
-use core::mem::{size_of, MaybeUninit};
-use kernel::{bindings, pages::Pages, prelude::*, user_ptr::UserSlicePtrReader, Error};
+use alloc::{boxed::Box, sync::Arc};
+use core::mem::{replace, size_of, MaybeUninit};
+use kernel::{
+    bindings, linked_list::List, pages::Pages, prelude::*, user_ptr::UserSlicePtrReader, Error,
+};
 
 use crate::{
     defs::*,
     node::NodeRef,
     process::{AllocationInfo, Process},
     thread::{BinderError, BinderResult},
+    transaction::FileInfo,
 };
 
 pub(crate) struct Allocation<'a> {
@@ -19,6 +22,7 @@ pub(crate) struct Allocation<'a> {
     pub(crate) process: &'a Process,
     allocation_info: Option<AllocationInfo>,
     free_on_drop: bool,
+    file_list: List<Box<FileInfo>>,
 }
 
 impl<'a> Allocation<'a> {
@@ -37,7 +41,16 @@ impl<'a> Allocation<'a> {
             pages,
             allocation_info: None,
             free_on_drop: true,
+            file_list: List::new(),
         }
+    }
+
+    pub(crate) fn take_file_list(&mut self) -> List<Box<FileInfo>> {
+        replace(&mut self.file_list, List::new())
+    }
+
+    pub(crate) fn add_file_info(&mut self, file: Box<FileInfo>) {
+        self.file_list.push_back(file);
     }
 
     fn iterate<T>(&self, mut offset: usize, mut size: usize, mut cb: T) -> Result

@@ -1,10 +1,20 @@
 // SPDX-License-Identifier: GPL-2.0
 
-use alloc::sync::Arc;
-use core::sync::atomic::{AtomicBool, Ordering};
+use alloc::{boxed::Box, sync::Arc};
+use core::{
+    pin::Pin,
+    sync::atomic::{AtomicBool, Ordering},
+};
 use kernel::{
-    io_buffer::IoBufferWriter, linked_list::Links, prelude::*, sync::Ref,
-    user_ptr::UserSlicePtrWriter, ScopeGuard,
+    bindings,
+    file::{File, FileDescriptorReservation},
+    io_buffer::IoBufferWriter,
+    linked_list::List,
+    linked_list::{GetLinks, Links},
+    prelude::*,
+    sync::{Ref, SpinLock},
+    user_ptr::UserSlicePtrWriter,
+    Error, ScopeGuard,
 };
 
 use crate::{
@@ -16,7 +26,12 @@ use crate::{
     DeliverToRead, Either,
 };
 
+struct TransactionInner {
+    file_list: List<Box<FileInfo>>,
+}
+
 pub(crate) struct Transaction {
+    inner: SpinLock<TransactionInner>,
     // TODO: Node should be released when the buffer is released.
     node_ref: Option<NodeRef>,
     stack_next: Option<Arc<Transaction>>,
@@ -37,13 +52,16 @@ impl Transaction {
         stack_next: Option<Arc<Transaction>>,
         from: &Arc<Thread>,
         tr: &BinderTransactionData,
-    ) -> BinderResult<Self> {
+    ) -> BinderResult<Arc<Self>> {
         let allow_fds = node_ref.node.flags & FLAT_BINDER_FLAG_ACCEPTS_FDS != 0;
         let to = node_ref.node.owner.clone();
-        let alloc = from.copy_transaction_data(&to, tr, allow_fds)?;
+        let mut alloc = from.copy_transaction_data(&to, tr, allow_fds)?;
         let data_address = alloc.ptr;
+        let file_list = alloc.take_file_list();
         alloc.keep_alive();
-        Ok(Self {
+        let mut tr = Arc::try_new(Self {
+            // SAFETY: `spinlock_init` is called below.
+            inner: unsafe { SpinLock::new(TransactionInner { file_list }) },
             node_ref: Some(node_ref),
             stack_next,
             from: from.clone(),
@@ -55,7 +73,13 @@ impl Transaction {
             offsets_size: tr.offsets_size as _,
             links: Links::new(),
             free_allocation: AtomicBool::new(true),
-        })
+        })?;
+
+        let mut_tr = Arc::get_mut(&mut tr).ok_or(Error::EINVAL)?;
+
+        // SAFETY: `inner` is pinned behind `Arc`.
+        kernel::spinlock_init!(Pin::new_unchecked(&mut_tr.inner), "Transaction::inner");
+        Ok(tr)
     }
 
     pub(crate) fn new_reply(
@@ -63,11 +87,14 @@ impl Transaction {
         to: Ref<Process>,
         tr: &BinderTransactionData,
         allow_fds: bool,
-    ) -> BinderResult<Self> {
-        let alloc = from.copy_transaction_data(&to, tr, allow_fds)?;
+    ) -> BinderResult<Arc<Self>> {
+        let mut alloc = from.copy_transaction_data(&to, tr, allow_fds)?;
         let data_address = alloc.ptr;
+        let file_list = alloc.take_file_list();
         alloc.keep_alive();
-        Ok(Self {
+        let mut tr = Arc::try_new(Self {
+            // SAFETY: `spinlock_init` is called below.
+            inner: unsafe { SpinLock::new(TransactionInner { file_list }) },
             node_ref: None,
             stack_next: None,
             from: from.clone(),
@@ -79,7 +106,13 @@ impl Transaction {
             offsets_size: tr.offsets_size as _,
             links: Links::new(),
             free_allocation: AtomicBool::new(true),
-        })
+        })?;
+
+        let mut_tr = Arc::get_mut(&mut tr).ok_or(Error::EINVAL)?;
+
+        // SAFETY: `inner` is pinned behind `Arc`.
+        kernel::spinlock_init!(Pin::new_unchecked(&mut_tr.inner), "Transaction::inner");
+        Ok(tr)
     }
 
     /// Determines if the transaction is stacked on top of the given transaction.
@@ -136,6 +169,33 @@ impl Transaction {
             process.push_work(self)
         }
     }
+
+    /// Prepares the file list for delivery to the caller.
+    fn prepare_file_list(&self) -> Result<List<Box<FileInfo>>> {
+        // Get list of files that are being transferred as part of the transaction.
+        let mut file_list = core::mem::replace(&mut self.inner.lock().file_list, List::new());
+
+        // If the list is non-empty, prepare the buffer.
+        if !file_list.is_empty() {
+            let alloc = self.to.buffer_get(self.data_address).ok_or(Error::ESRCH)?;
+            let cleanup = ScopeGuard::new(|| {
+                self.free_allocation.store(false, Ordering::Relaxed);
+            });
+
+            let mut it = file_list.cursor_front_mut();
+            while let Some(file_info) = it.current() {
+                let reservation = FileDescriptorReservation::new(bindings::O_CLOEXEC)?;
+                alloc.write(file_info.buffer_offset, &reservation.reserved_fd())?;
+                file_info.reservation = Some(reservation);
+                it.move_next();
+            }
+
+            alloc.keep_alive();
+            cleanup.dismiss();
+        }
+
+        Ok(file_list)
+    }
 }
 
 impl DeliverToRead for Transaction {
@@ -145,9 +205,19 @@ impl DeliverToRead for Transaction {
             pub sender_euid: uid_t,
         */
         let send_failed_reply = ScopeGuard::new(|| {
-            let reply = Either::Right(BR_FAILED_REPLY);
-            self.from.deliver_reply(reply, &self);
+            if self.node_ref.is_some() && self.flags & TF_ONE_WAY == 0 {
+                let reply = Either::Right(BR_FAILED_REPLY);
+                self.from.deliver_reply(reply, &self);
+            }
         });
+        let mut file_list = if let Ok(list) = self.prepare_file_list() {
+            list
+        } else {
+            // On failure to process the list, we send a reply back to the sender and ignore the
+            // transaction on the recipient.
+            return Ok(true);
+        };
+
         let mut tr = BinderTransactionData::default();
 
         if let Some(nref) = &self.node_ref {
@@ -165,10 +235,6 @@ impl DeliverToRead for Transaction {
             tr.data.ptr.offsets = (self.data_address + ptr_align(self.data_size)) as _;
         }
 
-        // When `drop` is called, we don't want the allocation to be freed because it is now the
-        // user's reponsibility to free it.
-        self.free_allocation.store(false, Ordering::Relaxed);
-
         let code = if self.node_ref.is_none() {
             BR_REPLY
         } else {
@@ -182,6 +248,27 @@ impl DeliverToRead for Transaction {
         // Dismiss the completion of transaction with a failure. No failure paths are allowed from
         // here on out.
         send_failed_reply.dismiss();
+
+        // Commit all files.
+        {
+            let mut it = file_list.cursor_front_mut();
+            while let Some(file_info) = it.current() {
+                if let Some(reservation) = file_info.reservation.take() {
+                    if let Some(file) = file_info.file.take() {
+                        reservation.commit(file);
+                    }
+                }
+
+                it.move_next();
+            }
+        }
+
+        // When `drop` is called, we don't want the allocation to be freed because it is now the
+        // user's reponsibility to free it.
+        //
+        // `drop` is guaranteed to see this relaxed store because `Arc` guarantess that everything
+        // that happens when an object is referenced happens-before the eventual `drop`.
+        self.free_allocation.store(false, Ordering::Relaxed);
 
         // When this is not a reply and not an async transaction, update `current_transaction`. If
         // it's a reply, `current_transaction` has already been updated appropriately.
@@ -207,5 +294,37 @@ impl Drop for Transaction {
         if self.free_allocation.load(Ordering::Relaxed) {
             self.to.buffer_get(self.data_address);
         }
+    }
+}
+
+pub(crate) struct FileInfo {
+    links: Links<FileInfo>,
+
+    /// The file for which a descriptor will be created in the recipient process.
+    file: Option<File>,
+
+    /// The file descriptor reservation on the recipient process.
+    reservation: Option<FileDescriptorReservation>,
+
+    /// The offset in the buffer where the file descriptor is stored.
+    buffer_offset: usize,
+}
+
+impl FileInfo {
+    pub(crate) fn new(file: File, buffer_offset: usize) -> Self {
+        Self {
+            file: Some(file),
+            reservation: None,
+            buffer_offset,
+            links: Links::new(),
+        }
+    }
+}
+
+impl GetLinks for FileInfo {
+    type EntryType = Self;
+
+    fn get_links(data: &Self::EntryType) -> &Links<Self::EntryType> {
+        &data.links
     }
 }
