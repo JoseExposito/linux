@@ -6,7 +6,7 @@
 
 use crate::{
     bindings, c_types,
-    sync::{Ref, RefCounted},
+    sync::{Ref, RefBorrow},
 };
 use alloc::{boxed::Box, sync::Arc};
 use core::{ops::Deref, pin::Pin, ptr::NonNull};
@@ -81,24 +81,22 @@ impl<T> PointerWrapper for Box<T> {
     }
 }
 
-impl<T: RefCounted> PointerWrapper for Ref<T> {
-    type Borrowed = UnsafeReference<T>;
+impl<T> PointerWrapper for Ref<T> {
+    type Borrowed = RefBorrow<T>;
 
     fn into_pointer(self) -> *const c_types::c_void {
-        Ref::into_raw(self) as _
+        Ref::into_usize(self) as _
     }
 
     unsafe fn borrow(ptr: *const c_types::c_void) -> Self::Borrowed {
-        // SAFETY: The safety requirements for this function ensure that the object is still alive,
-        // so it is safe to dereference the raw pointer.
-        // The safety requirements also ensure that the object remains alive for the lifetime of
-        // the returned value.
-        unsafe { UnsafeReference::new(&*ptr.cast()) }
+        // SAFETY: The safety requirements for this function ensure that the underlying object
+        // remains valid for the lifetime of the returned value.
+        unsafe { Ref::borrow_usize(ptr as _) }
     }
 
     unsafe fn from_pointer(ptr: *const c_types::c_void) -> Self {
         // SAFETY: The passed pointer comes from a previous call to [`Self::into_pointer()`].
-        unsafe { Ref::from_raw(ptr as _) }
+        unsafe { Ref::from_usize(ptr as _) }
     }
 }
 

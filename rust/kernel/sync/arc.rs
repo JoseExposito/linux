@@ -7,20 +7,26 @@
 //! underlying object when it reaches zero. It is also safe to use concurrently from multiple
 //! threads.
 //!
-//! It is different from the standard library's [`Arc`] in two ways: it does not support weak
-//! references, which allows it to be smaller -- a single pointer-sized integer; it allows users to
-//! safely increment the reference count from a single reference to the underlying object.
+//! It is different from the standard library's [`Arc`] in a few ways:
+//! 1. It is backed by the kernel's `refcount_t` type.
+//! 2. It does not support weak references, which allows it to be half the size.
+//! 3. It saturates the reference count instead of aborting when it goes over a threshold.
+//! 4. It does not provide a `get_mut` method, so the ref counted object is pinned.
 //!
 //! [`Arc`]: https://doc.rust-lang.org/std/sync/struct.Arc.html
 
-use crate::Result;
+use crate::{bindings, Result};
 use alloc::boxed::Box;
 use core::{
-    mem::ManuallyDrop,
-    ops::Deref,
+    cell::UnsafeCell, convert::AsRef, marker::PhantomData, mem::ManuallyDrop, ops::Deref, pin::Pin,
     ptr::NonNull,
-    sync::atomic::{fence, AtomicUsize, Ordering},
 };
+
+extern "C" {
+    fn rust_helper_refcount_new() -> bindings::refcount_t;
+    fn rust_helper_refcount_inc(r: *mut bindings::refcount_t);
+    fn rust_helper_refcount_dec_and_test(r: *mut bindings::refcount_t) -> bool;
+}
 
 /// A reference-counted pointer to an instance of `T`.
 ///
@@ -29,156 +35,193 @@ use core::{
 ///
 /// # Invariants
 ///
-/// The value stored in [`RefCounted::get_count`] corresponds to the number of instances of [`Ref`]
-/// that point to that instance of `T`.
-pub struct Ref<T: RefCounted + ?Sized> {
-    ptr: NonNull<T>,
+/// The reference count on an instance of [`Ref`] is always non-zero.
+/// The object pointed to by [`Ref`] is always pinned.
+pub struct Ref<T: ?Sized> {
+    ptr: NonNull<RefInner<T>>,
+    _p: PhantomData<RefInner<T>>,
 }
+
+struct RefInner<T: ?Sized> {
+    refcount: UnsafeCell<bindings::refcount_t>,
+    data: T,
+}
+
+// This is to allow [`Ref`] (and variants) to be used as the type of `self`.
+impl<T: ?Sized> core::ops::Receiver for Ref<T> {}
 
 // SAFETY: It is safe to send `Ref<T>` to another thread when the underlying `T` is `Sync` because
 // it effectively means sharing `&T` (which is safe because `T` is `Sync`); additionally, it needs
 // `T` to be `Send` because any thread that has a `Ref<T>` may ultimately access `T` directly, for
 // example, when the reference count reaches zero and `T` is dropped.
-unsafe impl<T: RefCounted + ?Sized + Sync + Send> Send for Ref<T> {}
+unsafe impl<T: ?Sized + Sync + Send> Send for Ref<T> {}
 
 // SAFETY: It is safe to send `&Ref<T>` to another thread when the underlying `T` is `Sync` for
 // the same reason as above. `T` needs to be `Send` as well because a thread can clone a `&Ref<T>`
 // into a `Ref<T>`, which may lead to `T` being accessed by the same reasoning as above.
-unsafe impl<T: RefCounted + ?Sized + Sync + Send> Sync for Ref<T> {}
+unsafe impl<T: ?Sized + Sync + Send> Sync for Ref<T> {}
 
-impl<T: RefCounted> Ref<T> {
+impl<T> Ref<T> {
     /// Constructs a new reference counted instance of `T`.
     pub fn try_new(contents: T) -> Result<Self> {
-        let boxed = Box::try_new(contents)?;
-        boxed.get_count().count.store(1, Ordering::Relaxed);
-        let ptr = NonNull::from(Box::leak(boxed));
-        Ok(Ref { ptr })
+        Self::try_new_and_init(contents, |_| {})
+    }
+
+    /// Constructs a new reference counted instance of `T` and calls the initialisation function.
+    ///
+    /// This is useful because it provides a mutable reference to `T` at its final location.
+    pub fn try_new_and_init<U: FnOnce(Pin<&mut T>)>(contents: T, init: U) -> Result<Self> {
+        // INVARIANT: The refcount is initialised to a non-zero value.
+        let mut inner = Box::try_new(RefInner {
+            // SAFETY: Just an FFI call that returns a `refcount_t` initialised to 1.
+            refcount: UnsafeCell::new(unsafe { rust_helper_refcount_new() }),
+            data: contents,
+        })?;
+
+        // SAFETY: By the invariant, `RefInner` is pinned and `T` is also pinned.
+        let pinned = unsafe { Pin::new_unchecked(&mut inner.data) };
+
+        // INVARIANT: The only places where `&mut T` is available are here, which is explicitly
+        // pinned, and in `drop`. Both are compatible with the pin requirements.
+        init(pinned);
+
+        Ok(Ref {
+            ptr: NonNull::from(Box::leak(inner)),
+            _p: PhantomData,
+        })
+    }
+
+    /// Deconstructs a [`Ref`] object into a `usize`.
+    ///
+    /// It can be reconstructed once via [`Ref::from_usize`].
+    pub fn into_usize(obj: Self) -> usize {
+        ManuallyDrop::new(obj).ptr.as_ptr() as _
+    }
+
+    /// Borrows a [`Ref`] instance previously deconstructed via [`Ref::into_usize`].
+    ///
+    /// # Safety
+    ///
+    /// `encoded` must have been returned by a previous call to [`Ref::into_usize`]. Additionally,
+    /// [`Ref::from_usize`] can only be called after *all* instances of [`RefBorrow`] have been
+    /// dropped.
+    pub unsafe fn borrow_usize(encoded: usize) -> RefBorrow<T> {
+        // SAFETY: By the safety requirement of this function, we know that `encoded` came from
+        // a previous call to `Ref::into_usize`.
+        let obj = ManuallyDrop::new(unsafe { Ref::from_usize(encoded) });
+
+        // SAFEY: The safety requirements ensure that the object remains alive for the lifetime of
+        // the returned value. There is no way to create mutable references to the object.
+        unsafe { RefBorrow::new(obj) }
+    }
+
+    /// Recreates a [`Ref`] instance previously deconstructed via [`Ref::into_usize`].
+    ///
+    /// # Safety
+    ///
+    /// `encoded` must have been returned by a previous call to [`Ref::into_usize`]. Additionally,
+    /// it can only be called once for each previous call to [``Ref::into_usize`].
+    pub unsafe fn from_usize(encoded: usize) -> Self {
+        Ref {
+            ptr: NonNull::new(encoded as _).unwrap(),
+            _p: PhantomData,
+        }
     }
 }
 
-impl<T: RefCounted + ?Sized> Ref<T> {
-    /// Creates a new reference-counted pointer to the given instance of `T`.
-    ///
-    /// It works by incrementing the current reference count as part of constructing the new
-    /// pointer.
-    pub fn new_from(obj: &T) -> Self {
-        let ref_count = obj.get_count();
-        let cur = ref_count.count.fetch_add(1, Ordering::Relaxed);
-        if cur == usize::MAX {
-            panic!("Reference count overflowed");
-        }
-        Self {
-            ptr: NonNull::from(obj),
-        }
-    }
-
-    /// Returns a mutable reference to `T` iff the reference count is one. Otherwise returns
-    /// [`None`].
-    pub fn get_mut(&mut self) -> Option<&mut T> {
-        // Synchronises with the decrement in `drop`.
-        if self.get_count().count.load(Ordering::Acquire) != 1 {
-            return None;
-        }
-        // SAFETY: Since there is only one reference, we know it isn't possible for another thread
-        // to concurrently call this.
-        Some(unsafe { self.ptr.as_mut() })
-    }
-
+impl<T: ?Sized> Ref<T> {
     /// Determines if two reference-counted pointers point to the same underlying instance of `T`.
     pub fn ptr_eq(a: &Self, b: &Self) -> bool {
         core::ptr::eq(a.ptr.as_ptr(), b.ptr.as_ptr())
     }
 
-    /// Deconstructs a [`Ref`] object into a raw pointer.
-    ///
-    /// It can be reconstructed once via [`Ref::from_raw`].
-    pub fn into_raw(obj: Self) -> *const T {
-        let no_drop = ManuallyDrop::new(obj);
-        no_drop.ptr.as_ptr()
-    }
-
-    /// Recreates a [`Ref`] instance previously deconstructed via [`Ref::into_raw`].
-    ///
-    /// # Safety
-    ///
-    /// `ptr` must have been returned by a previous call to [`Ref::into_raw`]. Additionally, it
-    /// can only be called once for each previous call to [``Ref::into_raw`].
-    pub unsafe fn from_raw(ptr: *const T) -> Self {
-        Ref {
-            ptr: NonNull::new(ptr as _).unwrap(),
-        }
+    /// Returns a pinned version of a given `Ref` instance.
+    pub fn pinned(obj: Self) -> Pin<Self> {
+        // SAFETY: The type invariants guarantee that the value is pinned.
+        unsafe { Pin::new_unchecked(obj) }
     }
 }
 
-impl<T: RefCounted + ?Sized> Deref for Ref<T> {
+impl<T: ?Sized> Deref for Ref<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
         // SAFETY: By the type invariant, there is necessarily a reference to the object, so it is
         // safe to dereference it.
-        unsafe { self.ptr.as_ref() }
+        unsafe { &self.ptr.as_ref().data }
     }
 }
 
-impl<T: RefCounted + ?Sized> Clone for Ref<T> {
+impl<T: ?Sized> Clone for Ref<T> {
     fn clone(&self) -> Self {
-        Self::new_from(self)
-    }
-}
-
-impl<T: RefCounted + ?Sized> Drop for Ref<T> {
-    fn drop(&mut self) {
-        {
-            // SAFETY: By the type invariant, there is necessarily a reference to the object.
-            let obj = unsafe { self.ptr.as_ref() };
-
-            // Synchronises with the acquire below or with the acquire in `get_mut`.
-            if obj.get_count().count.fetch_sub(1, Ordering::Release) != 1 {
-                return;
-            }
-        }
-
-        // Synchronises with the release when decrementing above. This ensures that modifications
-        // from all previous threads/CPUs are visible to the underlying object's `drop`.
-        fence(Ordering::Acquire);
-
-        // The count reached zero, we must free the memory.
-        //
-        // SAFETY: The pointer was initialised from the result of `Box::into_raw`.
-        unsafe { Box::from_raw(self.ptr.as_ptr()) };
-    }
-}
-
-/// Trait for reference counted objects.
-///
-/// # Safety
-///
-/// Implementers of [`RefCounted`] must ensure that all of their constructors call
-/// [`Ref::try_new`].
-pub unsafe trait RefCounted {
-    /// Returns a pointer to the object field holds the reference count.
-    fn get_count(&self) -> &RefCount;
-}
-
-/// Holds the reference count of an object.
-///
-/// It is meant to be embedded in objects to be reference-counted, with [`RefCounted::get_count`]
-/// returning a reference to it.
-pub struct RefCount {
-    count: AtomicUsize,
-}
-
-impl RefCount {
-    /// Constructs a new instance of [`RefCount`].
-    pub fn new() -> Self {
+        // INVARIANT: C `refcount_inc` saturates the refcount, so it cannot overflow to zero.
+        // SAFETY: By the type invariant, there is necessarily a reference to the object, so it is
+        // safe to increment the refcount.
+        unsafe { rust_helper_refcount_inc(self.ptr.as_ref().refcount.get()) };
         Self {
-            count: AtomicUsize::new(1),
+            ptr: self.ptr,
+            _p: PhantomData,
         }
     }
 }
 
-impl Default for RefCount {
-    fn default() -> Self {
-        Self::new()
+impl<T: ?Sized> AsRef<T> for Ref<T> {
+    fn as_ref(&self) -> &T {
+        // SAFETY: By the type invariant, there is necessarily a reference to the object, so it is
+        // safe to dereference it.
+        unsafe { &self.ptr.as_ref().data }
+    }
+}
+
+impl<T: ?Sized> Drop for Ref<T> {
+    fn drop(&mut self) {
+        // SAFETY: By the type invariant, there is necessarily a reference to the object. We cannot
+        // touch `refcount` after it's decremented to a non-zero value because another thread/CPU
+        // may concurrently decrement it to zero and free it. It is ok to have a raw pointer to
+        // freed/invalid memory as long as it is never dereferenced.
+        let refcount = unsafe { self.ptr.as_ref() }.refcount.get();
+
+        // INVARIANT: If the refcount reaches zero, there are no other instances of `Ref`, and
+        // this instance is being dropped, so the broken invariant is not observable.
+        // SAFETY: Also by the type invariant, we are allowed to decrement the refcount.
+        let is_zero = unsafe { rust_helper_refcount_dec_and_test(refcount) };
+        if is_zero {
+            // The count reached zero, we must free the memory.
+            //
+            // SAFETY: The pointer was initialised from the result of `Box::leak`.
+            unsafe { Box::from_raw(self.ptr.as_ptr()) };
+        }
+    }
+}
+
+/// A borrowed [`Ref`] with manually-managed lifetime.
+///
+/// # Invariants
+///
+/// There are no mutable references to the underlying [`Ref`], and it remains valid for the lifetime
+/// of the [`RefBorrow`] instance.
+pub struct RefBorrow<T: ?Sized> {
+    inner_ref: ManuallyDrop<Ref<T>>,
+}
+
+impl<T: ?Sized> RefBorrow<T> {
+    /// Creates a new [`RefBorrow`] instance.
+    ///
+    /// # Safety
+    ///
+    /// Callers must ensure the following for the lifetime of the returned [`RefBorrow`] instance:
+    /// 1. That `obj` remains valid;
+    /// 2. That no mutable references to `obj` are created.
+    unsafe fn new(obj: ManuallyDrop<Ref<T>>) -> Self {
+        // INVARIANT: The safety requirements guarantee the invariants.
+        Self { inner_ref: obj }
+    }
+}
+
+impl<T: ?Sized> Deref for RefBorrow<T> {
+    type Target = Ref<T>;
+
+    fn deref(&self) -> &Self::Target {
+        self.inner_ref.deref()
     }
 }
