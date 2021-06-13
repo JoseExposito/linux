@@ -9,6 +9,7 @@
 #include <linux/uio.h>
 #include <linux/errname.h>
 #include <linux/mutex.h>
+#include <linux/platform_device.h>
 
 void rust_helper_BUG(void)
 {
@@ -129,6 +130,21 @@ void rust_helper_mutex_lock(struct mutex *lock)
 	mutex_lock(lock);
 }
 EXPORT_SYMBOL_GPL(rust_helper_mutex_lock);
+
+void *
+rust_helper_platform_get_drvdata(const struct platform_device *pdev)
+{
+	return platform_get_drvdata(pdev);
+}
+EXPORT_SYMBOL_GPL(rust_helper_platform_get_drvdata);
+
+void
+rust_helper_platform_set_drvdata(struct platform_device *pdev,
+				 void *data)
+{
+	return platform_set_drvdata(pdev, data);
+}
+EXPORT_SYMBOL_GPL(rust_helper_platform_set_drvdata);
 
 /* We use bindgen's --size_t-is-usize option to bind the C size_t type
  * as the Rust usize type, so we can use it in contexts where Rust

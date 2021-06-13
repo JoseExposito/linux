@@ -30,13 +30,31 @@ pub struct Registration {
 // (it is fine for multiple threads to have a shared reference to it).
 unsafe impl Sync for Registration {}
 
+extern "C" {
+    #[allow(improper_ctypes)]
+    fn rust_helper_platform_get_drvdata(
+        pdev: *const bindings::platform_device,
+    ) -> *mut c_types::c_void;
+
+    #[allow(improper_ctypes)]
+    fn rust_helper_platform_set_drvdata(
+        pdev: *mut bindings::platform_device,
+        data: *mut c_types::c_void,
+    );
+}
+
 extern "C" fn probe_callback<P: PlatformDriver>(
     pdev: *mut bindings::platform_device,
 ) -> c_types::c_int {
     from_kernel_result! {
         // SAFETY: `pdev` is guaranteed to be a valid, non-null pointer.
         let device_id = unsafe { (*pdev).id };
-        P::probe(device_id)?;
+        let drv_data = P::probe(device_id)?;
+        let drv_data = drv_data.into_pointer() as *mut c_types::c_void;
+        // SAFETY: `pdev` is guaranteed to be a valid, non-null pointer.
+        unsafe {
+            rust_helper_platform_set_drvdata(pdev, drv_data);
+        }
         Ok(0)
     }
 }
@@ -47,7 +65,16 @@ extern "C" fn remove_callback<P: PlatformDriver>(
     from_kernel_result! {
         // SAFETY: `pdev` is guaranteed to be a valid, non-null pointer.
         let device_id = unsafe { (*pdev).id };
-        P::remove(device_id)?;
+        // SAFETY: `pdev` is guaranteed to be a valid, non-null pointer.
+        let ptr = unsafe { rust_helper_platform_get_drvdata(pdev) };
+        // SAFETY:
+        //   - we allocated this pointer using `P::DrvData::into_pointer`,
+        //     so it is safe to turn back into a `P::DrvData`.
+        //   - the allocation happened in `probe`, no-one freed the memory,
+        //     `remove` is the canonical kernel location to free driver data. so OK
+        //     to convert the pointer back to a Rust structure here.
+        let drv_data = unsafe { P::DrvData::from_pointer(ptr) };
+        P::remove(device_id, drv_data)?;
         Ok(0)
     }
 }
@@ -124,15 +151,25 @@ impl Drop for Registration {
 ///
 /// Implement this trait whenever you create a platform driver.
 pub trait PlatformDriver {
+    /// Device driver data.
+    ///
+    /// Corresponds to the data set or retrieved via the kernel's
+    /// `platform_{set,get}_drvdata()` functions.
+    ///
+    /// Require that `DrvData` implements `PointerWrapper`. We guarantee to
+    /// never move the underlying wrapped data structure. This allows
+    /// driver writers to use pinned or self-referential data structures.
+    type DrvData: PointerWrapper;
+
     /// Platform driver probe.
     ///
     /// Called when a new platform device is added or discovered.
     /// Implementers should attempt to initialize the device here.
-    fn probe(device_id: i32) -> Result;
+    fn probe(device_id: i32) -> Result<Self::DrvData>;
 
     /// Platform driver remove.
     ///
     /// Called when a platform device is removed.
     /// Implementers should prepare the device for complete removal here.
-    fn remove(device_id: i32) -> Result;
+    fn remove(device_id: i32, drv_data: Self::DrvData) -> Result;
 }
