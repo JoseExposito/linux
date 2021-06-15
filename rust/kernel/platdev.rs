@@ -21,7 +21,6 @@ use core::{marker::PhantomPinned, pin::Pin};
 #[derive(Default)]
 pub struct Registration {
     registered: bool,
-    of_table: Option<*const c_types::c_void>,
     pdrv: bindings::platform_driver,
     _pin: PhantomPinned,
 }
@@ -83,7 +82,7 @@ impl Registration {
     fn register<P: PlatformDriver>(
         self: Pin<&mut Self>,
         name: &'static CStr,
-        of_match_table: Option<OfMatchTable>,
+        of_match_table: Option<&'static OfMatchTable>,
         module: &'static crate::ThisModule,
     ) -> Result {
         // SAFETY: We must ensure that we never move out of `this`.
@@ -94,9 +93,7 @@ impl Registration {
         }
         this.pdrv.driver.name = name.as_char_ptr();
         if let Some(tbl) = of_match_table {
-            let ptr = tbl.into_pointer();
-            this.of_table = Some(ptr);
-            this.pdrv.driver.of_match_table = ptr.cast();
+            this.pdrv.driver.of_match_table = tbl.as_ptr();
         }
         this.pdrv.probe = Some(probe_callback::<P>);
         this.pdrv.remove = Some(remove_callback::<P>);
@@ -105,10 +102,9 @@ impl Registration {
         //   - `name` pointer has static lifetime.
         //   - `module.0` lives at least as long as the module.
         //   - `probe()` and `remove()` are static functions.
-        //   - `of_match_table` is either:
-        //      - a raw pointer which lives until after the call to
-        //       `bindings::platform_driver_unregister()`, or
-        //      - null.
+        //   - `of_match_table` is either a raw pointer with static lifetime,
+        //      as guaranteed by the [`of::OfMatchTable::as_ptr()`] invariant,
+        //      or null.
         let ret = unsafe { bindings::__platform_driver_register(&mut this.pdrv, module.0) };
         if ret < 0 {
             return Err(Error::from_kernel_errno(ret));
@@ -122,7 +118,7 @@ impl Registration {
     /// Returns a pinned heap-allocated representation of the registration.
     pub fn new_pinned<P: PlatformDriver>(
         name: &'static CStr,
-        of_match_tbl: Option<OfMatchTable>,
+        of_match_tbl: Option<&'static OfMatchTable>,
         module: &'static crate::ThisModule,
     ) -> Result<Pin<Box<Self>>> {
         let mut r = Pin::from(Box::try_new(Self::default())?);
@@ -138,11 +134,6 @@ impl Drop for Registration {
             // previously, which means `platform_driver_unregister` is always
             // safe to call.
             unsafe { bindings::platform_driver_unregister(&mut self.pdrv) }
-        }
-        if let Some(ptr) = self.of_table {
-            // SAFETY: `ptr` came from an `OfMatchTable`.
-            let tbl = unsafe { OfMatchTable::from_pointer(ptr) };
-            drop(tbl);
         }
     }
 }

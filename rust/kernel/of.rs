@@ -4,80 +4,97 @@
 //!
 //! C header: [`include/linux/of_*.h`](../../../../include/linux/of_*.h)
 
-use alloc::boxed::Box;
+use crate::{bindings, c_types, str::CStr};
 
-use crate::{
-    bindings, c_types,
-    error::{Error, Result},
-    str::CStr,
-    types::PointerWrapper,
-};
+use core::ops::Deref;
+use core::ptr;
 
-use core::mem::transmute;
-
-type InnerTable = Box<[bindings::of_device_id; 2]>;
-
-/// Wraps a kernel Open Firmware / devicetree match table.
+/// A kernel Open Firmware / devicetree match table.
 ///
-/// Rust drivers may create this structure to match against devices
-/// described in the devicetree.
-///
-/// The ['PointerWrapper'] trait provides conversion to/from a raw pointer,
-/// suitable to be assigned to a `bindings::device_driver::of_match_table`.
+/// Can only exist as an `&OfMatchTable` reference (akin to `&str` or
+/// `&Path` in Rust std).
 ///
 /// # Invariants
 ///
-/// The final array element is always filled with zeros (the default).
-pub struct OfMatchTable(InnerTable);
+/// The inner reference points to a sentinel-terminated C array.
+#[repr(transparent)]
+pub struct OfMatchTable(bindings::of_device_id);
 
 impl OfMatchTable {
-    /// Creates a [`OfMatchTable`] from a single `compatible` string.
-    pub fn new(compatible: &'static CStr) -> Result<Self> {
-        let tbl = Box::try_new([
-            Self::new_of_device_id(compatible)?,
-            bindings::of_device_id::default(),
-        ])?;
-        // INVARIANTS: we allocated an array with `default()` as its final
-        // element, therefore that final element will be filled with zeros,
-        // and the invariant above will hold.
-        Ok(Self(tbl))
-    }
-
-    fn new_of_device_id(compatible: &'static CStr) -> Result<bindings::of_device_id> {
-        let mut buf = [0_u8; 128];
-        if compatible.len() > buf.len() {
-            return Err(Error::EINVAL);
-        }
-        buf.get_mut(..compatible.len())
-            .ok_or(Error::EINVAL)?
-            .copy_from_slice(compatible.as_bytes());
-        Ok(bindings::of_device_id {
-            // SAFETY: re-interpretation from [u8] to [c_types::c_char] of same length is always safe.
-            compatible: unsafe { transmute::<[u8; 128], [c_types::c_char; 128]>(buf) },
-            ..Default::default()
-        })
+    /// Returns the table as a reference to a static lifetime, sentinel-terminated C array.
+    ///
+    /// This is suitable to be coerced into the kernel's `of_match_table` field.
+    pub fn as_ptr(&'static self) -> &'static bindings::of_device_id {
+        // The inner reference points to a sentinel-terminated C array, as per
+        // the type invariant.
+        &self.0
     }
 }
 
-impl PointerWrapper for OfMatchTable {
-    type Borrowed = <InnerTable as PointerWrapper>::Borrowed;
+/// An Open Firmware Match Table that can be constructed at build time.
+///
+/// # Invariants
+///
+/// `sentinel` always contains zeroes.
+#[repr(C)]
+pub struct ConstOfMatchTable<const N: usize> {
+    table: [bindings::of_device_id; N],
+    sentinel: bindings::of_device_id,
+}
 
-    fn into_pointer(self) -> *const c_types::c_void {
-        // Per the invariant above, the generated pointer points to an
-        // array of `bindings::of_device_id`, where the final element is
-        // filled with zeros (the sentinel). Therefore, it's suitable to
-        // be assigned to `bindings::device_driver::of_match_table`.
-        self.0.into_pointer()
+impl<const N: usize> ConstOfMatchTable<N> {
+    /// Creates a new Open Firmware Match Table from a list of compatible strings.
+    pub const fn new_const(compatibles: [&'static CStr; N]) -> Self {
+        let mut table = [Self::zeroed_of_device_id(); N];
+        let mut i = 0;
+        while i < N {
+            table[i] = Self::new_of_device_id(compatibles[i]);
+            i += 1;
+        }
+        Self {
+            table,
+            // INVARIANTS: we zero the sentinel here, and never change it
+            // anywhere. Therefore it always contains zeroes.
+            sentinel: Self::zeroed_of_device_id(),
+        }
     }
 
-    unsafe fn borrow(ptr: *const c_types::c_void) -> Self::Borrowed {
-        // SAFETY: The safety  requirements for this function are the same as the ones for
-        // `InnerTable::borrow`.
-        unsafe { InnerTable::borrow(ptr) }
+    const fn zeroed_of_device_id() -> bindings::of_device_id {
+        bindings::of_device_id {
+            name: [0; 32],
+            type_: [0; 32],
+            compatible: [0; 128],
+            data: ptr::null(),
+        }
     }
 
-    unsafe fn from_pointer(p: *const c_types::c_void) -> Self {
-        // SAFETY: The passed pointer comes from a previous call to [`InnerTable::into_pointer()`].
-        Self(unsafe { InnerTable::from_pointer(p) })
+    const fn new_of_device_id(compatible: &'static CStr) -> bindings::of_device_id {
+        let mut id = Self::zeroed_of_device_id();
+        let compatible = compatible.as_bytes_with_nul();
+        let mut i = 0;
+        while i < compatible.len() {
+            // if `compatible` does not fit in `id.compatible`, an
+            // "index out of bounds" build time exception will be triggered.
+            id.compatible[i] = compatible[i] as c_types::c_char;
+            i += 1;
+        }
+        id
+    }
+}
+
+impl<const N: usize> Deref for ConstOfMatchTable<N> {
+    type Target = OfMatchTable;
+
+    fn deref(&self) -> &OfMatchTable {
+        // INVARIANTS: `head` points to a sentinel-terminated C array,
+        // as per the `ConstOfMatchTable` type invariant, therefore
+        // `&OfMatchTable`'s inner reference will point to a sentinel-terminated C array.
+        let head = &self.table[0] as *const bindings::of_device_id as *const OfMatchTable;
+        // SAFETY: The returned reference must remain valid for the lifetime of `self`.
+        // The raw pointer `head` points to memory inside `self`. So the reference created
+        // from this raw pointer has the same lifetime as `self`.
+        // Therefore this reference remains valid for the lifetime of `self`, and
+        // is safe to return.
+        unsafe { &*head }
     }
 }
