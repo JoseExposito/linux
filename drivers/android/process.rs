@@ -766,27 +766,29 @@ impl Process {
 }
 
 impl IoctlHandler for Process {
-    fn write(&self, _file: &File, cmd: u32, reader: &mut UserSlicePtrReader) -> Result<i32> {
-        let thread = self.get_thread(unsafe { rust_helper_current_pid() })?;
+    type Target = Self;
+
+    fn write(this: &Self, _file: &File, cmd: u32, reader: &mut UserSlicePtrReader) -> Result<i32> {
+        let thread = this.get_thread(unsafe { rust_helper_current_pid() })?;
         match cmd {
-            bindings::BINDER_SET_MAX_THREADS => self.set_max_threads(reader.read()?),
-            bindings::BINDER_SET_CONTEXT_MGR => self.set_as_manager(None, &thread)?,
-            bindings::BINDER_THREAD_EXIT => self.remove_thread(thread),
+            bindings::BINDER_SET_MAX_THREADS => this.set_max_threads(reader.read()?),
+            bindings::BINDER_SET_CONTEXT_MGR => this.set_as_manager(None, &thread)?,
+            bindings::BINDER_THREAD_EXIT => this.remove_thread(thread),
             bindings::BINDER_SET_CONTEXT_MGR_EXT => {
-                self.set_as_manager(Some(reader.read()?), &thread)?
+                this.set_as_manager(Some(reader.read()?), &thread)?
             }
             _ => return Err(Error::EINVAL),
         }
         Ok(0)
     }
 
-    fn read_write(&self, file: &File, cmd: u32, data: UserSlicePtr) -> Result<i32> {
-        let thread = self.get_thread(unsafe { rust_helper_current_pid() })?;
+    fn read_write(this: &Self, file: &File, cmd: u32, data: UserSlicePtr) -> Result<i32> {
+        let thread = this.get_thread(unsafe { rust_helper_current_pid() })?;
         match cmd {
             bindings::BINDER_WRITE_READ => thread.write_read(data, file.is_blocking())?,
-            bindings::BINDER_GET_NODE_DEBUG_INFO => self.get_node_debug_info(data)?,
-            bindings::BINDER_GET_NODE_INFO_FOR_REF => self.get_node_info_from_ref(data)?,
-            bindings::BINDER_VERSION => self.version(data)?,
+            bindings::BINDER_GET_NODE_DEBUG_INFO => this.get_node_debug_info(data)?,
+            bindings::BINDER_GET_NODE_INFO_FOR_REF => this.get_node_info_from_ref(data)?,
+            bindings::BINDER_VERSION => this.version(data)?,
             _ => return Err(Error::EINVAL),
         }
         Ok(0)
