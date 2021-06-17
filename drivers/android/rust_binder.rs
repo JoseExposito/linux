@@ -15,6 +15,7 @@ use kernel::{
     linked_list::{GetLinks, GetLinksWrapped, Links},
     miscdev::Registration,
     prelude::*,
+    sync::Ref,
     user_ptr::UserSlicePtrWriter,
 };
 
@@ -103,18 +104,13 @@ const fn ptr_align(value: usize) -> usize {
 unsafe impl Sync for BinderModule {}
 
 struct BinderModule {
-    _reg: Pin<Box<Registration<Arc<Context>>>>,
+    _reg: Pin<Box<Registration<Ref<Context>>>>,
 }
 
 impl KernelModule for BinderModule {
     fn init() -> Result<Self> {
-        let pinned_ctx = Context::new()?;
-        let ctx = unsafe { Pin::into_inner_unchecked(pinned_ctx) };
-        let reg = Registration::<Arc<Context>>::new_pinned::<process::Process>(
-            c_str!("rust_binder"),
-            None,
-            ctx,
-        )?;
+        let ctx = Context::new()?;
+        let reg = Registration::new_pinned::<process::Process>(c_str!("rust_binder"), None, ctx)?;
         Ok(Self { _reg: reg })
     }
 }
