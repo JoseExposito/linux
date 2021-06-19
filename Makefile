@@ -461,9 +461,11 @@ STRIP		= $(CROSS_COMPILE)strip
 endif
 RUSTC		= rustc
 RUSTC_BOOTSTRAP = 1
+RUSTDOC		= rustdoc
 RUSTFMT		= rustfmt
 CLIPPY_DRIVER	= clippy-driver
 BINDGEN		= bindgen
+CARGO		= cargo
 PAHOLE		= pahole
 RESOLVE_BTFIDS	= $(objtree)/tools/bpf/resolve_btfids/resolve_btfids
 LEX		= flex
@@ -525,7 +527,7 @@ KBUILD_RUSTCFLAGS := --emit=dep-info,obj,metadata --edition=2018 \
 		     -Cpanic=abort -Cembed-bitcode=n -Clto=n -Crpath=n \
 		     -Cforce-unwind-tables=n -Ccodegen-units=1 \
 		     -Zbinary_dep_depinfo=y -Zsymbol-mangling-version=v0 \
-		     -D unsafe_op_in_unsafe_fn
+		     -Dunsafe_op_in_unsafe_fn -Wmissing_docs
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_RUSTCFLAGS_KERNEL :=
@@ -543,14 +545,13 @@ else
 	RUSTC_OR_CLIPPY_QUIET := RUSTC
 	RUSTC_OR_CLIPPY = $(RUSTC)
 endif
-export RUSTC_OR_CLIPPY_QUIET RUSTC_OR_CLIPPY
 
 ifdef RUST_LIB_SRC
 	export RUST_LIB_SRC
 endif
 
 export ARCH SRCARCH CONFIG_SHELL BASH HOSTCC KBUILD_HOSTCFLAGS CROSS_COMPILE LD CC
-export RUSTC RUSTC_BOOTSTRAP BINDGEN
+export RUSTC RUSTC_BOOTSTRAP RUSTDOC RUSTFMT RUSTC_OR_CLIPPY_QUIET RUSTC_OR_CLIPPY BINDGEN CARGO
 export CPP AR NM STRIP OBJCOPY OBJDUMP READELF PAHOLE RESOLVE_BTFIDS LEX YACC AWK INSTALLKERNEL
 export PERL PYTHON3 CHECK CHECKFLAGS MAKE UTS_MACHINE HOSTCXX
 export KGZIP KBZIP2 KLZOP LZMA LZ4 XZ ZSTD
@@ -1598,7 +1599,7 @@ endif # CONFIG_MODULES
 # Directories & files removed with 'make clean'
 CLEAN_FILES += include/ksym vmlinux.symvers modules-only.symvers \
 	       modules.builtin modules.builtin.modinfo modules.nsdeps \
-	       compile_commands.json .thinlto-cache
+	       compile_commands.json .thinlto-cache rust/test rust/doc
 
 # Directories & files removed with 'make mrproper'
 MRPROPER_FILES += include/config include/generated          \
@@ -1728,7 +1729,7 @@ help:
 	@echo  '  rustdoc	  - Generate Rust documentation'
 	@echo  '		    (requires kernel .config)'
 	@echo  '  rusttest        - Runs the Rust tests'
-	@echo  '                    (requires kernel .config)'
+	@echo  '                    (requires kernel .config; downloads external repos)'
 	@echo  '  rust-analyzer	  - Generate rust-project.json rust-analyzer support file'
 	@echo  '		    (requires kernel .config)'
 	@echo  ''
@@ -1822,11 +1823,21 @@ rusttest: prepare0
 # Formatting targets
 PHONY += rustfmt rustfmtcheck
 
+# We skip `rust/alloc` since we want to minimize the diff w.r.t. upstream.
+#
+# We match using absolute paths since `find` does not resolve them
+# when matching, which is a problem when e.g. `srctree` is `..`.
+# We `grep` afterwards in order to remove the directory entry itself.
 rustfmt:
-	find $(srctree) -type f -name '*.rs' | xargs $(RUSTFMT)
+	$(Q)find $(abs_srctree) -type f -name '*.rs' \
+		-o -path $(abs_srctree)/rust/alloc -prune \
+		-o -path $(abs_objtree)/rust/test -prune \
+		| grep -Fv $(abs_srctree)/rust/alloc \
+		| grep -Fv $(abs_objtree)/rust/test \
+		| xargs $(RUSTFMT) $(rustfmt_flags)
 
-rustfmtcheck:
-	find $(srctree) -type f -name '*.rs' | xargs $(RUSTFMT) --check
+rustfmtcheck: rustfmt_flags = --check
+rustfmtcheck: rustfmt
 
 # IDE support targets
 PHONY += rust-analyzer
