@@ -49,8 +49,8 @@ use core::char::{decode_utf16, REPLACEMENT_CHARACTER};
 use core::fmt;
 use core::hash;
 #[cfg(not(no_global_oom_handling))]
-use core::iter::FromIterator;
-use core::iter::{from_fn, FusedIterator};
+use core::iter::{from_fn, FromIterator};
+use core::iter::FusedIterator;
 #[cfg(not(no_global_oom_handling))]
 use core::ops::Add;
 #[cfg(not(no_global_oom_handling))]
