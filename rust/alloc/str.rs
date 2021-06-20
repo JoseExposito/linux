@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 //! Unicode string slices.
 //!
 //! *[See also the `str` primitive type](str).*

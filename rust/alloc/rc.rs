@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 //! Single-threaded reference-counting pointers. 'Rc' stands for 'Reference
 //! Counted'.
 //!

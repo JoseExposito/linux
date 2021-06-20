@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 //! The alloc Prelude
 //!
 //! The purpose of this module is to alleviate imports of commonly-used

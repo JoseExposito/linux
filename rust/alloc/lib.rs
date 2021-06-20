@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 //! # The Rust core allocation and collections library
 //!
 //! This library provides smart pointers and collections for managing

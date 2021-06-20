@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 //! A UTF-8–encoded, growable string.
 //!
 //! This module contains the [`String`] type, the [`ToString`] trait for

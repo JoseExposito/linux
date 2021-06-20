@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 #![stable(feature = "rust1", since = "1.0.0")]
 
 //! Thread-safe reference-counting pointers.
