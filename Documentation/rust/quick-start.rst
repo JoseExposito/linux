@@ -125,6 +125,18 @@ the component manually::
 The standalone installers also come with ``clippy``.
 
 
+rustdoc
+*******
+
+If you install the ``rustdoc`` tool, then you will be able to generate pretty
+HTML documentation for Rust code, including for the libraries (crates) inside
+``rust/`` that are used by the rest of the kernel (for details, please see
+:ref:`Documentation/rust/docs.rst <rust_docs>`).
+
+If you are using ``rustup``, all the profiles already install the tool,
+so you should be good to go. The standalone installers also come with ``rustdoc``.
+
+
 rust-analyzer
 *************
 
