@@ -103,7 +103,7 @@ impl Registration {
         //   - `module.0` lives at least as long as the module.
         //   - `probe()` and `remove()` are static functions.
         //   - `of_match_table` is either a raw pointer with static lifetime,
-        //      as guaranteed by the [`of::OfMatchTable::as_ptr()`] invariant,
+        //      as guaranteed by the [`of::OfMatchTable::as_ptr()`] return type,
         //      or null.
         let ret = unsafe { bindings::__platform_driver_register(&mut this.pdrv, module.0) };
         if ret < 0 {
