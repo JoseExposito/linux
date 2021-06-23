@@ -73,8 +73,8 @@ impl<const N: usize> ConstOfMatchTable<N> {
         let compatible = compatible.as_bytes_with_nul();
         let mut i = 0;
         while i < compatible.len() {
-            // if `compatible` does not fit in `id.compatible`, an
-            // "index out of bounds" build time exception will be triggered.
+            // If `compatible` does not fit in `id.compatible`, an
+            // "index out of bounds" build time error will be triggered.
             id.compatible[i] = compatible[i] as c_types::c_char;
             i += 1;
         }
@@ -90,6 +90,7 @@ impl<const N: usize> Deref for ConstOfMatchTable<N> {
         // as per the `ConstOfMatchTable` type invariant, therefore
         // `&OfMatchTable`'s inner reference will point to a sentinel-terminated C array.
         let head = &self.table[0] as *const bindings::of_device_id as *const OfMatchTable;
+
         // SAFETY: The returned reference must remain valid for the lifetime of `self`.
         // The raw pointer `head` points to memory inside `self`. So the reference created
         // from this raw pointer has the same lifetime as `self`.
