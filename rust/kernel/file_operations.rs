@@ -446,26 +446,44 @@ macro_rules! declare_file_operations {
 ///
 /// For each macro, there is a handler function that takes the appropriate types as arguments.
 pub trait IoctlHandler: Sync {
+    /// The type of the first argument to each associated function.
+    type Target;
+
     /// Handles ioctls defined with the `_IO` macro, that is, with no buffer as argument.
-    fn pure(&self, _file: &File, _cmd: u32, _arg: usize) -> Result<i32> {
+    fn pure(_this: &Self::Target, _file: &File, _cmd: u32, _arg: usize) -> Result<i32> {
         Err(Error::EINVAL)
     }
 
     /// Handles ioctls defined with the `_IOR` macro, that is, with an output buffer provided as
     /// argument.
-    fn read(&self, _file: &File, _cmd: u32, _writer: &mut UserSlicePtrWriter) -> Result<i32> {
+    fn read(
+        _this: &Self::Target,
+        _file: &File,
+        _cmd: u32,
+        _writer: &mut UserSlicePtrWriter,
+    ) -> Result<i32> {
         Err(Error::EINVAL)
     }
 
     /// Handles ioctls defined with the `_IOW` macro, that is, with an input buffer provided as
     /// argument.
-    fn write(&self, _file: &File, _cmd: u32, _reader: &mut UserSlicePtrReader) -> Result<i32> {
+    fn write(
+        _this: &Self::Target,
+        _file: &File,
+        _cmd: u32,
+        _reader: &mut UserSlicePtrReader,
+    ) -> Result<i32> {
         Err(Error::EINVAL)
     }
 
     /// Handles ioctls defined with the `_IOWR` macro, that is, with a buffer for both input and
     /// output provided as argument.
-    fn read_write(&self, _file: &File, _cmd: u32, _data: UserSlicePtr) -> Result<i32> {
+    fn read_write(
+        _this: &Self::Target,
+        _file: &File,
+        _cmd: u32,
+        _data: UserSlicePtr,
+    ) -> Result<i32> {
         Err(Error::EINVAL)
     }
 }
@@ -501,18 +519,18 @@ impl IoctlCommand {
     ///
     /// It is meant to be used in implementations of [`FileOperations::ioctl`] and
     /// [`FileOperations::compat_ioctl`].
-    pub fn dispatch<T: IoctlHandler>(&mut self, handler: &T, file: &File) -> Result<i32> {
+    pub fn dispatch<T: IoctlHandler>(&mut self, handler: &T::Target, file: &File) -> Result<i32> {
         let dir = (self.cmd >> bindings::_IOC_DIRSHIFT) & bindings::_IOC_DIRMASK;
         if dir == bindings::_IOC_NONE {
-            return handler.pure(file, self.cmd, self.arg);
+            return T::pure(handler, file, self.cmd, self.arg);
         }
 
         let data = self.user_slice.take().ok_or(Error::EINVAL)?;
         const READ_WRITE: u32 = bindings::_IOC_READ | bindings::_IOC_WRITE;
         match dir {
-            bindings::_IOC_WRITE => handler.write(file, self.cmd, &mut data.reader()),
-            bindings::_IOC_READ => handler.read(file, self.cmd, &mut data.writer()),
-            READ_WRITE => handler.read_write(file, self.cmd, data),
+            bindings::_IOC_WRITE => T::write(handler, file, self.cmd, &mut data.reader()),
+            bindings::_IOC_READ => T::read(handler, file, self.cmd, &mut data.writer()),
+            READ_WRITE => T::read_write(handler, file, self.cmd, data),
             _ => Err(Error::EINVAL),
         }
     }

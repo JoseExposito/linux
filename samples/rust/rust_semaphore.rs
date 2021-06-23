@@ -153,20 +153,22 @@ const IOCTL_GET_READ_COUNT: u32 = 0x80086301;
 const IOCTL_SET_READ_COUNT: u32 = 0x40086301;
 
 impl IoctlHandler for FileState {
-    fn read(&self, _: &File, cmd: u32, writer: &mut UserSlicePtrWriter) -> Result<i32> {
+    type Target = Self;
+
+    fn read(this: &Self, _: &File, cmd: u32, writer: &mut UserSlicePtrWriter) -> Result<i32> {
         match cmd {
             IOCTL_GET_READ_COUNT => {
-                writer.write(&self.read_count.load(Ordering::Relaxed))?;
+                writer.write(&this.read_count.load(Ordering::Relaxed))?;
                 Ok(0)
             }
             _ => Err(Error::EINVAL),
         }
     }
 
-    fn write(&self, _: &File, cmd: u32, reader: &mut UserSlicePtrReader) -> Result<i32> {
+    fn write(this: &Self, _: &File, cmd: u32, reader: &mut UserSlicePtrReader) -> Result<i32> {
         match cmd {
             IOCTL_SET_READ_COUNT => {
-                self.read_count.store(reader.read()?, Ordering::Relaxed);
+                this.read_count.store(reader.read()?, Ordering::Relaxed);
                 Ok(0)
             }
             _ => Err(Error::EINVAL),
