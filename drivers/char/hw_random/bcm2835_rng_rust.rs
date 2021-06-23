@@ -37,7 +37,7 @@ impl FileOpener<()> for RngDevice {
 impl FileOperations for RngDevice {
     kernel::declare_file_operations!(read);
 
-    fn read<T: IoBufferWriter>(&self, _: &File, data: &mut T, offset: u64) -> Result<usize> {
+    fn read<T: IoBufferWriter>(_: &Self, _: &File, data: &mut T, offset: u64) -> Result<usize> {
         // Succeed if the caller doesn't provide a buffer or if not at the start.
         if data.is_empty() || offset != 0 {
             return Ok(0);
