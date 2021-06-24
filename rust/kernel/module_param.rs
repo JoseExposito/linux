@@ -476,8 +476,7 @@ impl ModuleParam for StringParam {
         arg.and_then(|arg| {
             if slab_available {
                 let mut vec = alloc::vec::Vec::new();
-                vec.try_reserve_exact(arg.len()).ok()?;
-                vec.extend_from_slice(arg);
+                vec.try_extend_from_slice(arg).ok()?;
                 Some(StringParam::Owned(vec))
             } else {
                 Some(StringParam::Ref(arg))

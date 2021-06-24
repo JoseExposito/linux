@@ -25,7 +25,7 @@ impl KernelModule for RustMinimal {
         pr_info!("Am I built-in? {}\n", !cfg!(MODULE));
 
         Ok(RustMinimal {
-            message: "on the heap!".to_owned(),
+            message: "on the heap!".try_to_owned()?,
         })
     }
 }
