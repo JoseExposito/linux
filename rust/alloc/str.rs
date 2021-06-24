@@ -38,6 +38,7 @@ use core::unicode::conversions;
 
 use crate::borrow::ToOwned;
 use crate::boxed::Box;
+use crate::collections::TryReserveError;
 use crate::slice::{Concat, Join, SliceIndex};
 use crate::string::String;
 use crate::vec::Vec;
@@ -574,6 +575,22 @@ impl str {
         bytes.make_ascii_lowercase();
         // make_ascii_lowercase() preserves the UTF-8 invariant.
         unsafe { String::from_utf8_unchecked(bytes) }
+    }
+
+    /// Tries to create a `String`.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// let s: &str = "a";
+    /// let ss: String = s.try_to_owned().unwrap();
+    /// ```
+    #[inline]
+    #[stable(feature = "kernel", since = "1.0.0")]
+    pub fn try_to_owned(&self) -> Result<String, TryReserveError> {
+        unsafe { Ok(String::from_utf8_unchecked(self.as_bytes().try_to_vec()?)) }
     }
 }
 

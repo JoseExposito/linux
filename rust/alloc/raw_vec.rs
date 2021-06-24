@@ -20,7 +20,7 @@ use crate::collections::TryReserveError::{self, *};
 #[cfg(test)]
 mod tests;
 
-#[cfg(not(no_global_oom_handling))]
+#[allow(dead_code)]
 enum AllocInit {
     /// The contents of the new memory are uninitialized.
     Uninitialized,
@@ -93,6 +93,16 @@ impl<T> RawVec<T, Global> {
         Self::with_capacity_in(capacity, Global)
     }
 
+    /// Tries to create a `RawVec` (on the system heap) with exactly the
+    /// capacity and alignment requirements for a `[T; capacity]`. This is
+    /// equivalent to calling `RawVec::new` when `capacity` is `0` or `T` is
+    /// zero-sized. Note that if `T` is zero-sized this means you will
+    /// *not* get a `RawVec` with the requested capacity.
+    #[inline]
+    pub fn try_with_capacity(capacity: usize) -> Result<Self, TryReserveError> {
+        Self::try_with_capacity_in(capacity, Global)
+    }
+
     /// Like `with_capacity`, but guarantees the buffer is zeroed.
     #[cfg(not(no_global_oom_handling))]
     #[inline]
@@ -142,6 +152,13 @@ impl<T, A: Allocator> RawVec<T, A> {
     #[inline]
     pub fn with_capacity_in(capacity: usize, alloc: A) -> Self {
         Self::allocate_in(capacity, AllocInit::Uninitialized, alloc)
+    }
+
+    /// Like `try_with_capacity`, but parameterized over the choice of
+    /// allocator for the returned `RawVec`.
+    #[inline]
+    pub fn try_with_capacity_in(capacity: usize, alloc: A) -> Result<Self, TryReserveError> {
+        Self::try_allocate_in(capacity, AllocInit::Uninitialized, alloc)
     }
 
     /// Like `with_capacity_zeroed`, but parameterized over the choice
@@ -216,6 +233,29 @@ impl<T, A: Allocator> RawVec<T, A> {
                 alloc,
             }
         }
+    }
+
+    fn try_allocate_in(capacity: usize, init: AllocInit, alloc: A) -> Result<Self, TryReserveError> {
+        if mem::size_of::<T>() == 0 {
+            return Ok(Self::new_in(alloc));
+        }
+
+        let layout = Layout::array::<T>(capacity)?;
+        alloc_guard(layout.size())?;
+        let result = match init {
+            AllocInit::Uninitialized => alloc.allocate(layout),
+            AllocInit::Zeroed => alloc.allocate_zeroed(layout),
+        };
+        let ptr = match result {
+            Ok(ptr) => ptr,
+            Err(_) => return Err(TryReserveError::AllocError { layout, non_exhaustive: () }),
+        };
+
+        Ok(Self {
+            ptr: unsafe { Unique::new_unchecked(ptr.cast().as_ptr()) },
+            cap: Self::capacity_from_bytes(ptr.len()),
+            alloc,
+        })
     }
 
     /// Reconstitutes a `RawVec` from a pointer, capacity, and allocator.
@@ -394,6 +434,16 @@ impl<T, A: Allocator> RawVec<T, A> {
     pub fn shrink_to_fit(&mut self, amount: usize) {
         handle_reserve(self.shrink(amount));
     }
+
+    /// Tries to shrink the allocation down to the specified amount. If the given amount
+    /// is 0, actually completely deallocates.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the given amount is *larger* than the current capacity.
+    pub fn try_shrink_to_fit(&mut self, amount: usize) -> Result<(), TryReserveError> {
+        self.shrink(amount)
+    }
 }
 
 impl<T, A: Allocator> RawVec<T, A> {
@@ -465,7 +515,6 @@ impl<T, A: Allocator> RawVec<T, A> {
         Ok(())
     }
 
-    #[cfg(not(no_global_oom_handling))]
     fn shrink(&mut self, amount: usize) -> Result<(), TryReserveError> {
         assert!(amount <= self.capacity(), "Tried to shrink to a larger capacity");
 
