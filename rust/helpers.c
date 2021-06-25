@@ -146,6 +146,24 @@ rust_helper_platform_set_drvdata(struct platform_device *pdev,
 }
 EXPORT_SYMBOL_GPL(rust_helper_platform_set_drvdata);
 
+refcount_t rust_helper_refcount_new(void)
+{
+	return (refcount_t)REFCOUNT_INIT(1);
+}
+EXPORT_SYMBOL_GPL(rust_helper_refcount_new);
+
+void rust_helper_refcount_inc(refcount_t *r)
+{
+	refcount_inc(r);
+}
+EXPORT_SYMBOL_GPL(rust_helper_refcount_inc);
+
+bool rust_helper_refcount_dec_and_test(refcount_t *r)
+{
+	return refcount_dec_and_test(r);
+}
+EXPORT_SYMBOL_GPL(rust_helper_refcount_dec_and_test);
+
 /* We use bindgen's --size_t-is-usize option to bind the C size_t type
  * as the Rust usize type, so we can use it in contexts where Rust
  * expects a usize like slice (array) indices. usize is defined to be

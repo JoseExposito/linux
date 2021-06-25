@@ -21,6 +21,7 @@
     const_panic,
     const_raw_ptr_deref,
     const_unreachable_unchecked,
+    receiver_trait,
     try_reserve
 )]
 #![deny(clippy::complexity)]

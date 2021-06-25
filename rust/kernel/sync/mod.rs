@@ -29,7 +29,7 @@ mod locked_by;
 mod mutex;
 mod spinlock;
 
-pub use arc::{Ref, RefCount, RefCounted};
+pub use arc::{Ref, RefBorrow};
 pub use condvar::CondVar;
 pub use guard::{Guard, Lock};
 pub use locked_by::LockedBy;
