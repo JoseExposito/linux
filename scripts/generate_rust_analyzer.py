@@ -56,8 +56,8 @@ def generate_crates(srctree, objtree, sysroot_src, bindings_file):
 
     append_crate(
         "alloc",
-        sysroot_src / "alloc" / "src" / "lib.rs",
-        False,
+        srctree / "rust" / "alloc" / "lib.rs",
+        True,
         ["core", "compiler_builtins"],
         [],
     )
