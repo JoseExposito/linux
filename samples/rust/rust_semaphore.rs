@@ -16,7 +16,7 @@
 #![no_std]
 #![feature(allocator_api, global_asm)]
 
-use alloc::{boxed::Box, sync::Arc};
+use alloc::boxed::Box;
 use core::{
     pin::Pin,
     sync::atomic::{AtomicU64, Ordering},
@@ -29,7 +29,7 @@ use kernel::{
     miscdev::Registration,
     mutex_init,
     prelude::*,
-    sync::{CondVar, Mutex},
+    sync::{CondVar, Mutex, Ref},
     user_ptr::{UserSlicePtrReader, UserSlicePtrWriter},
     Error,
 };
@@ -54,7 +54,7 @@ struct Semaphore {
 
 struct FileState {
     read_count: AtomicU64,
-    shared: Arc<Semaphore>,
+    shared: Ref<Semaphore>,
 }
 
 impl FileState {
@@ -70,8 +70,8 @@ impl FileState {
     }
 }
 
-impl FileOpener<Arc<Semaphore>> for FileState {
-    fn open(shared: &Arc<Semaphore>) -> Result<Box<Self>> {
+impl FileOpener<Ref<Semaphore>> for FileState {
+    fn open(shared: &Ref<Semaphore>) -> Result<Box<Self>> {
         Ok(Box::try_new(Self {
             read_count: AtomicU64::new(0),
             shared: shared.clone(),
@@ -111,31 +111,34 @@ impl FileOperations for FileState {
 }
 
 struct RustSemaphore {
-    _dev: Pin<Box<Registration<Arc<Semaphore>>>>,
+    _dev: Pin<Box<Registration<Ref<Semaphore>>>>,
 }
 
 impl KernelModule for RustSemaphore {
     fn init() -> Result<Self> {
         pr_info!("Rust semaphore sample (init)\n");
 
-        let sema = Arc::try_new(Semaphore {
-            // SAFETY: `condvar_init!` is called below.
-            changed: unsafe { CondVar::new() },
+        let sema = Ref::try_new_and_init(
+            Semaphore {
+                // SAFETY: `condvar_init!` is called below.
+                changed: unsafe { CondVar::new() },
 
-            // SAFETY: `mutex_init!` is called below.
-            inner: unsafe {
-                Mutex::new(SemaphoreInner {
-                    count: 0,
-                    max_seen: 0,
-                })
+                // SAFETY: `mutex_init!` is called below.
+                inner: unsafe {
+                    Mutex::new(SemaphoreInner {
+                        count: 0,
+                        max_seen: 0,
+                    })
+                },
             },
-        })?;
+            |sema| {
+                // SAFETY: `changed` is pinned when `sema` is.
+                condvar_init!(Pin::new_unchecked(&sema.changed), "Semaphore::changed");
 
-        // SAFETY: `changed` is pinned behind `Arc`.
-        condvar_init!(Pin::new_unchecked(&sema.changed), "Semaphore::changed");
-
-        // SAFETY: `inner` is pinned behind `Arc`.
-        mutex_init!(Pin::new_unchecked(&sema.inner), "Semaphore::inner");
+                // SAFETY: `inner` is pinned when `sema` is.
+                mutex_init!(Pin::new_unchecked(&sema.inner), "Semaphore::inner");
+            },
+        )?;
 
         Ok(Self {
             _dev: Registration::new_pinned::<FileState>(c_str!("rust_semaphore"), None, sema)?,

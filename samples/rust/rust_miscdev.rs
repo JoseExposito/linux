@@ -5,7 +5,7 @@
 #![no_std]
 #![feature(allocator_api, global_asm)]
 
-use alloc::{boxed::Box, sync::Arc};
+use alloc::boxed::Box;
 use core::pin::Pin;
 use kernel::prelude::*;
 use kernel::{
@@ -14,7 +14,7 @@ use kernel::{
     file_operations::{FileOpener, FileOperations},
     io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev,
-    sync::{CondVar, Mutex},
+    sync::{CondVar, Mutex, Ref},
     Error,
 };
 
@@ -38,38 +38,41 @@ struct SharedState {
 }
 
 impl SharedState {
-    fn try_new() -> Result<Pin<Arc<Self>>> {
-        let state = Arc::try_pin(Self {
-            // SAFETY: `condvar_init!` is called below.
-            state_changed: unsafe { CondVar::new() },
-            // SAFETY: `mutex_init!` is called below.
-            inner: unsafe { Mutex::new(SharedStateInner { token_count: 0 }) },
-        })?;
-        // SAFETY: `state_changed` is pinned behind `Pin<Arc>`.
-        let state_changed = unsafe { Pin::new_unchecked(&state.state_changed) };
-        kernel::condvar_init!(state_changed, "SharedState::state_changed");
-        // SAFETY: `inner` is pinned behind `Pin<Arc>`.
-        let inner = unsafe { Pin::new_unchecked(&state.inner) };
-        kernel::mutex_init!(inner, "SharedState::inner");
-        Ok(state)
+    fn try_new() -> Result<Pin<Ref<Self>>> {
+        Ok(Ref::pinned(Ref::try_new_and_init(
+            Self {
+                // SAFETY: `condvar_init!` is called below.
+                state_changed: unsafe { CondVar::new() },
+                // SAFETY: `mutex_init!` is called below.
+                inner: unsafe { Mutex::new(SharedStateInner { token_count: 0 }) },
+            },
+            |state| {
+                // SAFETY: `state_changed` is pinned when `state` is.
+                let state_changed = unsafe { Pin::new_unchecked(&state.state_changed) };
+                kernel::condvar_init!(state_changed, "SharedState::state_changed");
+                // SAFETY: `inner` is pinned when `state` is.
+                let inner = unsafe { Pin::new_unchecked(&state.inner) };
+                kernel::mutex_init!(inner, "SharedState::inner");
+            },
+        )?))
     }
 }
 
 struct Token;
 
-impl FileOpener<Pin<Arc<SharedState>>> for Token {
-    fn open(shared: &Pin<Arc<SharedState>>) -> Result<Self::Wrapper> {
+impl FileOpener<Pin<Ref<SharedState>>> for Token {
+    fn open(shared: &Pin<Ref<SharedState>>) -> Result<Self::Wrapper> {
         Ok(shared.clone())
     }
 }
 
 impl FileOperations for Token {
-    type Wrapper = Pin<Arc<SharedState>>;
+    type Wrapper = Pin<Ref<SharedState>>;
 
     kernel::declare_file_operations!(read, write);
 
     fn read<T: IoBufferWriter>(
-        shared: &SharedState,
+        shared: &Ref<SharedState>,
         _: &File,
         data: &mut T,
         offset: u64,
@@ -102,10 +105,10 @@ impl FileOperations for Token {
     }
 
     fn write<T: IoBufferReader>(
-        shared: &SharedState,
+        shared: &Ref<SharedState>,
         _: &File,
         data: &mut T,
-        _offs: u64,
+        _offset: u64,
     ) -> Result<usize> {
         {
             let mut inner = shared.inner.lock();
@@ -128,7 +131,7 @@ impl FileOperations for Token {
 }
 
 struct RustMiscdev {
-    _dev: Pin<Box<miscdev::Registration<Pin<Arc<SharedState>>>>>,
+    _dev: Pin<Box<miscdev::Registration<Pin<Ref<SharedState>>>>>,
 }
 
 impl KernelModule for RustMiscdev {
