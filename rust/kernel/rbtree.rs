@@ -197,7 +197,6 @@ struct Node<K, V> {
 ///     Ok(())
 /// }
 /// ```
-#[derive(Default)]
 pub struct RBTree<K, V> {
     root: bindings::rb_root,
     _p: PhantomData<Node<K, V>>,
@@ -404,6 +403,12 @@ impl<K, V> RBTree<K, V> {
     /// Returns a mutable iterator over the values of the nodes in the tree, sorted by key.
     pub fn values_mut(&mut self) -> impl Iterator<Item = &'_ mut V> {
         self.iter_mut().map(|(_, v)| v)
+    }
+}
+
+impl<K, V> Default for RBTree<K, V> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
