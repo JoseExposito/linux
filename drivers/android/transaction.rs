@@ -78,7 +78,8 @@ impl Transaction {
         let mut_tr = Arc::get_mut(&mut tr).ok_or(Error::EINVAL)?;
 
         // SAFETY: `inner` is pinned behind `Arc`.
-        kernel::spinlock_init!(Pin::new_unchecked(&mut_tr.inner), "Transaction::inner");
+        let pinned = unsafe { Pin::new_unchecked(&mut_tr.inner) };
+        kernel::spinlock_init!(pinned, "Transaction::inner");
         Ok(tr)
     }
 
@@ -111,7 +112,8 @@ impl Transaction {
         let mut_tr = Arc::get_mut(&mut tr).ok_or(Error::EINVAL)?;
 
         // SAFETY: `inner` is pinned behind `Arc`.
-        kernel::spinlock_init!(Pin::new_unchecked(&mut_tr.inner), "Transaction::inner");
+        let pinned = unsafe { Pin::new_unchecked(&mut_tr.inner) };
+        kernel::spinlock_init!(pinned, "Transaction::inner");
         Ok(tr)
     }
 

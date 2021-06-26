@@ -50,10 +50,12 @@ macro_rules! init_with_lockdep {
     ($obj:expr, $name:literal) => {{
         static mut CLASS: core::mem::MaybeUninit<$crate::bindings::lock_class_key> =
             core::mem::MaybeUninit::uninit();
+        let obj = $obj;
+        let name = $crate::c_str!($name);
         // SAFETY: `CLASS` is never used by Rust code directly; the kernel may change it though.
         #[allow(unused_unsafe)]
         unsafe {
-            $crate::sync::NeedsLockClass::init($obj, $crate::c_str!($name), CLASS.as_mut_ptr())
+            $crate::sync::NeedsLockClass::init(obj, name, CLASS.as_mut_ptr())
         };
     }};
 }
