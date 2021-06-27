@@ -37,7 +37,7 @@ impl Context {
         let ctx = Arc::get_mut(&mut ctx_ref).unwrap();
 
         // SAFETY: `manager` is also pinned when `ctx` is.
-        let manager = unsafe { Pin::new_unchecked(&ctx.manager) };
+        let manager = unsafe { Pin::new_unchecked(&mut ctx.manager) };
         kernel::mutex_init!(manager, "Context::manager");
 
         // SAFETY: `ctx_ref` is pinned behind the `Arc` reference.

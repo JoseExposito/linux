@@ -46,13 +46,13 @@ impl SharedState {
                 // SAFETY: `mutex_init!` is called below.
                 inner: unsafe { Mutex::new(SharedStateInner { token_count: 0 }) },
             },
-            |state| {
+            |mut state| {
                 // SAFETY: `state_changed` is pinned when `state` is.
-                let state_changed = unsafe { Pin::new_unchecked(&state.state_changed) };
-                kernel::condvar_init!(state_changed, "SharedState::state_changed");
+                let pinned = unsafe { state.as_mut().map_unchecked_mut(|s| &mut s.state_changed) };
+                kernel::condvar_init!(pinned, "SharedState::state_changed");
                 // SAFETY: `inner` is pinned when `state` is.
-                let inner = unsafe { Pin::new_unchecked(&state.inner) };
-                kernel::mutex_init!(inner, "SharedState::inner");
+                let pinned = unsafe { state.as_mut().map_unchecked_mut(|s| &mut s.inner) };
+                kernel::mutex_init!(pinned, "SharedState::inner");
             },
         )?))
     }

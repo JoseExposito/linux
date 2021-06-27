@@ -300,12 +300,12 @@ impl Process {
                 // SAFETY: `node_refs` is initialised in the call to `mutex_init` below.
                 node_refs: unsafe { Mutex::new(ProcessNodeRefs::new()) },
             },
-            |process| {
-                // SAFETY: `inner` is pinned behind the `Ref` reference.
-                let pinned = unsafe { Pin::new_unchecked(&process.inner) };
+            |mut process| {
+                // SAFETY: `inner` is pinned when `Process` is.
+                let pinned = unsafe { process.as_mut().map_unchecked_mut(|p| &mut p.inner) };
                 kernel::mutex_init!(pinned, "Process::inner");
-                // SAFETY: `node_refs` is pinned behind the `Ref` reference.
-                let pinned = unsafe { Pin::new_unchecked(&process.node_refs) };
+                // SAFETY: `node_refs` is pinned when `Process` is.
+                let pinned = unsafe { process.as_mut().map_unchecked_mut(|p| &mut p.node_refs) };
                 kernel::mutex_init!(pinned, "Process::node_refs");
             },
         )
@@ -720,10 +720,15 @@ impl Process {
         }
 
         // SAFETY: `init` is called below.
-        let death = death
+        let mut death = death
             .commit(unsafe { NodeDeath::new(info.node_ref.node.clone(), self.clone(), cookie) });
-        // SAFETY: `death` is pinned behind the `Arc` reference.
-        unsafe { Pin::new_unchecked(death.as_ref()) }.init();
+
+        {
+            let mutable = Arc::get_mut(&mut death).ok_or(Error::EINVAL)?;
+            // SAFETY: `mutable` is pinned behind the `Arc` reference.
+            unsafe { Pin::new_unchecked(mutable) }.init();
+        }
+
         info.death = Some(death.clone());
 
         // Register the death notification.
