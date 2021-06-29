@@ -169,7 +169,7 @@ impl<const N: usize> Registration<{ N }> {
         // SAFETY: The adapter doesn't retrieve any state yet, so it's compatible with any
         // registration.
         let fops = unsafe { file_operations::FileOperationsVtable::<Self, T>::build() };
-        let mut cdev = Cdev::alloc(fops, &this.this_module)?;
+        let mut cdev = Cdev::alloc(fops, this.this_module)?;
         cdev.add(inner.dev + inner.used as bindings::dev_t, 1)?;
         inner.cdevs[inner.used].replace(cdev);
         inner.used += 1;
