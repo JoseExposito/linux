@@ -430,7 +430,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
             let (param_kernel_type, ops): (String, _) = match param_type {
                 ParamType::Ident(ref param_type) => (
                     param_type.to_string(),
-                    param_ops_path(&param_type).to_string(),
+                    param_ops_path(param_type).to_string(),
                 ),
                 ParamType::Array {
                     ref vals,
