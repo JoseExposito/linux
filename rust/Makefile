@@ -52,7 +52,7 @@ rustdoc-compiler_builtins: $(srctree)/rust/compiler_builtins.rs FORCE
 # `no_global_oom_handling` functions refer to non-`no_global_oom_handling`
 # functions. Ideally `rustdoc` would have a way to distinguish broken links
 # due to things that are "configured out" vs. entirely non-existing ones.
-rustdoc-alloc: private rustc_target_flags = \
+rustdoc-alloc: private rustc_target_flags = --cfg no_global_oom_handling \
 	-Abroken_intra_doc_links
 rustdoc-alloc: $(srctree)/rust/alloc/lib.rs FORCE
 	$(call if_changed,rustdoc)
@@ -276,6 +276,7 @@ $(objtree)/rust/compiler_builtins.o: $(srctree)/rust/compiler_builtins.rs \
 	$(call if_changed_dep,rustc_library)
 
 $(objtree)/rust/alloc.o: private skip_clippy = 1
+$(objtree)/rust/alloc.o: private rustc_target_flags = --cfg no_global_oom_handling
 $(objtree)/rust/alloc.o: $(srctree)/rust/alloc/lib.rs \
     $(objtree)/rust/compiler_builtins.o FORCE
 	$(call if_changed_dep,rustc_library)
