@@ -18,7 +18,12 @@
 use crate::{bindings, Result};
 use alloc::boxed::Box;
 use core::{
-    cell::UnsafeCell, convert::AsRef, marker::PhantomData, mem::ManuallyDrop, ops::Deref, pin::Pin,
+    cell::UnsafeCell,
+    convert::AsRef,
+    marker::{PhantomData, Unsize},
+    mem::ManuallyDrop,
+    ops::Deref,
+    pin::Pin,
     ptr::NonNull,
 };
 
@@ -49,6 +54,13 @@ struct RefInner<T: ?Sized> {
 
 // This is to allow [`Ref`] (and variants) to be used as the type of `self`.
 impl<T: ?Sized> core::ops::Receiver for Ref<T> {}
+
+// This is to allow coercion from `Ref<T>` to `Ref<U>` if `T` can be converted to the
+// dynamically-sized type (DST) `U`.
+impl<T: ?Sized + Unsize<U>, U: ?Sized> core::ops::CoerceUnsized<Ref<U>> for Ref<T> {}
+
+// This is to allow `Ref<U>` to be dispatched on when `Ref<T>` can be coerced into `Ref<U>`.
+impl<T: ?Sized + Unsize<U>, U: ?Sized> core::ops::DispatchFromDyn<Ref<U>> for Ref<T> {}
 
 // SAFETY: It is safe to send `Ref<T>` to another thread when the underlying `T` is `Sync` because
 // it effectively means sharing `&T` (which is safe because `T` is `Sync`); additionally, it needs

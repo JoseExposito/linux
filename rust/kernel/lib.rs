@@ -22,6 +22,9 @@
     const_unreachable_unchecked,
     doc_cfg,
     receiver_trait,
+    coerce_unsized,
+    dispatch_from_dyn,
+    unsize,
     try_reserve
 )]
 
