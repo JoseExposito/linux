@@ -274,7 +274,7 @@ impl ProcessNodeRefs {
 }
 
 pub(crate) struct Process {
-    ctx: Arc<Context>,
+    ctx: Ref<Context>,
 
     // TODO: For now this a mutex because we have allocations in BTreeMap and RangeAllocator while
     // holding the lock. We may want to split up the process state at some point to use a spin lock
@@ -291,8 +291,8 @@ unsafe impl Send for Process {}
 unsafe impl Sync for Process {}
 
 impl Process {
-    fn new(ctx: Arc<Context>) -> Result<Ref<Self>> {
-        Ref::try_new_and_init(
+    fn new(ctx: Ref<Context>) -> Result<Pin<Ref<Self>>> {
+        Ok(Ref::pinned(Ref::try_new_and_init(
             Self {
                 ctx,
                 // SAFETY: `inner` is initialised in the call to `mutex_init` below.
@@ -308,7 +308,7 @@ impl Process {
                 let pinned = unsafe { process.as_mut().map_unchecked_mut(|p| &mut p.node_refs) };
                 kernel::mutex_init!(pinned, "Process::node_refs");
             },
-        )
+        )?))
     }
 
     /// Attemps to fetch a work item from the process queue.
@@ -808,11 +808,9 @@ impl IoctlHandler for Process {
     }
 }
 
-impl FileOpener<Arc<Context>> for Process {
-    fn open(ctx: &Arc<Context>) -> Result<Self::Wrapper> {
-        let process = Self::new(ctx.clone())?;
-        // SAFETY: Pointer is pinned behind `Ref`.
-        Ok(unsafe { Pin::new_unchecked(process) })
+impl FileOpener<Ref<Context>> for Process {
+    fn open(ctx: &Ref<Context>) -> Result<Self::Wrapper> {
+        Self::new(ctx.clone())
     }
 }
 
