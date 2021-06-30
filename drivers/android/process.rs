@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 
-use alloc::{collections::btree_map::BTreeMap, sync::Arc, vec::Vec};
+use alloc::{sync::Arc, vec::Vec};
 use core::{
-    mem::{swap, MaybeUninit},
+    mem::{take, MaybeUninit},
     ops::Range,
     pin::Pin,
 };
@@ -14,6 +14,7 @@ use kernel::{
     linked_list::List,
     pages::Pages,
     prelude::*,
+    rbtree::RBTree,
     sync::{Guard, Mutex, Ref},
     user_ptr::{UserSlicePtr, UserSlicePtrReader},
     Error,
@@ -62,11 +63,11 @@ impl Mapping {
 pub(crate) struct ProcessInner {
     is_manager: bool,
     is_dead: bool,
-    threads: BTreeMap<i32, Arc<Thread>>,
+    threads: RBTree<i32, Arc<Thread>>,
     ready_threads: List<Arc<Thread>>,
     work: List<DeliverToReadListAdapter>,
     mapping: Option<Mapping>,
-    nodes: BTreeMap<usize, Arc<Node>>,
+    nodes: RBTree<usize, Arc<Node>>,
 
     delivered_deaths: List<Arc<NodeDeath>>,
 
@@ -85,11 +86,11 @@ impl ProcessInner {
         Self {
             is_manager: false,
             is_dead: false,
-            threads: BTreeMap::new(),
+            threads: RBTree::new(),
             ready_threads: List::new(),
             work: List::new(),
             mapping: None,
-            nodes: BTreeMap::new(),
+            nodes: RBTree::new(),
             requested_thread_count: 0,
             max_threads: 0,
             started_thread_count: 0,
@@ -260,15 +261,15 @@ impl NodeRefInfo {
 }
 
 struct ProcessNodeRefs {
-    by_handle: BTreeMap<u32, NodeRefInfo>,
-    by_global_id: BTreeMap<u64, u32>,
+    by_handle: RBTree<u32, NodeRefInfo>,
+    by_global_id: RBTree<u64, u32>,
 }
 
 impl ProcessNodeRefs {
     fn new() -> Self {
         Self {
-            by_handle: BTreeMap::new(),
-            by_global_id: BTreeMap::new(),
+            by_handle: RBTree::new(),
+            by_global_id: RBTree::new(),
         }
     }
 }
@@ -276,9 +277,9 @@ impl ProcessNodeRefs {
 pub(crate) struct Process {
     ctx: Ref<Context>,
 
-    // TODO: For now this a mutex because we have allocations in BTreeMap and RangeAllocator while
-    // holding the lock. We may want to split up the process state at some point to use a spin lock
-    // for the other fields; we can also get rid of allocations in BTreeMap once we replace it.
+    // TODO: For now this a mutex because we have allocations in RangeAllocator while holding the
+    // lock. We may want to split up the process state at some point to use a spin lock for the
+    // other fields.
     // TODO: Make this private again.
     pub(crate) inner: Mutex<ProcessInner>,
 
@@ -348,6 +349,7 @@ impl Process {
 
         // Allocate a new `Thread` without holding any locks.
         let ta = Thread::new(id, self.clone())?;
+        let node = RBTree::try_allocate_node(id, ta.clone())?;
 
         let mut inner = self.inner.lock();
 
@@ -356,9 +358,7 @@ impl Process {
             return Ok(thread.clone());
         }
 
-        // TODO: We need a better solution here. Since this allocates, we cannot do it while
-        // holding a spinlock because it could block. It could panic too.
-        inner.threads.insert(id, ta.clone());
+        inner.threads.insert(node);
         Ok(ta)
     }
 
@@ -407,14 +407,14 @@ impl Process {
 
         // Allocate the node before reacquiring the lock.
         let node = Arc::try_new(Node::new(ptr, cookie, flags, self.clone()))?;
+        let rbnode = RBTree::try_allocate_node(ptr, node.clone())?;
 
         let mut inner = self.inner.lock();
         if let Some(node) = inner.get_existing_node_ref(ptr, cookie, strong, thread)? {
             return Ok(node);
         }
 
-        // TODO: Avoid allocation while holding lock.
-        inner.nodes.insert(ptr, node.clone());
+        inner.nodes.insert(rbnode);
         Ok(inner.new_node_ref(node, strong, thread))
     }
 
@@ -423,9 +423,25 @@ impl Process {
         node_ref: NodeRef,
         is_mananger: bool,
     ) -> Result<u32> {
+        {
+            let mut refs = self.node_refs.lock();
+
+            // Do a lookup before inserting.
+            if let Some(handle_ref) = refs.by_global_id.get(&node_ref.node.global_id) {
+                let handle = *handle_ref;
+                let info = refs.by_handle.get_mut(&handle).unwrap();
+                info.node_ref.absorb(node_ref);
+                return Ok(handle);
+            }
+        }
+
+        // Reserve memory for tree nodes.
+        let reserve1 = RBTree::try_reserve_node()?;
+        let reserve2 = RBTree::try_reserve_node()?;
+
         let mut refs = self.node_refs.lock();
 
-        // Do a lookup before inserting.
+        // Do a lookup again as node may have been inserted before the lock was reacquired.
         if let Some(handle_ref) = refs.by_global_id.get(&node_ref.node.global_id) {
             let handle = *handle_ref;
             let info = refs.by_handle.get_mut(&handle).unwrap();
@@ -449,9 +465,10 @@ impl Process {
         if inner.is_dead {
             return Err(Error::ESRCH);
         }
-        // TODO: Two allocations below.
-        refs.by_global_id.insert(node_ref.node.global_id, target);
-        refs.by_handle.insert(target, NodeRefInfo::new(node_ref));
+        refs.by_global_id
+            .insert(reserve1.into_node(node_ref.node.global_id, target));
+        refs.by_handle
+            .insert(reserve2.into_node(target, NodeRefInfo::new(node_ref)));
         Ok(target)
     }
 
@@ -853,8 +870,7 @@ impl FileOperations for Process {
         // Drop all references. We do this dance with `swap` to avoid destroying the references
         // while holding the lock.
         let mut refs = obj.node_refs.lock();
-        let mut node_refs = BTreeMap::new();
-        swap(&mut refs.by_handle, &mut node_refs);
+        let mut node_refs = take(&mut refs.by_handle);
         drop(refs);
 
         // Remove all death notifications from the nodes (that belong to a different process).
@@ -870,10 +886,8 @@ impl FileOperations for Process {
 
         // Do similar dance for the state lock.
         let mut inner = obj.inner.lock();
-        let mut threads = BTreeMap::new();
-        let mut nodes = BTreeMap::new();
-        swap(&mut inner.threads, &mut threads);
-        swap(&mut inner.nodes, &mut nodes);
+        let threads = take(&mut inner.threads);
+        let nodes = take(&mut inner.nodes);
         drop(inner);
 
         // Release all threads.
