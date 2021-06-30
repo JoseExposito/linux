@@ -164,6 +164,13 @@ bool rust_helper_refcount_dec_and_test(refcount_t *r)
 }
 EXPORT_SYMBOL_GPL(rust_helper_refcount_dec_and_test);
 
+void rust_helper_rb_link_node(struct rb_node *node, struct rb_node *parent,
+			      struct rb_node **rb_link)
+{
+	rb_link_node(node, parent, rb_link);
+}
+EXPORT_SYMBOL_GPL(rust_helper_rb_link_node);
+
 /* We use bindgen's --size_t-is-usize option to bind the C size_t type
  * as the Rust usize type, so we can use it in contexts where Rust
  * expects a usize like slice (array) indices. usize is defined to be
