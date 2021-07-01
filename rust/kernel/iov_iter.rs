@@ -29,7 +29,7 @@ extern "C" {
 ///
 /// # Invariants
 ///
-/// The pointer [`IovIter::ptr`] is non-null and valid.
+/// The pointer `IovIter::ptr` is non-null and valid.
 pub struct IovIter {
     ptr: *mut bindings::iov_iter,
 }

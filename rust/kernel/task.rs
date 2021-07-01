@@ -22,7 +22,7 @@ extern "C" {
 ///
 /// # Invariants
 ///
-/// The pointer [`Task::ptr`] is non-null and valid. Its reference count is also non-zero.
+/// The pointer `Task::ptr` is non-null and valid. Its reference count is also non-zero.
 ///
 /// # Examples
 ///

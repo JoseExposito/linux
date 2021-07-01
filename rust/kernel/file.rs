@@ -12,7 +12,7 @@ use core::{mem::ManuallyDrop, ops::Deref};
 ///
 /// # Invariants
 ///
-/// The pointer [`File::ptr`] is non-null and valid. Its reference count is also non-zero.
+/// The pointer `File::ptr` is non-null and valid. Its reference count is also non-zero.
 pub struct File {
     pub(crate) ptr: *mut bindings::file,
 }
