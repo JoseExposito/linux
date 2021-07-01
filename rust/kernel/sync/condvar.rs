@@ -6,8 +6,7 @@
 //! variable.
 
 use super::{Guard, Lock, NeedsLockClass};
-use crate::bindings;
-use crate::str::CStr;
+use crate::{bindings, str::CStr, task::Task};
 use core::{cell::UnsafeCell, marker::PhantomPinned, mem::MaybeUninit, pin::Pin};
 
 extern "C" {
@@ -92,7 +91,7 @@ impl CondVar {
         // SAFETY: Both `wait` and `wait_list` point to valid memory.
         unsafe { bindings::finish_wait(self.wait_list.get(), wait.as_mut_ptr()) };
 
-        super::signal_pending()
+        Task::current().signal_pending()
     }
 
     /// Calls the kernel function to notify the appropriate number of threads with the given flags.

@@ -16,6 +16,7 @@ use kernel::{
     prelude::*,
     rbtree::RBTree,
     sync::{Guard, Mutex, Ref},
+    task::Task,
     user_ptr::{UserSlicePtr, UserSlicePtrReader},
     Error,
 };
@@ -32,10 +33,6 @@ use crate::{
 
 // TODO: Review this:
 // Lock order: Process::node_refs -> Process::inner -> Thread::inner
-
-extern "C" {
-    fn rust_helper_current_pid() -> c_types::c_int;
-}
 
 pub(crate) struct AllocationInfo {
     /// Range within the allocation where we can find the offsets to the object descriptors.
@@ -799,7 +796,7 @@ impl IoctlHandler for Process {
         cmd: u32,
         reader: &mut UserSlicePtrReader,
     ) -> Result<i32> {
-        let thread = this.get_thread(unsafe { rust_helper_current_pid() })?;
+        let thread = this.get_thread(Task::current().pid())?;
         match cmd {
             bindings::BINDER_SET_MAX_THREADS => this.set_max_threads(reader.read()?),
             bindings::BINDER_SET_CONTEXT_MGR => this.set_as_manager(None, &thread)?,
@@ -813,7 +810,7 @@ impl IoctlHandler for Process {
     }
 
     fn read_write(this: &Ref<Process>, file: &File, cmd: u32, data: UserSlicePtr) -> Result<i32> {
-        let thread = this.get_thread(unsafe { rust_helper_current_pid() })?;
+        let thread = this.get_thread(Task::current().pid())?;
         match cmd {
             bindings::BINDER_WRITE_READ => thread.write_read(data, file.is_blocking())?,
             bindings::BINDER_GET_NODE_DEBUG_INFO => this.get_node_debug_info(data)?,
@@ -939,7 +936,7 @@ impl FileOperations for Process {
     }
 
     fn poll(this: &Ref<Process>, file: &File, table: &PollTable) -> Result<u32> {
-        let thread = this.get_thread(unsafe { rust_helper_current_pid() })?;
+        let thread = this.get_thread(Task::current().pid())?;
         let (from_proc, mut mask) = thread.poll(file, table);
         if mask == 0 && from_proc && !this.inner.lock().work.is_empty() {
             mask |= bindings::POLLIN;
