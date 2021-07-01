@@ -38,7 +38,7 @@ This has the added advantage that they will be tailored to your particular
 kernel configuration. To generate them, simply use the ``rustdoc`` target with
 the same invocation you use for compilation, e.g.::
 
-	make ARCH=... CROSS_COMPILE=... CC=... -j... rustdoc
+	make LLVM=1 rustdoc
 
 
 Writing the docs

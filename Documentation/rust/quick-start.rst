@@ -187,11 +187,11 @@ Building
 Building a kernel with Clang or a complete LLVM toolchain is the best supported
 setup at the moment. That is::
 
-    make ARCH=... CROSS_COMPILE=... CC=clang -j...
+    make CC=clang
 
 or::
 
-    make ARCH=... CROSS_COMPILE=... LLVM=1 -j...
+    make LLVM=1
 
 Using GCC also works for some configurations, but it is *very* experimental at
 the moment.
