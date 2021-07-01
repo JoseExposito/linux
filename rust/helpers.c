@@ -10,6 +10,7 @@
 #include <linux/errname.h>
 #include <linux/mutex.h>
 #include <linux/platform_device.h>
+#include <linux/security.h>
 
 void rust_helper_BUG(void)
 {
@@ -182,6 +183,34 @@ void rust_helper_put_task_struct(struct task_struct * t)
 	put_task_struct(t);
 }
 EXPORT_SYMBOL_GPL(rust_helper_put_task_struct);
+
+int rust_helper_security_binder_set_context_mgr(struct task_struct *mgr)
+{
+	return security_binder_set_context_mgr(mgr);
+}
+EXPORT_SYMBOL_GPL(rust_helper_security_binder_set_context_mgr);
+
+int rust_helper_security_binder_transaction(struct task_struct *from,
+					    struct task_struct *to)
+{
+	return security_binder_transaction(from, to);
+}
+EXPORT_SYMBOL_GPL(rust_helper_security_binder_transaction);
+
+int rust_helper_security_binder_transfer_binder(struct task_struct *from,
+						struct task_struct *to)
+{
+	return security_binder_transfer_binder(from, to);
+}
+EXPORT_SYMBOL_GPL(rust_helper_security_binder_transfer_binder);
+
+int rust_helper_security_binder_transfer_file(struct task_struct *from,
+					      struct task_struct *to,
+					      struct file *file)
+{
+	return security_binder_transfer_file(from, to, file);
+}
+EXPORT_SYMBOL_GPL(rust_helper_security_binder_transfer_file);
 
 /* We use bindgen's --size_t-is-usize option to bind the C size_t type
  * as the Rust usize type, so we can use it in contexts where Rust
