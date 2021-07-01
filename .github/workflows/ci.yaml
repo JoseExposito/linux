@@ -402,7 +402,7 @@ jobs:
       - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 rusttest
 
       # Formatting
-      - run: make rustfmtcheck
+      - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 rustfmtcheck
 
       # View changes to ccache
       - run: ccache -s
