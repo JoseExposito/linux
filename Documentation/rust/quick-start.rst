@@ -56,7 +56,7 @@ libclang
 ********
 
 ``libclang`` (part of LLVM) is used by ``bindgen`` to understand the C code
-in the kernel, which means you will need a recent LLVM installed; like when
+in the kernel, which means you will need an LLVM installed; like when
 you compile the kernel with ``CC=clang`` or ``LLVM=1``.
 
 Your Linux distribution is likely to have a suitable one available, so it is
@@ -66,20 +66,19 @@ There are also some binaries for several systems and architectures uploaded at:
 
     https://releases.llvm.org/download.html
 
-For Debian-based distributions, you can also fetch them from:
-
-    https://apt.llvm.org
-
 Otherwise, building LLVM takes quite a while, but it is not a complex process:
 
     https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm
+
+See Documentation/kbuild/llvm.rst for more information and further ways
+to fetch pre-built releases and distribution packages.
 
 
 bindgen
 *******
 
 The bindings to the C side of the kernel are generated at build time using
-the ``bindgen`` tool. A recent version should work, e.g. ``0.56.0``.
+the ``bindgen`` tool. The version we currently support is ``0.56.0``.
 
 Install it via (this will build the tool from source)::
 
@@ -184,14 +183,14 @@ And enable some sample modules either as built-in or as loadable.
 Building
 --------
 
-Building a kernel with Clang or a complete LLVM toolchain is the best supported
-setup at the moment. That is::
-
-    make CC=clang
-
-or::
+Building a kernel with a complete LLVM toolchain is the best supported setup
+at the moment. That is::
 
     make LLVM=1
+
+For architectures that do not support a full LLVM toolchain, use::
+
+    make CC=clang
 
 Using GCC also works for some configurations, but it is *very* experimental at
 the moment.
@@ -209,7 +208,7 @@ is your toolchain doesn't support Rust's new v0 mangling scheme yet. There are
 a few ways out:
 
   - If you don't mind building your own tools, we provide the following fork
-    with the support cherry-picked from GCC on top of very recent releases:
+    with the support cherry-picked from GCC:
 
         https://github.com/Rust-for-Linux/binutils-gdb/releases/tag/gdb-10.1-release-rust
         https://github.com/Rust-for-Linux/binutils-gdb/releases/tag/binutils-2_35_1-rust
