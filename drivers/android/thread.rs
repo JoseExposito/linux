@@ -9,6 +9,7 @@ use kernel::{
     io_buffer::{IoBufferReader, IoBufferWriter},
     linked_list::{GetLinks, Links, List},
     prelude::*,
+    security,
     sync::{CondVar, Ref, SpinLock},
     user_ptr::{UserSlicePtr, UserSlicePtrWriter},
     Error,
@@ -388,9 +389,11 @@ impl Thread {
                     let ptr = unsafe { obj.__bindgen_anon_1.binder } as _;
                     let cookie = obj.cookie as _;
                     let flags = obj.flags as _;
-                    Ok(self
+                    let node = self
                         .process
-                        .get_node(ptr, cookie, flags, strong, Some(self))?)
+                        .get_node(ptr, cookie, flags, strong, Some(self))?;
+                    security::binder_transfer_binder(&self.process.task, &view.alloc.process.task)?;
+                    Ok(node)
                 })?;
             }
             BINDER_TYPE_WEAK_HANDLE | BINDER_TYPE_HANDLE => {
@@ -398,7 +401,9 @@ impl Thread {
                 view.transfer_binder_object(offset, strong, |obj| {
                     // SAFETY: `handle` is a `u32`; any bit pattern is a valid representation.
                     let handle = unsafe { obj.__bindgen_anon_1.handle } as _;
-                    self.process.get_node_from_handle(handle, strong)
+                    let node = self.process.get_node_from_handle(handle, strong)?;
+                    security::binder_transfer_binder(&self.process.task, &view.alloc.process.task)?;
+                    Ok(node)
                 })?;
             }
             BINDER_TYPE_FD => {
@@ -410,6 +415,11 @@ impl Thread {
                 // SAFETY: `fd` is a `u32`; any bit pattern is a valid representation.
                 let fd = unsafe { obj.__bindgen_anon_1.fd };
                 let file = File::from_fd(fd)?;
+                security::binder_transfer_file(
+                    &self.process.task,
+                    &view.alloc.process.task,
+                    &file,
+                )?;
                 let field_offset =
                     kernel::offset_of!(bindings::binder_fd_object, __bindgen_anon_1.fd) as usize;
                 let file_info = Box::try_new(FileInfo::new(file, offset + field_offset))?;
@@ -598,6 +608,7 @@ impl Thread {
     fn oneway_transaction_inner(self: &Arc<Self>, tr: &BinderTransactionData) -> BinderResult {
         let handle = unsafe { tr.target.handle };
         let node_ref = self.process.get_transaction_node(handle)?;
+        security::binder_transaction(&self.process.task, &node_ref.node.owner.task)?;
         let completion = Arc::try_new(DeliverCode::new(BR_TRANSACTION_COMPLETE))?;
         let transaction = Transaction::new(node_ref, None, self, tr)?;
         self.inner.lock().push_work(completion);
@@ -609,6 +620,7 @@ impl Thread {
     fn transaction_inner(self: &Arc<Self>, tr: &BinderTransactionData) -> BinderResult {
         let handle = unsafe { tr.target.handle };
         let node_ref = self.process.get_transaction_node(handle)?;
+        security::binder_transaction(&self.process.task, &node_ref.node.owner.task)?;
         // TODO: We need to ensure that there isn't a pending transaction in the work queue. How
         // could this happen?
         let top = self.top_of_transaction_stack()?;
