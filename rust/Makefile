@@ -38,6 +38,7 @@ quiet_cmd_rustdoc = RUSTDOC $(if $(rustdoc_host),H, ) $<
 		@$(objtree)/include/generated/rustc_cfg $<
 
 rustdoc: rustdoc-core rustdoc-macros rustdoc-compiler_builtins rustdoc-alloc rustdoc-kernel
+	$(Q)cp $(srctree)/Documentation/rust/assets/* $(objtree)/rust/doc
 
 rustdoc-macros: private rustdoc_host = yes
 rustdoc-macros: private rustc_target_flags = --crate-type proc-macro \
