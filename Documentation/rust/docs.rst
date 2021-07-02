@@ -87,7 +87,9 @@ This example showcases a few ``rustdoc`` features and some common conventions
   safe under a ``Safety`` section.
 
 * While not shown here, if a function may panic, the conditions under which
-  that happens must be described under a ``Panics`` section.
+  that happens must be described under a ``Panics`` section. Please note that
+  panicking should be very rare and used only with a good reason. In almost
+  all cases, you should use a fallible approach, returning a `Result`.
 
 * If providing examples of usage would help readers, they must be written in
   a section called ``Examples``.
