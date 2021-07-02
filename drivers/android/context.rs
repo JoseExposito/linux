@@ -5,6 +5,7 @@ extern crate alloc;
 use kernel::{
     bindings,
     prelude::*,
+    security,
     sync::{Mutex, Ref},
     Error,
 };
@@ -51,7 +52,7 @@ impl Context {
         if manager.node.is_some() {
             return Err(Error::EBUSY);
         }
-        // TODO: Call security_binder_set_context_mgr.
+        security::binder_set_context_mgr(&node_ref.node.owner.task)?;
 
         // TODO: Get the actual caller id.
         let caller_uid = bindings::kuid_t::default();

@@ -274,6 +274,9 @@ impl ProcessNodeRefs {
 pub(crate) struct Process {
     ctx: Ref<Context>,
 
+    // The task leader (process).
+    pub(crate) task: Task,
+
     // TODO: For now this a mutex because we have allocations in RangeAllocator while holding the
     // lock. We may want to split up the process state at some point to use a spin lock for the
     // other fields.
@@ -293,6 +296,7 @@ impl Process {
         Ok(Ref::pinned(Ref::try_new_and_init(
             Self {
                 ctx,
+                task: Task::current().group_leader().clone(),
                 // SAFETY: `inner` is initialised in the call to `mutex_init` below.
                 inner: unsafe { Mutex::new(ProcessInner::new()) },
                 // SAFETY: `node_refs` is initialised in the call to `mutex_init` below.
@@ -917,7 +921,10 @@ impl FileOperations for Process {
     }
 
     fn mmap(this: &Ref<Process>, _file: &File, vma: &mut bindings::vm_area_struct) -> Result {
-        // TODO: Only group leader is allowed to create mappings.
+        // We don't allow mmap to be used in a different process.
+        if !Task::current().group_leader().eq(&this.task) {
+            return Err(Error::EINVAL);
+        }
 
         if vma.vm_start == 0 {
             return Err(Error::EINVAL);
