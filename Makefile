@@ -527,6 +527,8 @@ KBUILD_RUSTCFLAGS := --emit=dep-info,obj,metadata --edition=2018 \
 		     -Cforce-unwind-tables=n -Ccodegen-units=1 \
 		     -Zbinary_dep_depinfo=y -Zsymbol-mangling-version=v0 \
 		     -Dunsafe_op_in_unsafe_fn -Wmissing_docs
+KBUILD_CLIPPYFLAGS := -Dclippy::correctness -Dclippy::style \
+		      -Dclippy::complexity -Dclippy::perf
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_RUSTCFLAGS_KERNEL :=
@@ -539,7 +541,7 @@ CLANG_FLAGS :=
 
 ifeq ($(KBUILD_CLIPPY),1)
 	RUSTC_OR_CLIPPY_QUIET := CLIPPY
-	RUSTC_OR_CLIPPY = $(CLIPPY_DRIVER)
+	RUSTC_OR_CLIPPY = $(CLIPPY_DRIVER) $(KBUILD_CLIPPYFLAGS)
 else
 	RUSTC_OR_CLIPPY_QUIET := RUSTC
 	RUSTC_OR_CLIPPY = $(RUSTC)

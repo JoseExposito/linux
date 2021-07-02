@@ -2,11 +2,6 @@
 
 //! Crate for all kernel procedural macros.
 
-#![deny(clippy::complexity)]
-#![deny(clippy::correctness)]
-#![deny(clippy::perf)]
-#![deny(clippy::style)]
-
 mod module;
 
 use proc_macro::TokenStream;
