@@ -31,7 +31,7 @@ extern "C" {
 ///
 /// # Invariants
 ///
-/// The pointer [`Pages::pages`] is valid and points to 2^ORDER pages.
+/// The pointer `Pages::pages` is valid and points to 2^ORDER pages.
 pub struct Pages<const ORDER: u32> {
     pages: *mut bindings::page,
 }

@@ -25,7 +25,7 @@ use crate::{
 ///
 /// # Invariants
 ///
-/// The pointer [`PollTable::ptr`] is null or valid.
+/// The pointer `PollTable::ptr` is null or valid.
 pub struct PollTable {
     ptr: *mut bindings::poll_table_struct,
 }
