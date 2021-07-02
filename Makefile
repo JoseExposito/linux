@@ -460,7 +460,6 @@ READELF		= $(CROSS_COMPILE)readelf
 STRIP		= $(CROSS_COMPILE)strip
 endif
 RUSTC		= rustc
-RUSTC_BOOTSTRAP = 1
 RUSTDOC		= rustdoc
 RUSTFMT		= rustfmt
 CLIPPY_DRIVER	= clippy-driver
@@ -550,8 +549,10 @@ ifdef RUST_LIB_SRC
 	export RUST_LIB_SRC
 endif
 
+export RUSTC_BOOTSTRAP := 1
+
 export ARCH SRCARCH CONFIG_SHELL BASH HOSTCC KBUILD_HOSTCFLAGS CROSS_COMPILE LD CC
-export RUSTC RUSTC_BOOTSTRAP RUSTDOC RUSTFMT RUSTC_OR_CLIPPY_QUIET RUSTC_OR_CLIPPY BINDGEN CARGO
+export RUSTC RUSTDOC RUSTFMT RUSTC_OR_CLIPPY_QUIET RUSTC_OR_CLIPPY BINDGEN CARGO
 export CPP AR NM STRIP OBJCOPY OBJDUMP READELF PAHOLE RESOLVE_BTFIDS LEX YACC AWK INSTALLKERNEL
 export PERL PYTHON3 CHECK CHECKFLAGS MAKE UTS_MACHINE HOSTCXX
 export KGZIP KBZIP2 KLZOP LZMA LZ4 XZ ZSTD
@@ -1610,7 +1611,8 @@ MRPROPER_FILES += include/config include/generated          \
 		  certs/signing_key.pem certs/signing_key.x509 \
 		  certs/x509.genkey \
 		  vmlinux-gdb.py \
-		  *.spec
+		  *.spec \
+		  rust/*_generated.h rust/*_generated.rs rust/libmacros.so
 
 # clean - Delete most, but leave enough to build external modules
 #
