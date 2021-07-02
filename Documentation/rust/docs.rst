@@ -26,9 +26,8 @@ code, etc.
 
 Like for the rest of the kernel documentation, pregenerated HTML docs for
 the libraries (crates) inside ``rust/`` that are used by the rest of the kernel
-are available at `kernel.org`_.
-
-// TODO: link when ready
+are available at `kernel.org`_ (TODO: link when in mainline and generated
+alongside the rest of the documentation).
 
 .. _kernel.org: http://kernel.org/
 
