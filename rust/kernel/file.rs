@@ -53,7 +53,7 @@ impl Drop for File {
     }
 }
 
-/// A wrapper for [`File`] that doesn't automatically decrement that refcount when dropped.
+/// A wrapper for [`File`] that doesn't automatically decrement the refcount when dropped.
 ///
 /// We need the wrapper because [`ManuallyDrop`] alone would allow callers to call
 /// [`ManuallyDrop::into_inner`]. This would allow an unsafe sequence to be triggered without

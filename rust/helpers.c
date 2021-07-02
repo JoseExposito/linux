@@ -60,15 +60,9 @@ void rust_helper_init_wait(struct wait_queue_entry *wq_entry)
 }
 EXPORT_SYMBOL_GPL(rust_helper_init_wait);
 
-int rust_helper_current_pid(void)
+int rust_helper_signal_pending(struct task_struct *t)
 {
-	return current->pid;
-}
-EXPORT_SYMBOL_GPL(rust_helper_current_pid);
-
-int rust_helper_signal_pending(void)
-{
-	return signal_pending(current);
+	return signal_pending(t);
 }
 EXPORT_SYMBOL_GPL(rust_helper_signal_pending);
 
@@ -170,6 +164,24 @@ void rust_helper_rb_link_node(struct rb_node *node, struct rb_node *parent,
 	rb_link_node(node, parent, rb_link);
 }
 EXPORT_SYMBOL_GPL(rust_helper_rb_link_node);
+
+struct task_struct *rust_helper_get_current(void)
+{
+	return current;
+}
+EXPORT_SYMBOL_GPL(rust_helper_get_current);
+
+void rust_helper_get_task_struct(struct task_struct * t)
+{
+	get_task_struct(t);
+}
+EXPORT_SYMBOL_GPL(rust_helper_get_task_struct);
+
+void rust_helper_put_task_struct(struct task_struct * t)
+{
+	put_task_struct(t);
+}
+EXPORT_SYMBOL_GPL(rust_helper_put_task_struct);
 
 /* We use bindgen's --size_t-is-usize option to bind the C size_t type
  * as the Rust usize type, so we can use it in contexts where Rust

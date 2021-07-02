@@ -39,7 +39,6 @@ pub use mutex::Mutex;
 pub use spinlock::SpinLock;
 
 extern "C" {
-    fn rust_helper_signal_pending() -> c_types::c_int;
     fn rust_helper_cond_resched() -> c_types::c_int;
 }
 
@@ -76,12 +75,6 @@ pub trait NeedsLockClass {
     ///
     /// `key` must point to a valid memory location as it will be used by the kernel.
     unsafe fn init(self: Pin<&mut Self>, name: &'static CStr, key: *mut bindings::lock_class_key);
-}
-
-/// Determines if a signal is pending on the current process.
-pub fn signal_pending() -> bool {
-    // SAFETY: No arguments, just checks `current` for pending signals.
-    unsafe { rust_helper_signal_pending() != 0 }
 }
 
 /// Reschedules the caller's task if needed.

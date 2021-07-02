@@ -51,6 +51,7 @@ pub mod file_operations;
 pub mod miscdev;
 pub mod pages;
 pub mod str;
+pub mod task;
 pub mod traits;
 
 pub mod linked_list;
