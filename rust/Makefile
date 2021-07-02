@@ -37,7 +37,17 @@ quiet_cmd_rustdoc = RUSTDOC $(if $(rustdoc_host),H, ) $<
 		--output $(objtree)/rust/doc --crate-name $(subst rustdoc-,,$@) \
 		@$(objtree)/include/generated/rustc_cfg $<
 
-rustdoc: rustdoc-macros rustdoc-compiler_builtins rustdoc-alloc rustdoc-kernel
+# This is a temporary fix for the CSS, visible on `type`s (`Result`).
+# It is already fixed in nightly.
+RUSTDOC_FIX_BEFORE := .impl,.method,.type:not(.container-rustdoc),.associatedconstant,.associatedtype
+RUSTDOC_FIX_AFTER := .impl,.impl-items .method,.methods .method,.impl-items \
+	.type,.methods .type,.impl-items .associatedconstant,.methods \
+	.associatedconstant,.impl-items .associatedtype,.methods .associatedtype
+
+rustdoc: rustdoc-core rustdoc-macros rustdoc-compiler_builtins rustdoc-alloc rustdoc-kernel
+	$(Q)cp $(srctree)/Documentation/rust/assets/* $(objtree)/rust/doc
+	$(Q)sed -i "s/$(RUSTDOC_FIX_BEFORE)/$(RUSTDOC_FIX_AFTER)/" \
+		$(objtree)/rust/doc/rustdoc.css
 
 rustdoc-macros: private rustdoc_host = yes
 rustdoc-macros: private rustc_target_flags = --crate-type proc-macro \
@@ -45,7 +55,7 @@ rustdoc-macros: private rustc_target_flags = --crate-type proc-macro \
 rustdoc-macros: $(srctree)/rust/macros/lib.rs FORCE
 	$(call if_changed,rustdoc)
 
-rustdoc-compiler_builtins: $(srctree)/rust/compiler_builtins.rs FORCE
+rustdoc-compiler_builtins: $(srctree)/rust/compiler_builtins.rs rustdoc-core FORCE
 	$(call if_changed,rustdoc)
 
 # We need to allow `broken_intra_doc_links` because some
@@ -53,14 +63,16 @@ rustdoc-compiler_builtins: $(srctree)/rust/compiler_builtins.rs FORCE
 # functions. Ideally `rustdoc` would have a way to distinguish broken links
 # due to things that are "configured out" vs. entirely non-existing ones.
 rustdoc-alloc: private rustc_target_flags = --cfg no_global_oom_handling \
-	-Abroken_intra_doc_links
-rustdoc-alloc: $(srctree)/rust/alloc/lib.rs FORCE
+    -Abroken_intra_doc_links
+rustdoc-alloc: $(srctree)/rust/alloc/lib.rs rustdoc-core \
+    rustdoc-compiler_builtins FORCE
 	$(call if_changed,rustdoc)
 
 rustdoc-kernel: private rustc_target_flags = --extern alloc \
     --extern build_error \
     --extern macros=$(objtree)/rust/libmacros.so
-rustdoc-kernel: $(srctree)/rust/kernel/lib.rs rustdoc-macros \
+rustdoc-kernel: $(srctree)/rust/kernel/lib.rs rustdoc-core \
+    rustdoc-macros rustdoc-compiler_builtins rustdoc-alloc \
     $(objtree)/rust/libmacros.so $(objtree)/rust/bindings_generated.rs FORCE
 	$(call if_changed,rustdoc)
 
@@ -299,3 +311,6 @@ $(objtree)/rust/kernel.o: $(srctree)/rust/kernel/lib.rs $(objtree)/rust/alloc.o 
 $(objtree)/rust/core.o: private skip_clippy = 1
 $(objtree)/rust/core.o: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
 	$(call if_changed_dep,rustc_library)
+
+rustdoc-core: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
+	$(call if_changed,rustdoc)
