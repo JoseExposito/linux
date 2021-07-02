@@ -23,10 +23,6 @@
 #![compiler_builtins]
 #![no_builtins]
 #![no_std]
-#![deny(clippy::complexity)]
-#![deny(clippy::correctness)]
-#![deny(clippy::perf)]
-#![deny(clippy::style)]
 
 macro_rules! define_panicking_intrinsics(
     ($reason: tt, { $($ident: ident, )* }) => {
@@ -143,7 +139,7 @@ extern "C" {
 }
 
 #[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
+fn panic(_info: &core::panic::PanicInfo<'_>) -> ! {
     unsafe {
         rust_helper_BUG();
     }
