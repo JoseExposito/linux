@@ -30,12 +30,12 @@ Typically, you will want to instruct your editor/IDE to format while you type,
 when you save or at commit time. However, if for some reason you want
 to reformat the entire kernel Rust sources at some point, you may run::
 
-	make rustfmt
+	make LLVM=1 rustfmt
 
 To check if everything is formatted (printing a diff otherwise), e.g. if you
 have configured a CI for a tree as a maintainer, you may run::
 
-	make rustfmtcheck
+	make LLVM=1 rustfmtcheck
 
 Like ``clang-format`` for the rest of the kernel, ``rustfmt`` works on
 individual files, and does not require a kernel configuration. Sometimes it may
@@ -49,7 +49,7 @@ While ``rustc`` is a very helpful compiler, some extra lints and analysis are
 available via ``clippy``, a Rust linter. To enable it, pass ``CLIPPY=1`` to
 the same invocation you use for compilation, e.g.::
 
-	make ARCH=... CROSS_COMPILE=... CC=... -j... CLIPPY=1
+	make LLVM=1 CLIPPY=1
 
 At the moment, we do not enforce a "clippy-free" compilation, so you can treat
 the output the same way as the extra warning levels for C, e.g. like ``W=2``.
