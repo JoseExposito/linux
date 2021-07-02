@@ -8,12 +8,10 @@
 //!
 //! At the moment, some builtins are required that should not be. For instance,
 //! [`core`] has floating-point functionality which we should not be compiling
-//! in. For the moment, we define them to [`panic!`] at runtime for simplicity.
-//! These are actually a superset of the ones we actually need to define,
-//! but it seems simpler to ban entire categories at once. In the future,
-//! we might be able to remove all this by providing our own custom [`core`]
-//! etc., or perhaps [`core`] itself might provide `cfg` options to disable
-//! enough functionality to avoid requiring some of these.
+//! in. We will work with upstream [`core`] to provide feature flags to disable
+//! the parts we do not need. For the moment, we define them to [`panic!`] at
+//! runtime for simplicity to catch mistakes, instead of performing surgery
+//! on `core.o`.
 //!
 //! In any case, all these symbols are weakened to ensure we do not override
 //! those that may be provided by the rest of the kernel.
