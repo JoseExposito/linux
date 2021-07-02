@@ -37,8 +37,17 @@ quiet_cmd_rustdoc = RUSTDOC $(if $(rustdoc_host),H, ) $<
 		--output $(objtree)/rust/doc --crate-name $(subst rustdoc-,,$@) \
 		@$(objtree)/include/generated/rustc_cfg $<
 
+# This is a temporary fix for the CSS, visible on `type`s (`Result`).
+# It is already fixed in nightly.
+RUSTDOC_FIX_BEFORE := .impl,.method,.type:not(.container-rustdoc),.associatedconstant,.associatedtype
+RUSTDOC_FIX_AFTER := .impl,.impl-items .method,.methods .method,.impl-items \
+	.type,.methods .type,.impl-items .associatedconstant,.methods \
+	.associatedconstant,.impl-items .associatedtype,.methods .associatedtype
+
 rustdoc: rustdoc-core rustdoc-macros rustdoc-compiler_builtins rustdoc-alloc rustdoc-kernel
 	$(Q)cp $(srctree)/Documentation/rust/assets/* $(objtree)/rust/doc
+	$(Q)sed -i "s/$(RUSTDOC_FIX_BEFORE)/$(RUSTDOC_FIX_AFTER)/" \
+		$(objtree)/rust/doc/rustdoc.css
 
 rustdoc-macros: private rustdoc_host = yes
 rustdoc-macros: private rustc_target_flags = --crate-type proc-macro \
