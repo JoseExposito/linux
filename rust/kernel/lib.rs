@@ -24,7 +24,6 @@
     receiver_trait,
     try_reserve
 )]
-#![deny(rust_2018_idioms)]
 
 // Ensure conditional compilation based on the kernel configuration works;
 // otherwise we may silently break things like initcall handling.

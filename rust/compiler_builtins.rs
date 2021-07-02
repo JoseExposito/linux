@@ -139,7 +139,7 @@ extern "C" {
 }
 
 #[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
+fn panic(_info: &core::panic::PanicInfo<'_>) -> ! {
     unsafe {
         rust_helper_BUG();
     }

@@ -526,7 +526,8 @@ KBUILD_RUSTCFLAGS := --emit=dep-info,obj,metadata --edition=2018 \
 		     -Cpanic=abort -Cembed-bitcode=n -Clto=n -Crpath=n \
 		     -Cforce-unwind-tables=n -Ccodegen-units=1 \
 		     -Zbinary_dep_depinfo=y -Zsymbol-mangling-version=v0 \
-		     -Dunsafe_op_in_unsafe_fn -Wmissing_docs
+		     -Dunsafe_op_in_unsafe_fn -Drust_2018_idioms \
+		     -Wmissing_docs
 KBUILD_CLIPPYFLAGS := -Dclippy::correctness -Dclippy::style \
 		      -Dclippy::complexity -Dclippy::perf
 KBUILD_AFLAGS_KERNEL :=

@@ -6,6 +6,8 @@
 
 #![no_std]
 #![feature(global_asm, try_reserve, allocator_api, concat_idents)]
+// TODO: clean these up
+#![allow(rust_2018_idioms)]
 
 use alloc::{boxed::Box, sync::Arc};
 use core::pin::Pin;
