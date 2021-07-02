@@ -2,8 +2,8 @@
 
 //! The `kernel` prelude.
 //!
-//! These are most common items used by Rust code in the kernel, intended to
-//! be imported by all Rust code, for convenience.
+//! These are the most common items used by Rust code in the kernel,
+//! intended to be imported by all Rust code, for convenience.
 //!
 //! # Examples
 //!
