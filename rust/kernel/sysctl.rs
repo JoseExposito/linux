@@ -156,7 +156,7 @@ impl<T: SysctlStorage> Sysctl<T> {
             },
             unsafe { mem::zeroed() },
         ]
-        .into_boxed_slice();
+        .try_into_boxed_slice()?;
 
         let result = unsafe { bindings::register_sysctl(path.as_char_ptr(), table.as_mut_ptr()) };
         if result.is_null() {

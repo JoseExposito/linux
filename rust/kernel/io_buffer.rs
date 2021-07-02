@@ -30,8 +30,7 @@ pub trait IoBufferReader {
     /// Returns `EFAULT` if the address does not currently point to mapped, readable memory.
     fn read_all(&mut self) -> Result<Vec<u8>> {
         let mut data = Vec::<u8>::new();
-        data.try_reserve_exact(self.len())?;
-        data.resize(self.len(), 0);
+        data.try_resize(self.len(), 0)?;
 
         // SAFETY: The output buffer is valid as we just allocated it.
         unsafe { self.read_raw(data.as_mut_ptr(), data.len())? };

@@ -23,13 +23,13 @@ at the time of writing, they are likely to not be recent enough.
 rustc
 *****
 
-A recent *nightly* Rust toolchain (with, at least, ``rustc``) is required,
-e.g. ``nightly-2021-05-29``. Our goal is to use a stable toolchain as soon
-as possible, but for the moment we depend on a handful of nightly features.
+A particular version (`1.54.0-beta.1`) of the Rust compiler is required.
+Newer versions may or may not work because, for the moment, we depend on
+some unstable Rust features.
 
 If you are using ``rustup``, run::
 
-    rustup default nightly-2021-05-29
+    rustup default beta-2021-06-23
 
 Otherwise, fetch a standalone installer or install ``rustup`` from:
 
@@ -125,16 +125,30 @@ the component manually::
 The standalone installers also come with ``clippy``.
 
 
+cargo
+*****
+
+``cargo`` is the Rust native build system. It is currently required to run
+the tests (``rusttest`` target) since we use it to build a custom standard
+library that contains the facilities provided by our custom ``alloc``.
+
+If you are using ``rustup``, all the profiles already install the tool,
+so you should be good to go. The standalone installers also include ``cargo``.
+
+
 rustdoc
 *******
 
-If you install the ``rustdoc`` tool, then you will be able to generate pretty
-HTML documentation for Rust code, including for the libraries (crates) inside
-``rust/`` that are used by the rest of the kernel (for details, please see
-:ref:`Documentation/rust/docs.rst <rust_docs>`).
+``rustdoc`` is the documentation tool for Rust. It generates pretty HTML
+documentation for Rust code (for details, please see
+:ref:`Documentation/rust/docs.rst <rust_docs>`.
+
+``rustdoc`` is also able to test the examples provided in documented Rust code
+(called doctests or documentation tests). We use this feature, thus ``rustdoc``
+is required to run the tests (``rusttest`` target).
 
 If you are using ``rustup``, all the profiles already install the tool,
-so you should be good to go. The standalone installers also come with ``rustdoc``.
+so you should be good to go. The standalone installers also include ``rustdoc``.
 
 
 rust-analyzer

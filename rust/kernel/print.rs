@@ -190,7 +190,7 @@ macro_rules! print_macro (
     );
 );
 
-// Stub for doctests
+/// Stub for doctests
 #[cfg(testlib)]
 #[macro_export]
 macro_rules! print_macro (

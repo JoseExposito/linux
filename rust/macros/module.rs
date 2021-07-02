@@ -133,6 +133,7 @@ fn __build_modinfo_string_base(
     format!(
         "
             {cfg}
+            #[doc(hidden)]
             #[link_section = \".modinfo\"]
             #[used]
             pub static {variable}: [u8; {length}] = *b\"{string}\\0\";
@@ -429,7 +430,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
             let (param_kernel_type, ops): (String, _) = match param_type {
                 ParamType::Ident(ref param_type) => (
                     param_type.to_string(),
-                    param_ops_path(&param_type).to_string(),
+                    param_ops_path(param_type).to_string(),
                 ),
                 ParamType::Array {
                     ref vals,
@@ -599,12 +600,14 @@ pub fn module(ts: TokenStream) -> TokenStream {
 
             // Loadable modules need to export the `{{init,cleanup}}_module` identifiers
             #[cfg(MODULE)]
+            #[doc(hidden)]
             #[no_mangle]
             pub extern \"C\" fn init_module() -> kernel::c_types::c_int {{
                 __init()
             }}
 
             #[cfg(MODULE)]
+            #[doc(hidden)]
             #[no_mangle]
             pub extern \"C\" fn cleanup_module() {{
                 __exit()
@@ -614,6 +617,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
             // and the identifiers need to be unique
             #[cfg(not(MODULE))]
             #[cfg(not(CONFIG_HAVE_ARCH_PREL32_RELOCATIONS))]
+            #[doc(hidden)]
             #[link_section = \"{initcall_section}\"]
             #[used]
             pub static __{name}_initcall: extern \"C\" fn() -> kernel::c_types::c_int = __{name}_init;
@@ -629,12 +633,14 @@ pub fn module(ts: TokenStream) -> TokenStream {
             );
 
             #[cfg(not(MODULE))]
+            #[doc(hidden)]
             #[no_mangle]
             pub extern \"C\" fn __{name}_init() -> kernel::c_types::c_int {{
                 __init()
             }}
 
             #[cfg(not(MODULE))]
+            #[doc(hidden)]
             #[no_mangle]
             pub extern \"C\" fn __{name}_exit() {{
                 __exit()

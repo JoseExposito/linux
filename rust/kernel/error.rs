@@ -112,7 +112,7 @@ impl fmt::Debug for Error {
         // SAFETY: `'static` string from C, and is not NULL.
         let cstr = unsafe { CStr::from_char_ptr(name) };
         // SAFETY: These strings are ASCII-only.
-        let str = unsafe { str::from_utf8_unchecked(&cstr) };
+        let str = unsafe { str::from_utf8_unchecked(cstr) };
         f.debug_tuple(str).finish()
     }
 }

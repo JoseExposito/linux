@@ -26,12 +26,17 @@ running a Linux kernel.  Also, not all tools are necessary on all
 systems; obviously, if you don't have any PC Card hardware, for example,
 you probably needn't concern yourself with pcmciautils.
 
+Furthermore, note that newer versions of the Rust toolchain may or may not work
+because, for the moment, we depend on some unstable features. Thus, unless you
+know what you are doing, use the exact version listed here. Please see
+:ref:`Documentation/rust/quick-start.rst <rust_quick_start>` for details.
+
 ====================== ===============  ========================================
         Program        Minimal version       Command to check the version
 ====================== ===============  ========================================
 GNU C                  4.9              gcc --version
 Clang/LLVM (optional)  10.0.1           clang --version
-rustc (optional)       nightly          rustc --version
+rustc (optional)       1.54.0-beta.1    rustc --version
 bindgen (optional)     0.56.0           bindgen --version
 GNU make               3.81             make --version
 binutils               2.23             ld -v
@@ -57,7 +62,6 @@ iptables               1.4.2            iptables -V
 openssl & libcrypto    1.0.0            openssl version
 bc                     1.06.95          bc --version
 Sphinx\ [#f1]_	       1.3		sphinx-build --version
-rustdoc (optional)     nightly          rustdoc --version
 ====================== ===============  ========================================
 
 .. [#f1] Sphinx is needed only to build the Kernel documentation

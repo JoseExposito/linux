@@ -614,12 +614,11 @@ impl Process {
         for _ in 0..page_count {
             let page = Pages::<0>::new()?;
             page.insert_page(vma, address)?;
-            pages.push(page);
+            pages.try_push(page)?;
             address += 1 << bindings::PAGE_SHIFT;
         }
 
-        // TODO: This allocates memory.
-        let arc = Arc::from(pages);
+        let arc = Arc::try_from_vec(pages)?;
 
         // Save pages for later.
         let mut inner = self.inner.lock();
