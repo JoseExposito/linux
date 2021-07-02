@@ -1,7 +1,23 @@
-# My Linux kernel source tree 🐧
+**Follow on...** [![Twitter](.github/images/twitter.png "Twitter")](https://twitter.com/Jose__Exposito) <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=FT2KS37PVG8PU&currency_code=EUR&source=url"><img align="right"  src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif"></a>
+
+<br/>
+<img src=".github/images/tux.png" align="right" />
+
+# My Linux kernel source tree
+
+Welcome to my fork of the Linux kernel.
+
+Here I work on my patches. I'm a newbie, so don't expect great changes, just humble contributions.
+
+<br/>
 
 
 ## Branches
+
+### Patches
+
+
+
 
 ### Upstream
 
@@ -9,7 +25,7 @@ Upstream code is saved in `upstream-*` branches to easily rebase and generate pa
 
 | Branch | Remote | Pull command | 
 | - | - | - |
-| [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | GitHun fork | Use GitHub UI |
+| [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | GitHub fork | Use GitHub's UI |
 | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | git remote add hid git://git.kernel.org/pub/scm/linux/kernel/git/hid/hid.git | git pull --rebase hid master |
 
 Depending on the subsystem, the maintainer could have its own tree. For example, to modify the Magic
@@ -42,9 +58,6 @@ $ git checkout -b upstream-hid-master --track hid/master
 $ git pull --rebase hid master
 $ git push --set-upstream origin upstream-hid-master
 ```
-
-
-### Patches
 
 
 ### Config
