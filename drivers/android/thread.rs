@@ -374,7 +374,7 @@ impl Thread {
     fn translate_object(
         &self,
         index_offset: usize,
-        view: &mut AllocationView,
+        view: &mut AllocationView<'_, '_>,
         allow_fds: bool,
     ) -> BinderResult {
         let offset = view.alloc.read(index_offset)?;
@@ -432,7 +432,7 @@ impl Thread {
 
     fn translate_objects(
         &self,
-        alloc: &mut Allocation,
+        alloc: &mut Allocation<'_>,
         start: usize,
         end: usize,
         allow_fds: bool,

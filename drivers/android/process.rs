@@ -545,7 +545,7 @@ impl Process {
         Ok(())
     }
 
-    pub(crate) fn buffer_alloc(&self, size: usize) -> BinderResult<Allocation> {
+    pub(crate) fn buffer_alloc(&self, size: usize) -> BinderResult<Allocation<'_>> {
         let mut inner = self.inner.lock();
         let mapping = inner.mapping.as_mut().ok_or_else(BinderError::new_dead)?;
 
@@ -560,7 +560,7 @@ impl Process {
     }
 
     // TODO: Review if we want an Option or a Result.
-    pub(crate) fn buffer_get(&self, ptr: usize) -> Option<Allocation> {
+    pub(crate) fn buffer_get(&self, ptr: usize) -> Option<Allocation<'_>> {
         let mut inner = self.inner.lock();
         let mapping = inner.mapping.as_mut()?;
         let offset = ptr.checked_sub(mapping.address)?;
@@ -960,7 +960,7 @@ impl<'a> Registration<'a> {
     fn new(
         process: &'a Process,
         thread: &'a Arc<Thread>,
-        guard: &mut Guard<Mutex<ProcessInner>>,
+        guard: &mut Guard<'_, Mutex<ProcessInner>>,
     ) -> Self {
         guard.ready_threads.push_back(thread.clone());
         Self { process, thread }

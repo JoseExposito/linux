@@ -70,7 +70,7 @@ impl<T> RangeAllocator<T> {
         Ok(desc.offset)
     }
 
-    fn free_with_cursor(cursor: &mut CursorMut<Box<Descriptor<T>>>) -> Result {
+    fn free_with_cursor(cursor: &mut CursorMut<'_, Box<Descriptor<T>>>) -> Result {
         let mut size = match cursor.current() {
             None => return Err(Error::EINVAL),
             Some(ref mut entry) => {
@@ -105,7 +105,7 @@ impl<T> RangeAllocator<T> {
         Ok(())
     }
 
-    fn find_at_offset(&mut self, offset: usize) -> Option<CursorMut<Box<Descriptor<T>>>> {
+    fn find_at_offset(&mut self, offset: usize) -> Option<CursorMut<'_, Box<Descriptor<T>>>> {
         let mut cursor = self.list.cursor_front_mut();
         while let Some(desc) = cursor.current() {
             if desc.offset == offset {
