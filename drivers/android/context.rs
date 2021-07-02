@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
 
-extern crate alloc;
-
 use kernel::{
     bindings,
     prelude::*,

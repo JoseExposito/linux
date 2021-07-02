@@ -248,12 +248,16 @@ impl Node {
 
     pub(crate) fn next_death(
         &self,
-        guard: &mut Guard<Mutex<ProcessInner>>,
+        guard: &mut Guard<'_, Mutex<ProcessInner>>,
     ) -> Option<Arc<NodeDeath>> {
         self.inner.access_mut(guard).death_list.pop_front()
     }
 
-    pub(crate) fn add_death(&self, death: Arc<NodeDeath>, guard: &mut Guard<Mutex<ProcessInner>>) {
+    pub(crate) fn add_death(
+        &self,
+        death: Arc<NodeDeath>,
+        guard: &mut Guard<'_, Mutex<ProcessInner>>,
+    ) {
         self.inner.access_mut(guard).death_list.push_back(death);
     }
 
@@ -306,7 +310,7 @@ impl Node {
     pub(crate) fn populate_counts(
         &self,
         out: &mut BinderNodeInfoForRef,
-        guard: &Guard<Mutex<ProcessInner>>,
+        guard: &Guard<'_, Mutex<ProcessInner>>,
     ) {
         let inner = self.inner.access(guard);
         out.strong_count = inner.strong.count as _;
@@ -316,7 +320,7 @@ impl Node {
     pub(crate) fn populate_debug_info(
         &self,
         out: &mut BinderNodeDebugInfo,
-        guard: &Guard<Mutex<ProcessInner>>,
+        guard: &Guard<'_, Mutex<ProcessInner>>,
     ) {
         out.ptr = self.ptr as _;
         out.cookie = self.cookie as _;
@@ -329,7 +333,7 @@ impl Node {
         }
     }
 
-    pub(crate) fn force_has_count(&self, guard: &mut Guard<Mutex<ProcessInner>>) {
+    pub(crate) fn force_has_count(&self, guard: &mut Guard<'_, Mutex<ProcessInner>>) {
         let inner = self.inner.access_mut(guard);
         inner.strong.has_count = true;
         inner.weak.has_count = true;
