@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-use alloc::{boxed::Box, sync::Arc};
-use core::{alloc::AllocError, mem::size_of, pin::Pin};
+use core::{alloc::AllocError, mem::size_of};
 use kernel::{
     bindings,
     file::File,
@@ -12,7 +11,6 @@ use kernel::{
     security,
     sync::{CondVar, Ref, SpinLock},
     user_ptr::{UserSlicePtr, UserSlicePtrWriter},
-    Error,
 };
 
 use crate::{

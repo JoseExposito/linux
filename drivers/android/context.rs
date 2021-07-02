@@ -5,7 +5,6 @@ use kernel::{
     prelude::*,
     security,
     sync::{Mutex, Ref},
-    Error,
 };
 
 use crate::{

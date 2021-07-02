@@ -7,8 +7,6 @@
 #![no_std]
 #![feature(global_asm, try_reserve, allocator_api, concat_idents)]
 
-use alloc::{boxed::Box, sync::Arc};
-use core::pin::Pin;
 use kernel::{
     c_str,
     io_buffer::IoBufferWriter,

@@ -5,8 +5,6 @@
 #![no_std]
 #![feature(allocator_api, global_asm)]
 
-use alloc::boxed::Box;
-use core::pin::Pin;
 use kernel::prelude::*;
 use kernel::{
     condvar_init, mutex_init, spinlock_init,

@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 
-use alloc::{boxed::Box, sync::Arc};
 use core::mem::{replace, size_of, MaybeUninit};
-use kernel::{
-    bindings, linked_list::List, pages::Pages, prelude::*, user_ptr::UserSlicePtrReader, Error,
-};
+use kernel::{bindings, linked_list::List, pages::Pages, prelude::*, user_ptr::UserSlicePtrReader};
 
 use crate::{
     defs::*,

@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0
 
-use alloc::boxed::Box;
 use core::ptr::NonNull;
 use kernel::{
     linked_list::{CursorMut, GetLinks, Links, List},
     prelude::*,
-    Error,
 };
 
 pub(crate) struct RangeAllocator<T> {

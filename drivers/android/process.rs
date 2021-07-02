@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 
-use alloc::{sync::Arc, vec::Vec};
 use core::{
     mem::{take, MaybeUninit},
     ops::Range,
-    pin::Pin,
 };
 use kernel::{
     bindings, c_types,
@@ -18,7 +16,6 @@ use kernel::{
     sync::{Guard, Mutex, Ref},
     task::Task,
     user_ptr::{UserSlicePtr, UserSlicePtrReader},
-    Error,
 };
 
 use crate::{

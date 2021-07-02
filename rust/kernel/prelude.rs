@@ -11,7 +11,9 @@
 //! use kernel::prelude::*;
 //! ```
 
-pub use alloc::{borrow::ToOwned, string::String};
+pub use core::pin::Pin;
+
+pub use alloc::{borrow::ToOwned, boxed::Box, string::String, sync::Arc, vec::Vec};
 
 pub use super::build_assert;
 
@@ -21,6 +23,6 @@ pub use super::{pr_alert, pr_crit, pr_emerg, pr_err, pr_info, pr_notice, pr_warn
 
 pub use super::static_assert;
 
-pub use super::{KernelModule, Result};
+pub use super::{Error, KernelModule, Result};
 
 pub use crate::traits::TryPin;

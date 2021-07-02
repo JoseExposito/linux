@@ -5,8 +5,6 @@
 #![no_std]
 #![feature(allocator_api, global_asm)]
 
-use alloc::boxed::Box;
-use core::pin::Pin;
 use kernel::{
     file::File,
     file_operations::{FileOpener, FileOperations},
