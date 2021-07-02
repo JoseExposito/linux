@@ -320,7 +320,7 @@ impl Node {
     ) {
         out.ptr = self.ptr as _;
         out.cookie = self.cookie as _;
-        let inner = self.inner.access(&guard);
+        let inner = self.inner.access(guard);
         if inner.strong.has_count {
             out.has_strong_ref = 1;
         }
