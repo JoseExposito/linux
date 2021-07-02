@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-use proc_macro::{token_stream, Delimiter, Group, TokenStream, TokenTree};
+use proc_macro::{token_stream, Delimiter, Group, Literal, TokenStream, TokenTree};
 
 fn try_ident(it: &mut token_stream::IntoIter) -> Option<String> {
     if let Some(TokenTree::Ident(ident)) = it.next() {
@@ -110,92 +110,78 @@ fn get_byte_string(it: &mut token_stream::IntoIter, expected_name: &str) -> Stri
     byte_string
 }
 
-fn __build_modinfo_string_base(
-    module: &str,
-    field: &str,
-    content: &str,
-    variable: &str,
-    builtin: bool,
-) -> String {
-    let string = if builtin {
-        // Built-in modules prefix their modinfo strings by `module.`.
-        format!(
-            "{module}.{field}={content}",
-            module = module,
-            field = field,
-            content = content
-        )
-    } else {
-        // Loadable modules' modinfo strings go as-is.
-        format!("{field}={content}", field = field, content = content)
-    };
-
-    format!(
-        "
-            {cfg}
-            #[doc(hidden)]
-            #[link_section = \".modinfo\"]
-            #[used]
-            pub static {variable}: [u8; {length}] = *b\"{string}\\0\";
-        ",
-        cfg = if builtin {
-            "#[cfg(not(MODULE))]"
-        } else {
-            "#[cfg(MODULE)]"
-        },
-        variable = variable,
-        length = string.len() + 1,
-        string = string,
-    )
+struct ModInfoBuilder<'a> {
+    module: &'a str,
+    counter: usize,
+    buffer: String,
 }
 
-fn __build_modinfo_string_variable(module: &str, field: &str) -> String {
-    format!("__{module}_{field}", module = module, field = field)
-}
-
-fn build_modinfo_string_only_builtin(module: &str, field: &str, content: &str) -> String {
-    __build_modinfo_string_base(
-        module,
-        field,
-        content,
-        &__build_modinfo_string_variable(module, field),
-        true,
-    )
-}
-
-fn build_modinfo_string_only_loadable(module: &str, field: &str, content: &str) -> String {
-    __build_modinfo_string_base(
-        module,
-        field,
-        content,
-        &__build_modinfo_string_variable(module, field),
-        false,
-    )
-}
-
-fn build_modinfo_string(module: &str, field: &str, content: &str) -> String {
-    build_modinfo_string_only_builtin(module, field, content)
-        + &build_modinfo_string_only_loadable(module, field, content)
-}
-
-fn build_modinfo_string_optional(module: &str, field: &str, content: Option<&str>) -> String {
-    if let Some(content) = content {
-        build_modinfo_string(module, field, content)
-    } else {
-        "".to_string()
+impl<'a> ModInfoBuilder<'a> {
+    fn new(module: &'a str) -> Self {
+        ModInfoBuilder {
+            module,
+            counter: 0,
+            buffer: String::new(),
+        }
     }
-}
 
-fn build_modinfo_string_param(module: &str, field: &str, param: &str, content: &str) -> String {
-    let variable = format!(
-        "__{module}_{field}_{param}",
-        module = module,
-        field = field,
-        param = param
-    );
-    let content = format!("{param}:{content}", param = param, content = content);
-    __build_modinfo_string_base(module, field, &content, &variable, true)
-        + &__build_modinfo_string_base(module, field, &content, &variable, false)
+    fn emit_base(&mut self, field: &str, content: &str, builtin: bool) {
+        use std::fmt::Write;
+
+        let string = if builtin {
+            // Built-in modules prefix their modinfo strings by `module.`.
+            format!(
+                "{module}.{field}={content}\0",
+                module = self.module,
+                field = field,
+                content = content
+            )
+        } else {
+            // Loadable modules' modinfo strings go as-is.
+            format!("{field}={content}\0", field = field, content = content)
+        };
+
+        write!(
+            &mut self.buffer,
+            "
+                {cfg}
+                #[doc(hidden)]
+                #[link_section = \".modinfo\"]
+                #[used]
+                pub static __{module}_{counter}: [u8; {length}] = *{string};
+            ",
+            cfg = if builtin {
+                "#[cfg(not(MODULE))]"
+            } else {
+                "#[cfg(MODULE)]"
+            },
+            module = self.module,
+            counter = self.counter,
+            length = string.len(),
+            string = Literal::byte_string(string.as_bytes()),
+        )
+        .unwrap();
+
+        self.counter += 1;
+    }
+
+    fn emit_only_builtin(&mut self, field: &str, content: &str) {
+        self.emit_base(field, content, true)
+    }
+
+    fn emit_only_loadable(&mut self, field: &str, content: &str) {
+        self.emit_base(field, content, false)
+    }
+
+    fn emit(&mut self, field: &str, content: &str) {
+        self.emit_only_builtin(field, content);
+        self.emit_only_loadable(field, content);
+    }
+
+    fn emit_param(&mut self, field: &str, param: &str, content: &str) {
+        let content = format!("{param}:{content}", param = param, content = content);
+        self.emit(field, &content);
+    }
 }
 
 fn permissions_are_readonly(perms: &str) -> bool {
@@ -398,8 +384,24 @@ pub fn module(ts: TokenStream) -> TokenStream {
 
     let name = info.name.clone();
 
+    let mut modinfo = ModInfoBuilder::new(&name);
+    if let Some(author) = info.author {
+        modinfo.emit("author", &author);
+    }
+    if let Some(description) = info.description {
+        modinfo.emit("description", &description);
+    }
+    modinfo.emit("license", &info.license);
+    if let Some(alias) = info.alias {
+        modinfo.emit("alias", &alias);
+    }
+
+    // Built-in modules also export the `file` modinfo string
+    let file =
+        std::env::var("RUST_MODFILE").expect("Unable to fetch RUST_MODFILE environmental variable");
+    modinfo.emit_only_builtin("file", &file);
+
     let mut array_types_to_generate = Vec::new();
-    let mut params_modinfo = String::new();
     if let Some(params) = info.params {
         assert_eq!(params.delimiter(), Delimiter::Brace);
 
@@ -444,18 +446,8 @@ pub fn module(ts: TokenStream) -> TokenStream {
                 }
             };
 
-            params_modinfo.push_str(&build_modinfo_string_param(
-                &name,
-                "parmtype",
-                &param_name,
-                &param_kernel_type,
-            ));
-            params_modinfo.push_str(&build_modinfo_string_param(
-                &name,
-                "parm",
-                &param_name,
-                &param_description,
-            ));
+            modinfo.emit_param("parmtype", &param_name, &param_kernel_type);
+            modinfo.emit_param("parm", &param_name, &param_description);
             let param_type_internal = match param_type {
                 ParamType::Ident(ref param_type) => match param_type.as_ref() {
                     "str" => "kernel::module_param::StringParam".to_string(),
@@ -504,7 +496,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
                 name = name,
                 param_name = param_name,
             );
-            params_modinfo.push_str(
+            modinfo.buffer.push_str(
                 &format!(
                     "
                     static mut __{name}_{param_name}_value: {param_type_internal} = {param_default};
@@ -579,9 +571,6 @@ pub fn module(ts: TokenStream) -> TokenStream {
             max_length = max_length,
         ));
     }
-
-    let file =
-        std::env::var("RUST_MODFILE").expect("Unable to fetch RUST_MODFILE environmental variable");
 
     format!(
         "
@@ -667,26 +656,13 @@ pub fn module(ts: TokenStream) -> TokenStream {
                 }}
             }}
 
-            {author}
-            {description}
-            {license}
-            {alias}
-
-            // Built-in modules also export the `file` modinfo string
-            {file}
-
-            {params_modinfo}
+            {modinfo}
 
             {generated_array_types}
         ",
         type_ = info.type_,
         name = info.name,
-        author = &build_modinfo_string_optional(&name, "author", info.author.as_deref()),
-        description = &build_modinfo_string_optional(&name, "description", info.description.as_deref()),
-        license = &build_modinfo_string(&name, "license", &info.license),
-        alias = &build_modinfo_string_optional(&name, "alias", info.alias.as_deref()),
-        file = &build_modinfo_string_only_builtin(&name, "file", &file),
-        params_modinfo = params_modinfo,
+        modinfo = modinfo.buffer,
         generated_array_types = generated_array_types,
         initcall_section = ".initcall6.init"
     ).parse().expect("Error parsing formatted string into token stream.")
