@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-use alloc::{boxed::Box, sync::Arc};
-use core::{
-    pin::Pin,
-    sync::atomic::{AtomicBool, Ordering},
-};
+use core::sync::atomic::{AtomicBool, Ordering};
 use kernel::{
     bindings,
     file::{File, FileDescriptorReservation},
@@ -14,7 +10,7 @@ use kernel::{
     prelude::*,
     sync::{Ref, SpinLock},
     user_ptr::UserSlicePtrWriter,
-    Error, ScopeGuard,
+    ScopeGuard,
 };
 
 use crate::{

@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-use alloc::sync::Arc;
-use core::{
-    pin::Pin,
-    sync::atomic::{AtomicU64, Ordering},
-};
+use core::sync::atomic::{AtomicU64, Ordering};
 use kernel::{
     io_buffer::IoBufferWriter,
     linked_list::{GetLinks, Links, List},

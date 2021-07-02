@@ -16,11 +16,7 @@
 #![no_std]
 #![feature(allocator_api, global_asm)]
 
-use alloc::boxed::Box;
-use core::{
-    pin::Pin,
-    sync::atomic::{AtomicU64, Ordering},
-};
+use core::sync::atomic::{AtomicU64, Ordering};
 use kernel::{
     c_str, condvar_init, declare_file_operations,
     file::File,
@@ -31,7 +27,6 @@ use kernel::{
     prelude::*,
     sync::{CondVar, Mutex, Ref},
     user_ptr::{UserSlicePtrReader, UserSlicePtrWriter},
-    Error,
 };
 
 module! {
