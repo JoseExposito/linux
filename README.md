@@ -9,6 +9,7 @@ Upstream code is saved in `upstream-*` branches to easily rebase and generate pa
 
 | Branch | Remote | Pull command | 
 | - | - | - |
+| [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | GitHun fork | Use GitHub UI |
 | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | git remote add hid git://git.kernel.org/pub/scm/linux/kernel/git/hid/hid.git | git pull --rebase hid master |
 
 Depending on the subsystem, the maintainer could have its own tree. For example, to modify the Magic
