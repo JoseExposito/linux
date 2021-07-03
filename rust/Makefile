@@ -31,7 +31,7 @@ endif
 quiet_cmd_rustdoc = RUSTDOC $(if $(rustdoc_host),H, ) $<
       cmd_rustdoc = \
 	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
-	$(RUSTDOC) $(if $(rustdoc_host),,$(rustc_cross_flags)) \
+	$(RUSTDOC) $(if $(rustdoc_host),,$(rust_cross_flags)) \
 		$(filter-out -Cpanic=abort, $(filter-out --emit=%, $(rustc_flags))) \
 		$(rustc_target_flags) -L $(objtree)/rust \
 		--output $(objtree)/rust/doc --crate-name $(subst rustdoc-,,$@) \
@@ -267,7 +267,7 @@ quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L 
       cmd_rustc_library = \
 	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
 	$(if $(skip_clippy),$(RUSTC),$(RUSTC_OR_CLIPPY)) \
-		$(rustc_flags) $(rustc_cross_flags) $(rustc_target_flags) \
+		$(rustc_flags) $(rust_cross_flags) $(rustc_target_flags) \
 		--crate-type rlib --out-dir $(objtree)/rust/ -L $(objtree)/rust/ \
 		--crate-name $(patsubst %.o,%,$(notdir $@)) $<; \
 	mv $(objtree)/rust/$(patsubst %.o,%,$(notdir $@)).d $(depfile); \

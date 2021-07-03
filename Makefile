@@ -488,11 +488,11 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void -Wno-unknown-attribute $(CF)
 NOSTDINC_FLAGS :=
 CFLAGS_MODULE   =
-RUSTCFLAGS_MODULE =
+RUSTFLAGS_MODULE =
 AFLAGS_MODULE   =
 LDFLAGS_MODULE  =
 CFLAGS_KERNEL	=
-RUSTCFLAGS_KERNEL =
+RUSTFLAGS_KERNEL =
 AFLAGS_KERNEL	=
 LDFLAGS_vmlinux =
 
@@ -521,8 +521,8 @@ KBUILD_CFLAGS   := -Wall -Wundef -Werror=strict-prototypes -Wno-trigraphs \
 		   -Werror=return-type -Wno-format-security \
 		   -std=gnu89
 KBUILD_CPPFLAGS := -D__KERNEL__
-KBUILD_RUSTC_TARGET := $(srctree)/arch/$(SRCARCH)/rust/target.json
-KBUILD_RUSTCFLAGS := --emit=dep-info,obj,metadata --edition=2018 \
+KBUILD_RUST_TARGET := $(srctree)/arch/$(SRCARCH)/rust/target.json
+KBUILD_RUSTFLAGS := --emit=dep-info,obj,metadata --edition=2018 \
 		     -Cpanic=abort -Cembed-bitcode=n -Clto=n -Crpath=n \
 		     -Cforce-unwind-tables=n -Ccodegen-units=1 \
 		     -Zbinary_dep_depinfo=y -Zsymbol-mangling-version=v0 \
@@ -532,10 +532,10 @@ KBUILD_CLIPPYFLAGS := -Dclippy::correctness -Dclippy::style \
 		      -Dclippy::complexity -Dclippy::perf
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
-KBUILD_RUSTCFLAGS_KERNEL :=
+KBUILD_RUSTFLAGS_KERNEL :=
 KBUILD_AFLAGS_MODULE  := -DMODULE
 KBUILD_CFLAGS_MODULE  := -DMODULE
-KBUILD_RUSTCFLAGS_MODULE := --cfg MODULE
+KBUILD_RUSTFLAGS_MODULE := --cfg MODULE
 KBUILD_LDFLAGS_MODULE :=
 KBUILD_LDFLAGS :=
 CLANG_FLAGS :=
@@ -563,10 +563,10 @@ export KBUILD_HOSTCXXFLAGS KBUILD_HOSTLDFLAGS KBUILD_HOSTLDLIBS LDFLAGS_MODULE
 
 export KBUILD_CPPFLAGS NOSTDINC_FLAGS LINUXINCLUDE OBJCOPYFLAGS KBUILD_LDFLAGS
 export KBUILD_CFLAGS CFLAGS_KERNEL CFLAGS_MODULE
-export KBUILD_RUSTC_TARGET KBUILD_RUSTCFLAGS RUSTCFLAGS_KERNEL RUSTCFLAGS_MODULE
+export KBUILD_RUST_TARGET KBUILD_RUSTFLAGS RUSTFLAGS_KERNEL RUSTFLAGS_MODULE
 export KBUILD_AFLAGS AFLAGS_KERNEL AFLAGS_MODULE
-export KBUILD_AFLAGS_MODULE KBUILD_CFLAGS_MODULE KBUILD_RUSTCFLAGS_MODULE KBUILD_LDFLAGS_MODULE
-export KBUILD_AFLAGS_KERNEL KBUILD_CFLAGS_KERNEL KBUILD_RUSTCFLAGS_KERNEL
+export KBUILD_AFLAGS_MODULE KBUILD_CFLAGS_MODULE KBUILD_RUSTFLAGS_MODULE KBUILD_LDFLAGS_MODULE
+export KBUILD_AFLAGS_KERNEL KBUILD_CFLAGS_KERNEL KBUILD_RUSTFLAGS_KERNEL
 
 # Files to ignore in find ... statements
 
@@ -793,42 +793,42 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, address-of-packed-member)
 
 ifdef CONFIG_RUST_DEBUG_ASSERTIONS
-KBUILD_RUSTCFLAGS += -Cdebug-assertions=y
+KBUILD_RUSTFLAGS += -Cdebug-assertions=y
 else
-KBUILD_RUSTCFLAGS += -Cdebug-assertions=n
+KBUILD_RUSTFLAGS += -Cdebug-assertions=n
 endif
 
 ifdef CONFIG_RUST_OVERFLOW_CHECKS
-KBUILD_RUSTCFLAGS += -Coverflow-checks=y
+KBUILD_RUSTFLAGS += -Coverflow-checks=y
 else
-KBUILD_RUSTCFLAGS += -Coverflow-checks=n
+KBUILD_RUSTFLAGS += -Coverflow-checks=n
 endif
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
 KBUILD_CFLAGS += -O2
-KBUILD_RUSTCFLAGS_OPT_LEVEL_MAP := 2
+KBUILD_RUSTFLAGS_OPT_LEVEL_MAP := 2
 else ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3
 KBUILD_CFLAGS += -O3
-KBUILD_RUSTCFLAGS_OPT_LEVEL_MAP := 3
+KBUILD_RUSTFLAGS_OPT_LEVEL_MAP := 3
 else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS += -Os
-KBUILD_RUSTCFLAGS_OPT_LEVEL_MAP := z
+KBUILD_RUSTFLAGS_OPT_LEVEL_MAP := z
 endif
 
 ifdef CONFIG_RUST_OPT_LEVEL_SIMILAR_AS_CHOSEN_FOR_C
-KBUILD_RUSTCFLAGS += -Copt-level=$(KBUILD_RUSTCFLAGS_OPT_LEVEL_MAP)
+KBUILD_RUSTFLAGS += -Copt-level=$(KBUILD_RUSTFLAGS_OPT_LEVEL_MAP)
 else ifdef CONFIG_RUST_OPT_LEVEL_0
-KBUILD_RUSTCFLAGS += -Copt-level=0
+KBUILD_RUSTFLAGS += -Copt-level=0
 else ifdef CONFIG_RUST_OPT_LEVEL_1
-KBUILD_RUSTCFLAGS += -Copt-level=1
+KBUILD_RUSTFLAGS += -Copt-level=1
 else ifdef CONFIG_RUST_OPT_LEVEL_2
-KBUILD_RUSTCFLAGS += -Copt-level=2
+KBUILD_RUSTFLAGS += -Copt-level=2
 else ifdef CONFIG_RUST_OPT_LEVEL_3
-KBUILD_RUSTCFLAGS += -Copt-level=3
+KBUILD_RUSTFLAGS += -Copt-level=3
 else ifdef CONFIG_RUST_OPT_LEVEL_S
-KBUILD_RUSTCFLAGS += -Copt-level=s
+KBUILD_RUSTFLAGS += -Copt-level=s
 else ifdef CONFIG_RUST_OPT_LEVEL_Z
-KBUILD_RUSTCFLAGS += -Copt-level=z
+KBUILD_RUSTFLAGS += -Copt-level=z
 endif
 
 # Tell gcc to never replace conditional load with a non-conditional one
@@ -878,7 +878,7 @@ KBUILD_CFLAGS += $(call cc-disable-warning, unused-but-set-variable)
 KBUILD_CFLAGS += $(call cc-disable-warning, unused-const-variable)
 ifdef CONFIG_FRAME_POINTER
 KBUILD_CFLAGS	+= -fno-omit-frame-pointer -fno-optimize-sibling-calls
-KBUILD_RUSTCFLAGS += -Cforce-frame-pointers=y
+KBUILD_RUSTFLAGS += -Cforce-frame-pointers=y
 else
 # Some targets (ARM with Thumb2, for example), can't be built with frame
 # pointers.  For those, we don't have FUNCTION_TRACER automatically
@@ -916,7 +916,7 @@ ifdef CONFIG_CC_IS_GCC
 DEBUG_CFLAGS	+= $(call cc-ifversion, -lt, 0500, $(call cc-option, -fno-var-tracking-assignments))
 endif
 
-DEBUG_RUSTCFLAGS :=
+DEBUG_RUSTFLAGS :=
 
 ifdef CONFIG_DEBUG_INFO
 
@@ -929,9 +929,9 @@ endif
 ifneq ($(LLVM_IAS),1)
 KBUILD_AFLAGS	+= -Wa,-gdwarf-2
 ifdef CONFIG_DEBUG_INFO_REDUCED
-DEBUG_RUSTCFLAGS += -Cdebuginfo=1
+DEBUG_RUSTFLAGS += -Cdebuginfo=1
 else
-DEBUG_RUSTCFLAGS += -Cdebuginfo=2
+DEBUG_RUSTFLAGS += -Cdebuginfo=2
 endif
 endif
 
@@ -957,8 +957,8 @@ endif # CONFIG_DEBUG_INFO
 KBUILD_CFLAGS += $(DEBUG_CFLAGS)
 export DEBUG_CFLAGS
 
-KBUILD_RUSTCFLAGS += $(DEBUG_RUSTCFLAGS)
-export DEBUG_RUSTCFLAGS
+KBUILD_RUSTFLAGS += $(DEBUG_RUSTFLAGS)
+export DEBUG_RUSTFLAGS
 
 ifdef CONFIG_FUNCTION_TRACER
 ifdef CONFIG_FTRACE_MCOUNT_USE_CC
@@ -1115,11 +1115,11 @@ include $(addprefix $(srctree)/, $(include-y))
 # Do not add $(call cc-option,...) below this line. When you build the kernel
 # from the clean source tree, the GCC plugins do not exist at this point.
 
-# Add user supplied CPPFLAGS, AFLAGS, CFLAGS and RUSTCFLAGS as the last assignments
+# Add user supplied CPPFLAGS, AFLAGS, CFLAGS and RUSTFLAGS as the last assignments
 KBUILD_CPPFLAGS += $(KCPPFLAGS)
 KBUILD_AFLAGS   += $(KAFLAGS)
 KBUILD_CFLAGS   += $(KCFLAGS)
-KBUILD_RUSTCFLAGS += $(KRUSTCFLAGS)
+KBUILD_RUSTFLAGS += $(KRUSTFLAGS)
 
 KBUILD_LDFLAGS_MODULE += --build-id=sha1
 LDFLAGS_vmlinux += --build-id=sha1
