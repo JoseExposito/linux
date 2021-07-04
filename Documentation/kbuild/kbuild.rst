@@ -58,7 +58,7 @@ CFLAGS_MODULE
 Additional module specific options to use for $(CC).
 
 KRUSTFLAGS
------------
+----------
 Additional options to the Rust compiler (for built-in and modules).
 
 LDFLAGS_MODULE
