@@ -10,12 +10,17 @@ Welcome to my fork of the Linux kernel.
 Here I work on my patches. I'm a newbie, so don't expect great changes, just humble contributions.
 
 
+## Patches
+
+| Branch | Target | Details | Status |
+| - | - | - | - |
+| [patch-magic-mouse-high-resolution-scroll-v1](https://github.com/JoseExposito/linux/tree/patch-magic-mouse-high-resolution-scroll-v1) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Emulate high-resolution scroll on the Magic Mouse for a smoother scrolling experience | 🔨 |
+
+🔨 Under development &nbsp;|&nbsp; ⏳ Waiting for review &nbsp;|&nbsp; 🔀 Merged upstream
+
+
+
 ## Branches
-
-### Patches
-
-
-
 
 ### Upstream
 
