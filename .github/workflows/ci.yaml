@@ -128,7 +128,7 @@ jobs:
       - if: matrix.sysroot == 'custom'
         run: |
           echo 'RUSTC_SYSROOT=--sysroot=$HOME/sysroot' >> $GITHUB_ENV
-          echo "MAKE_SYSROOT=KRUSTCFLAGS=--sysroot=$HOME/sysroot" >> $GITHUB_ENV
+          echo "MAKE_SYSROOT=KRUSTFLAGS=--sysroot=$HOME/sysroot" >> $GITHUB_ENV
 
       # Setup: custom pre-built binaries folder
       - run: |
