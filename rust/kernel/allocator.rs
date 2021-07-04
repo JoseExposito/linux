@@ -27,11 +27,6 @@ unsafe impl GlobalAlloc for KernelAllocator {
 #[global_allocator]
 static ALLOCATOR: KernelAllocator = KernelAllocator;
 
-#[alloc_error_handler]
-fn oom(_layout: Layout) -> ! {
-    panic!("Out of memory!");
-}
-
 // `rustc` only generates these for some crate types. Even then, we would need
 // to extract the object file that has them from the archive. For the moment,
 // let's generate them ourselves instead.
@@ -65,9 +60,4 @@ pub fn __rust_alloc_zeroed(size: usize, _align: usize) -> *mut u8 {
             bindings::GFP_KERNEL | bindings::__GFP_ZERO,
         ) as *mut u8
     }
-}
-
-#[no_mangle]
-pub fn __rust_alloc_error_handler(_size: usize, _align: usize) -> ! {
-    panic!("Out of memory!");
 }
