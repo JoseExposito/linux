@@ -134,7 +134,7 @@ _c_flags       = $(filter-out $(CFLAGS_REMOVE_$(target-stem).o), \
                      $(filter-out $(ccflags-remove-y), \
                          $(KBUILD_CPPFLAGS) $(KBUILD_CFLAGS) $(ccflags-y)) \
                      $(CFLAGS_$(target-stem).o))
-_rustc_flags    = $(filter-out $(RUSTFLAGS_REMOVE_$(target-stem).o), \
+_rust_flags    = $(filter-out $(RUSTFLAGS_REMOVE_$(target-stem).o), \
                      $(filter-out $(rustflags-remove-y), \
                          $(KBUILD_RUSTFLAGS) $(rustflags-y)) \
                      $(RUSTFLAGS_$(target-stem).o))
@@ -221,7 +221,7 @@ c_flags        = -Wp,-MMD,$(depfile) $(NOSTDINC_FLAGS) $(LINUXINCLUDE)     \
 		 $(_c_flags) $(modkern_cflags)                           \
 		 $(basename_flags) $(modname_flags)
 
-rustc_flags     = $(_rustc_flags) $(modkern_rustflags) @$(objtree)/include/generated/rustc_cfg
+rust_flags     = $(_rust_flags) $(modkern_rustflags) @$(objtree)/include/generated/rustc_cfg
 
 a_flags        = -Wp,-MMD,$(depfile) $(NOSTDINC_FLAGS) $(LINUXINCLUDE)     \
 		 $(_a_flags) $(modkern_aflags)

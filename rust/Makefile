@@ -32,7 +32,7 @@ quiet_cmd_rustdoc = RUSTDOC $(if $(rustdoc_host),H, ) $<
       cmd_rustdoc = \
 	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
 	$(RUSTDOC) $(if $(rustdoc_host),,$(rust_cross_flags)) \
-		$(filter-out -Cpanic=abort, $(filter-out --emit=%, $(rustc_flags))) \
+		$(filter-out -Cpanic=abort, $(filter-out --emit=%, $(rust_flags))) \
 		$(rustc_target_flags) -L $(objtree)/rust \
 		--output $(objtree)/rust/doc --crate-name $(subst rustdoc-,,$@) \
 		@$(objtree)/include/generated/rustc_cfg $<
@@ -79,7 +79,7 @@ rustdoc-kernel: $(srctree)/rust/kernel/lib.rs rustdoc-core \
 quiet_cmd_rustc_test_library = RUSTC TL $<
       cmd_rustc_test_library = \
 	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
-	$(RUSTC) $(filter-out --sysroot=%, $(filter-out -Cpanic=abort, $(filter-out --emit=%, $(rustc_flags)))) \
+	$(RUSTC) $(filter-out --sysroot=%, $(filter-out -Cpanic=abort, $(filter-out --emit=%, $(rust_flags)))) \
 		$(rustc_target_flags) --crate-type $(if $(rustc_test_library_proc),proc-macro,rlib) \
 		--out-dir $(objtree)/rust/test/ --cfg testlib \
 		--sysroot $(objtree)/rust/test/sysroot \
@@ -96,7 +96,7 @@ rusttestlib-macros: $(srctree)/rust/macros/lib.rs rusttest-prepare FORCE
 quiet_cmd_rustdoc_test = RUSTDOC T $<
       cmd_rustdoc_test = \
 	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
-	$(RUSTDOC) --test $(filter-out --sysroot=%, $(filter-out -Cpanic=abort, $(filter-out --emit=%, $(rustc_flags)))) \
+	$(RUSTDOC) --test $(filter-out --sysroot=%, $(filter-out -Cpanic=abort, $(filter-out --emit=%, $(rust_flags)))) \
 		$(rustc_target_flags) $(rustdoc_test_target_flags) \
 		--sysroot $(objtree)/rust/test/sysroot $(rustdoc_test_quiet) \
 		-L $(objtree)/rust/test \
@@ -108,7 +108,7 @@ quiet_cmd_rustdoc_test = RUSTDOC T $<
 quiet_cmd_rustc_test = RUSTC T  $<
       cmd_rustc_test = \
 	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
-	$(RUSTC) --test $(filter-out --sysroot=%, $(filter-out -Cpanic=abort, $(filter-out --emit=%, $(rustc_flags)))) \
+	$(RUSTC) --test $(filter-out --sysroot=%, $(filter-out -Cpanic=abort, $(filter-out --emit=%, $(rust_flags)))) \
 		$(rustc_target_flags) --out-dir $(objtree)/rust/test \
 		--sysroot $(objtree)/rust/test/sysroot \
 		-L $(objtree)/rust/test/ --crate-name $(subst rusttest-,,$@) $<; \
@@ -244,11 +244,11 @@ $(objtree)/rust/exports_alloc_generated.h: $(objtree)/rust/alloc.o FORCE
 $(objtree)/rust/exports_kernel_generated.h: $(objtree)/rust/kernel.o FORCE
 	$(call if_changed,exports)
 
-# `-Cpanic=unwind -Cforce-unwind-tables=y` overrides `rustc_flags` in order to
+# `-Cpanic=unwind -Cforce-unwind-tables=y` overrides `rust_flags` in order to
 # avoid the https://github.com/rust-lang/rust/issues/82320 rustc crash.
 quiet_cmd_rustc_procmacro = $(RUSTC_OR_CLIPPY_QUIET) P $@
       cmd_rustc_procmacro = \
-	$(RUSTC_OR_CLIPPY) $(rustc_flags) \
+	$(RUSTC_OR_CLIPPY) $(rust_flags) \
 		--emit=dep-info,link --extern proc_macro \
 		-Cpanic=unwind -Cforce-unwind-tables=y \
 		--crate-type proc-macro --out-dir $(objtree)/rust/ \
@@ -267,15 +267,15 @@ quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L 
       cmd_rustc_library = \
 	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
 	$(if $(skip_clippy),$(RUSTC),$(RUSTC_OR_CLIPPY)) \
-		$(rustc_flags) $(rust_cross_flags) $(rustc_target_flags) \
+		$(rust_flags) $(rust_cross_flags) $(rustc_target_flags) \
 		--crate-type rlib --out-dir $(objtree)/rust/ -L $(objtree)/rust/ \
 		--crate-name $(patsubst %.o,%,$(notdir $@)) $<; \
 	mv $(objtree)/rust/$(patsubst %.o,%,$(notdir $@)).d $(depfile); \
 	sed -i '/^\#/d' $(depfile) \
 	$(if $(rustc_objcopy),;$(OBJCOPY) $(rustc_objcopy) $@)
 
-# `$(rustc_flags)` is passed in case the user added `--sysroot`.
-rustc_sysroot = $(shell $(RUSTC) $(rustc_flags) --print sysroot)
+# `$(rust_flags)` is passed in case the user added `--sysroot`.
+rustc_sysroot = $(shell $(RUSTC) $(rust_flags) --print sysroot)
 rustc_host_target = $(shell $(RUSTC) --version --verbose | grep -F 'host: ' | cut -d' ' -f2)
 RUST_LIB_SRC ?= $(rustc_sysroot)/lib/rustlib/src/rust/library
 
