@@ -4,7 +4,7 @@
 //!
 //! TODO: This module is a work in progress.
 
-use alloc::{boxed::Box, sync::Arc};
+use alloc::boxed::Box;
 use core::ptr::NonNull;
 
 pub use crate::raw_list::{Cursor, GetLinks, Links};
@@ -34,20 +34,6 @@ impl<T: ?Sized> Wrapper<T> for Box<T> {
 
     unsafe fn from_pointer(ptr: NonNull<T>) -> Self {
         unsafe { Box::from_raw(ptr.as_ptr()) }
-    }
-
-    fn as_ref(&self) -> &T {
-        AsRef::as_ref(self)
-    }
-}
-
-impl<T: ?Sized> Wrapper<T> for Arc<T> {
-    fn into_pointer(self) -> NonNull<T> {
-        NonNull::new(Arc::into_raw(self) as _).unwrap()
-    }
-
-    unsafe fn from_pointer(ptr: NonNull<T>) -> Self {
-        unsafe { Arc::from_raw(ptr.as_ptr()) }
     }
 
     fn as_ref(&self) -> &T {
@@ -98,20 +84,6 @@ where
 }
 
 impl<T: GetLinks + ?Sized> GetLinks for Box<T> {
-    type EntryType = T::EntryType;
-    fn get_links(data: &Self::EntryType) -> &Links<Self::EntryType> {
-        <T as GetLinks>::get_links(data)
-    }
-}
-
-impl<T: ?Sized> GetLinksWrapped for Arc<T>
-where
-    Arc<T>: GetLinks,
-{
-    type Wrapped = Arc<<Arc<T> as GetLinks>::EntryType>;
-}
-
-impl<T: GetLinks + ?Sized> GetLinks for Arc<T> {
     type EntryType = T::EntryType;
     fn get_links(data: &Self::EntryType) -> &Links<Self::EntryType> {
         <T as GetLinks>::get_links(data)
