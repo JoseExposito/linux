@@ -18,13 +18,14 @@
 use crate::{bindings, Result};
 use alloc::boxed::Box;
 use core::{
+    alloc::Layout,
     cell::UnsafeCell,
     convert::AsRef,
     marker::{PhantomData, Unsize},
     mem::ManuallyDrop,
     ops::Deref,
     pin::Pin,
-    ptr::NonNull,
+    ptr::{self, NonNull},
 };
 
 extern "C" {
@@ -47,6 +48,7 @@ pub struct Ref<T: ?Sized> {
     _p: PhantomData<RefInner<T>>,
 }
 
+#[repr(C)]
 struct RefInner<T: ?Sized> {
     refcount: UnsafeCell<bindings::refcount_t>,
     data: T,
@@ -97,10 +99,9 @@ impl<T> Ref<T> {
         // pinned, and in `drop`. Both are compatible with the pin requirements.
         init(pinned);
 
-        Ok(Ref {
-            ptr: NonNull::from(Box::leak(inner)),
-            _p: PhantomData,
-        })
+        // SAFETY: We just created `inner` with a reference count of 1 and we're leaking it. So the
+        // new `Ref` object owns the reference.
+        Ok(unsafe { Self::from_inner(NonNull::from(Box::leak(inner))) })
     }
 
     /// Deconstructs a [`Ref`] object into a `usize`.
@@ -134,23 +135,72 @@ impl<T> Ref<T> {
     /// `encoded` must have been returned by a previous call to [`Ref::into_usize`]. Additionally,
     /// it can only be called once for each previous call to [``Ref::into_usize`].
     pub unsafe fn from_usize(encoded: usize) -> Self {
-        Ref {
-            ptr: NonNull::new(encoded as _).unwrap(),
-            _p: PhantomData,
-        }
+        // SAFETY: By the safety invariants we know that `encoded` came from `Ref::into_usize`, so
+        // the reference count held then will be owned by the new `Ref` object.
+        unsafe { Self::from_inner(NonNull::new(encoded as _).unwrap()) }
     }
 }
 
 impl<T: ?Sized> Ref<T> {
+    /// Constructs a new [`Ref`] from an existing [`RefInner`].
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `inner` points to a valid location and has a non-zero reference
+    /// count, one of which will be owned by the new [`Ref`] instance.
+    unsafe fn from_inner(inner: NonNull<RefInner<T>>) -> Self {
+        // INVARIANT: By the safety requirements, the invariants hold.
+        Ref {
+            ptr: inner,
+            _p: PhantomData,
+        }
+    }
+
     /// Determines if two reference-counted pointers point to the same underlying instance of `T`.
     pub fn ptr_eq(a: &Self, b: &Self) -> bool {
-        core::ptr::eq(a.ptr.as_ptr(), b.ptr.as_ptr())
+        ptr::eq(a.ptr.as_ptr(), b.ptr.as_ptr())
     }
 
     /// Returns a pinned version of a given `Ref` instance.
     pub fn pinned(obj: Self) -> Pin<Self> {
         // SAFETY: The type invariants guarantee that the value is pinned.
         unsafe { Pin::new_unchecked(obj) }
+    }
+
+    /// Deconstructs a [`Ref`] object into a raw pointer.
+    ///
+    /// It can be reconstructed once via [`Ref::from_raw`].
+    pub fn into_raw(obj: Self) -> *const T {
+        let ret = &*obj as *const T;
+        core::mem::forget(obj);
+        ret
+    }
+
+    /// Recreates a [`Ref`] instance previously deconstructed via [`Ref::into_raw`].
+    ///
+    /// This code relies on the `repr(C)` layout of structs as described in
+    /// <https://doc.rust-lang.org/reference/type-layout.html#reprc-structs>.
+    ///
+    /// # Safety
+    ///
+    /// `ptr` must have been returned by a previous call to [`Ref::into_raw`]. Additionally, it
+    /// can only be called once for each previous call to [``Ref::into_raw`].
+    pub unsafe fn from_raw(ptr: *const T) -> Self {
+        // SAFETY: The safety requirement ensures that the pointer is valid.
+        let align = core::mem::align_of_val(unsafe { &*ptr });
+        let offset = Layout::new::<RefInner<()>>()
+            .align_to(align)
+            .unwrap()
+            .pad_to_align()
+            .size();
+        // SAFETY: The pointer is in bounds because by the safety requirements `ptr` came from
+        // `Ref::into_raw`, so it is a pointer `offset` bytes from the beginning of the allocation.
+        let data = unsafe { (ptr as *const u8).sub(offset) };
+        let metadata = ptr::metadata(ptr as *const RefInner<T>);
+        let ptr = ptr::from_raw_parts_mut(data as _, metadata);
+        // SAFETY: By the safety requirements we know that `ptr` came from `Ref::into_raw`, so the
+        // reference count held then will be owned by the new `Ref` object.
+        unsafe { Self::from_inner(NonNull::new(ptr).unwrap()) }
     }
 }
 
