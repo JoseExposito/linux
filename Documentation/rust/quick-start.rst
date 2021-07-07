@@ -27,9 +27,10 @@ A particular version (`1.54.0-beta.1`) of the Rust compiler is required.
 Newer versions may or may not work because, for the moment, we depend on
 some unstable Rust features.
 
-If you are using ``rustup``, run::
+If you are using ``rustup``, enter the checked out source code directory
+and run::
 
-    rustup default beta-2021-06-23
+    rustup override set beta-2021-06-23
 
 Otherwise, fetch a standalone installer or install ``rustup`` from:
 
