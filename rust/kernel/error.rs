@@ -36,8 +36,23 @@ impl Error {
     /// Interrupted system call.
     pub const EINTR: Self = Error(-(bindings::EINTR as i32));
 
+    /// I/O error.
+    pub const EIO: Self = Error(-(bindings::EIO as i32));
+
+    /// No such device or address.
+    pub const ENXIO: Self = Error(-(bindings::ENXIO as i32));
+
+    /// Argument list too long.
+    pub const E2BIG: Self = Error(-(bindings::E2BIG as i32));
+
+    /// Exec format error.
+    pub const ENOEXEC: Self = Error(-(bindings::ENOEXEC as i32));
+
     /// Bad file number.
     pub const EBADF: Self = Error(-(bindings::EBADF as i32));
+
+    /// No child processes.
+    pub const ECHILD: Self = Error(-(bindings::ECHILD as i32));
 
     /// Try again.
     pub const EAGAIN: Self = Error(-(bindings::EAGAIN as i32));
@@ -45,17 +60,71 @@ impl Error {
     /// Out of memory.
     pub const ENOMEM: Self = Error(-(bindings::ENOMEM as i32));
 
+    /// Permission denied.
+    pub const EACCES: Self = Error(-(bindings::EACCES as i32));
+
     /// Bad address.
     pub const EFAULT: Self = Error(-(bindings::EFAULT as i32));
+
+    /// Block device required.
+    pub const ENOTBLK: Self = Error(-(bindings::ENOTBLK as i32));
 
     /// Device or resource busy.
     pub const EBUSY: Self = Error(-(bindings::EBUSY as i32));
 
+    /// File exists.
+    pub const EEXIST: Self = Error(-(bindings::EEXIST as i32));
+
+    /// Cross-device link.
+    pub const EXDEV: Self = Error(-(bindings::EXDEV as i32));
+
+    /// No such device.
+    pub const ENODEV: Self = Error(-(bindings::ENODEV as i32));
+
+    /// Not a directory.
+    pub const ENOTDIR: Self = Error(-(bindings::ENOTDIR as i32));
+
+    /// Is a directory.
+    pub const EISDIR: Self = Error(-(bindings::EISDIR as i32));
+
     /// Invalid argument.
     pub const EINVAL: Self = Error(-(bindings::EINVAL as i32));
 
+    /// File table overflow.
+    pub const ENFILE: Self = Error(-(bindings::ENFILE as i32));
+
+    /// Too many open files.
+    pub const EMFILE: Self = Error(-(bindings::EMFILE as i32));
+
+    /// Not a typewriter.
+    pub const ENOTTY: Self = Error(-(bindings::ENOTTY as i32));
+
+    /// Text file busy.
+    pub const ETXTBSY: Self = Error(-(bindings::ETXTBSY as i32));
+
+    /// File too large.
+    pub const EFBIG: Self = Error(-(bindings::EFBIG as i32));
+
+    /// No space left on device.
+    pub const ENOSPC: Self = Error(-(bindings::ENOSPC as i32));
+
     /// Illegal seek.
     pub const ESPIPE: Self = Error(-(bindings::ESPIPE as i32));
+
+    /// Read-only file system.
+    pub const EROFS: Self = Error(-(bindings::EROFS as i32));
+
+    /// Too many links.
+    pub const EMLINK: Self = Error(-(bindings::EMLINK as i32));
+
+    /// Broken pipe.
+    pub const EPIPE: Self = Error(-(bindings::EPIPE as i32));
+
+    /// Math argument out of domain of func.
+    pub const EDOM: Self = Error(-(bindings::EDOM as i32));
+
+    /// Math result not representable.
+    pub const ERANGE: Self = Error(-(bindings::ERANGE as i32));
 
     /// Restart the system call.
     pub const ERESTARTSYS: Self = Error(-(bindings::ERESTARTSYS as i32));
