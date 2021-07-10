@@ -79,13 +79,29 @@ pub enum SeekFrom {
     Current(i64),
 }
 
+/// Called by the VFS when an inode should be opened.
+///
+/// Calls `T::open` on the returned value of `A::convert`.
+///
+/// # Safety
+///
+/// The returned value of `A::convert` must be a valid non-null pointer and
+/// `T:open` must return a valid non-null pointer on an `Ok` result.
 unsafe extern "C" fn open_callback<A: FileOpenAdapter, T: FileOpener<A::Arg>>(
     inode: *mut bindings::inode,
     file: *mut bindings::file,
 ) -> c_types::c_int {
     from_kernel_result! {
+        // SAFETY: `A::convert` must return a valid non-null pointer that
+        // should point to data in the inode or file that lives longer
+        // than the following use of `T::open`.
         let arg = unsafe { A::convert(inode, file) };
+        // SAFETY: `arg` was previously returned by `A::convert` and must
+        // be a valid non-null pointer.
         let ptr = T::open(unsafe { &*arg })?.into_pointer();
+        // SAFETY: `ptr` was previously returned by `T::open`. The returned
+        // value should be a boxed value and should live the length of the
+        // given file.
         unsafe { (*file).private_data = ptr as *mut c_types::c_void };
         Ok(0)
     }
@@ -556,7 +572,8 @@ pub trait FileOpenAdapter {
     /// # Safety
     ///
     /// This function must be called only when [`struct file_operations::open`] is being called for
-    /// a file that was registered by the implementer.
+    /// a file that was registered by the implementer. The returned pointer must be valid and
+    /// not-null.
     unsafe fn convert(_inode: *mut bindings::inode, _file: *mut bindings::file)
         -> *const Self::Arg;
 }

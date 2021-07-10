@@ -95,6 +95,7 @@ pub struct FileDescriptorReservation {
 impl FileDescriptorReservation {
     /// Creates a new file descriptor reservation.
     pub fn new(flags: u32) -> Result<Self> {
+        // SAFETY: FFI call, there are no safety requirements on `flags`.
         let fd = unsafe { bindings::get_unused_fd_flags(flags) };
         if fd < 0 {
             return Err(Error::from_kernel_errno(fd));
