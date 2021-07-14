@@ -20,6 +20,7 @@
     const_panic,
     const_raw_ptr_deref,
     const_unreachable_unchecked,
+    doc_cfg,
     receiver_trait,
     try_reserve
 )]
