@@ -208,11 +208,7 @@ If you use GDB/Binutils and Rust symbols aren't getting demangled, the reason
 is your toolchain doesn't support Rust's new v0 mangling scheme yet. There are
 a few ways out:
 
-  - If you don't mind building your own tools, we provide the following fork
-    with the support cherry-picked from GCC:
-
-        https://github.com/Rust-for-Linux/binutils-gdb/releases/tag/gdb-10.1-release-rust
-        https://github.com/Rust-for-Linux/binutils-gdb/releases/tag/binutils-2_35_1-rust
+  - Install a newer release (GDB >= 10.2, Binutils >= 2.36).
 
   - If you only need GDB and can enable ``CONFIG_DEBUG_INFO``, do so:
     some versions of GDB (e.g. vanilla GDB 10.1) are able to use
