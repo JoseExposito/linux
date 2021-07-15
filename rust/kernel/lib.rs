@@ -20,6 +20,7 @@
     const_panic,
     const_raw_ptr_deref,
     const_unreachable_unchecked,
+    doc_cfg,
     receiver_trait,
     try_reserve
 )]
@@ -63,7 +64,8 @@ pub mod random;
 mod static_assert;
 pub mod sync;
 
-#[cfg(CONFIG_SYSCTL)]
+#[cfg(any(CONFIG_SYSCTL, doc))]
+#[doc(cfg(CONFIG_SYSCTL))]
 pub mod sysctl;
 
 pub mod io_buffer;
