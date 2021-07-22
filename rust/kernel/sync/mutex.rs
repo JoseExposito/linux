@@ -67,7 +67,7 @@ impl<T: ?Sized> Mutex<T> {
     pub fn lock(&self) -> Guard<'_, Self> {
         self.lock_noguard();
         // SAFETY: The mutex was just acquired.
-        unsafe { Guard::new(self) }
+        unsafe { Guard::new(self, ()) }
     }
 }
 
@@ -83,15 +83,16 @@ extern "C" {
 
 impl<T: ?Sized> Lock for Mutex<T> {
     type Inner = T;
+    type GuardContext = ();
 
     fn lock_noguard(&self) {
         // SAFETY: `mutex` points to valid memory.
-        unsafe {
-            rust_helper_mutex_lock(self.mutex.get());
-        }
+        unsafe { rust_helper_mutex_lock(self.mutex.get()) };
     }
 
-    unsafe fn unlock(&self) {
+    unsafe fn unlock(&self, _: &mut ()) {
+        // SAFETY: The safety requirements of the function ensure that the mutex is owned by the
+        // caller.
         unsafe { bindings::mutex_unlock(self.mutex.get()) };
     }
 

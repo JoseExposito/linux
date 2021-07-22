@@ -81,12 +81,12 @@ impl CondVar {
         }
 
         // SAFETY: The guard is evidence that the caller owns the lock.
-        unsafe { lock.unlock() };
+        unsafe { lock.unlock(&mut guard.context) };
 
         // SAFETY: No arguments, switches to another thread.
         unsafe { bindings::schedule() };
 
-        lock.lock_noguard();
+        guard.context = lock.lock_noguard();
 
         // SAFETY: Both `wait` and `wait_list` point to valid memory.
         unsafe { bindings::finish_wait(self.wait_list.get(), wait.as_mut_ptr()) };

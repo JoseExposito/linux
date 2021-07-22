@@ -12,6 +12,7 @@
 #[must_use = "the lock unlocks immediately when the guard is unused"]
 pub struct Guard<'a, L: Lock + ?Sized> {
     pub(crate) lock: &'a L,
+    pub(crate) context: L::GuardContext,
 }
 
 // SAFETY: `Guard` is sync when the data protected by the lock is also sync. This is more
@@ -44,7 +45,7 @@ impl<L: Lock + ?Sized> core::ops::DerefMut for Guard<'_, L> {
 impl<L: Lock + ?Sized> Drop for Guard<'_, L> {
     fn drop(&mut self) {
         // SAFETY: The caller owns the lock, so it is safe to unlock it.
-        unsafe { self.lock.unlock() };
+        unsafe { self.lock.unlock(&mut self.context) };
     }
 }
 
@@ -54,8 +55,8 @@ impl<'a, L: Lock + ?Sized> Guard<'a, L> {
     /// # Safety
     ///
     /// The caller must ensure that it owns the lock.
-    pub(crate) unsafe fn new(lock: &'a L) -> Self {
-        Self { lock }
+    pub(crate) unsafe fn new(lock: &'a L, context: L::GuardContext) -> Self {
+        Self { lock, context }
     }
 }
 
@@ -67,15 +68,18 @@ pub trait Lock {
     /// The type of the data protected by the lock.
     type Inner: ?Sized;
 
+    /// The type of context, if any, that needs to be stored in the guard.
+    type GuardContext;
+
     /// Acquires the lock, making the caller its owner.
-    fn lock_noguard(&self);
+    fn lock_noguard(&self) -> Self::GuardContext;
 
     /// Releases the lock, giving up ownership of the lock.
     ///
     /// # Safety
     ///
     /// It must only be called by the current owner of the lock.
-    unsafe fn unlock(&self);
+    unsafe fn unlock(&self, context: &mut Self::GuardContext);
 
     /// Returns the data protected by the lock.
     fn locked_data(&self) -> &core::cell::UnsafeCell<Self::Inner>;
