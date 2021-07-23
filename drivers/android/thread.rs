@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0
 
-use core::{alloc::AllocError, mem::size_of};
+use core::{
+    alloc::AllocError,
+    mem::size_of,
+    sync::atomic::{AtomicU32, Ordering},
+};
 use kernel::{
     bindings,
     file::File,
@@ -120,11 +124,13 @@ impl InnerThread {
     fn push_existing_work(&mut self, owork: Option<Arc<ThreadError>>, code: u32) {
         // TODO: Write some warning when the following fails. It should not happen, and
         // if it does, there is likely something wrong.
-        if let Some(mut work) = owork {
-            if let Some(work_mut) = Arc::get_mut(&mut work) {
-                work_mut.error_code = code;
-                self.push_work(work);
-            }
+        if let Some(work) = owork {
+            // `error_code` is written to with relaxed semantics because the queue onto which it is
+            // being inserted is protected by a lock. The release barrier when the lock is released
+            // by the caller matches with the acquire barrier of the future reader to guarantee
+            // that `error_code` is visible.
+            work.error_code.store(code, Ordering::Relaxed);
+            self.push_work(work);
         }
     }
 
@@ -824,7 +830,7 @@ impl GetLinks for Thread {
 }
 
 struct ThreadError {
-    error_code: u32,
+    error_code: AtomicU32,
     return_fn: fn(&mut InnerThread, Arc<ThreadError>),
     links: Links<dyn DeliverToRead>,
 }
@@ -832,7 +838,7 @@ struct ThreadError {
 impl ThreadError {
     fn new(return_fn: fn(&mut InnerThread, Arc<ThreadError>)) -> Self {
         Self {
-            error_code: BR_OK,
+            error_code: AtomicU32::new(BR_OK),
             return_fn,
             links: Links::new(),
         }
@@ -841,7 +847,9 @@ impl ThreadError {
 
 impl DeliverToRead for ThreadError {
     fn do_work(self: Arc<Self>, thread: &Thread, writer: &mut UserSlicePtrWriter) -> Result<bool> {
-        let code = self.error_code;
+        // See `ThreadInner::push_existing_work` for the reason why `error_code` is up to date even
+        // though we use relaxed semantics.
+        let code = self.error_code.load(Ordering::Relaxed);
 
         // Return the `ThreadError` to the thread.
         (self.return_fn)(&mut *thread.inner.lock(), self);
