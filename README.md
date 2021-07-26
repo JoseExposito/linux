@@ -14,7 +14,7 @@ Here I work on my patches. I'm a newbie, so don't expect great changes, just hum
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
-| [patch-magic-mouse-high-resolution-scroll-v1](https://github.com/JoseExposito/linux/tree/patch-magic-mouse-high-resolution-scroll-v1) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Emulate high-resolution scroll on the Magic Mouse for a smoother scrolling experience | ⏳ |
+| [patch-magic-mouse-high-resolution-scroll-v1](https://github.com/JoseExposito/linux/tree/patch-magic-mouse-high-resolution-scroll-v1) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Emulate high-resolution scroll on the Magic Mouse for a smoother scrolling experience | 🔀 |
 | [patch-magic-trackpad-crash-disconnecting-usb](https://github.com/JoseExposito/linux/tree/patch-magic-trackpad-crash-disconnecting-usb) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Fix NULL pointer reference when disconnecting the Magic Trackpad 2 from the USB port | 🔀 |
 
 🔨 Under development &nbsp;|&nbsp; ⏳ Waiting for review &nbsp;|&nbsp; 🔀 Merged upstream
