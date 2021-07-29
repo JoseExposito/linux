@@ -48,6 +48,7 @@ pub mod file;
 pub mod file_operations;
 pub mod miscdev;
 pub mod pages;
+pub mod power;
 pub mod security;
 pub mod str;
 pub mod task;
