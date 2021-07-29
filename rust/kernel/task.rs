@@ -4,19 +4,8 @@
 //!
 //! C header: [`include/linux/sched.h`](../../../../include/linux/sched.h).
 
-use crate::{bindings, c_types};
+use crate::bindings;
 use core::{marker::PhantomData, mem::ManuallyDrop, ops::Deref};
-
-extern "C" {
-    #[allow(improper_ctypes)]
-    fn rust_helper_signal_pending(t: *const bindings::task_struct) -> c_types::c_int;
-    #[allow(improper_ctypes)]
-    fn rust_helper_get_current() -> *mut bindings::task_struct;
-    #[allow(improper_ctypes)]
-    fn rust_helper_get_task_struct(t: *mut bindings::task_struct);
-    #[allow(improper_ctypes)]
-    fn rust_helper_put_task_struct(t: *mut bindings::task_struct);
-}
 
 /// Wraps the kernel's `struct task_struct`.
 ///
@@ -89,7 +78,7 @@ impl Task {
     /// Returns a task reference for the currently executing task/thread.
     pub fn current<'a>() -> TaskRef<'a> {
         // SAFETY: Just an FFI call.
-        let ptr = unsafe { rust_helper_get_current() };
+        let ptr = unsafe { bindings::get_current() };
 
         // SAFETY: If the current thread is still running, the current task is valid. Given
         // that `TaskRef` is not `Send`, we know it cannot be transferred to another thread (where
@@ -117,7 +106,7 @@ impl Task {
     /// Determines whether the given task has pending signals.
     pub fn signal_pending(&self) -> bool {
         // SAFETY: By the type invariant, we know that `self.ptr` is non-null and valid.
-        unsafe { rust_helper_signal_pending(self.ptr) != 0 }
+        unsafe { bindings::signal_pending(self.ptr) != 0 }
     }
 }
 
@@ -132,7 +121,7 @@ impl Eq for Task {}
 impl Clone for Task {
     fn clone(&self) -> Self {
         // SAFETY: The type invariants guarantee that `self.ptr` has a non-zero reference count.
-        unsafe { rust_helper_get_task_struct(self.ptr) };
+        unsafe { bindings::get_task_struct(self.ptr) };
 
         // INVARIANT: We incremented the reference count to account for the new `Task` being
         // created.
@@ -145,7 +134,7 @@ impl Drop for Task {
         // INVARIANT: We may decrement the refcount to zero, but the `Task` is being dropped, so
         // this is not observable.
         // SAFETY: The type invariants guarantee that `Task::ptr` has a non-zero reference count.
-        unsafe { rust_helper_put_task_struct(self.ptr) };
+        unsafe { bindings::put_task_struct(self.ptr) };
     }
 }
 

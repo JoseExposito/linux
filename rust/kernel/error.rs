@@ -351,11 +351,8 @@ impl Error {
 
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        extern "C" {
-            fn rust_helper_errname(err: c_types::c_int) -> *const c_types::c_char;
-        }
         // SAFETY: FFI call.
-        let name = unsafe { rust_helper_errname(-self.0) };
+        let name = unsafe { bindings::errname(-self.0) };
 
         if name.is_null() {
             // Print out number if no name can be found.
@@ -452,7 +449,7 @@ where
 /// ) -> c_types::c_int {
 ///     from_kernel_result! {
 ///         let ptr = devm_alloc(pdev)?;
-///         rust_helper_platform_set_drvdata(pdev, ptr);
+///         bindings::platform_set_drvdata(pdev, ptr);
 ///         Ok(0)
 ///     }
 /// }
@@ -496,28 +493,20 @@ macro_rules! from_kernel_result {
 // TODO: remove `dead_code` marker once an in-kernel client is available.
 #[allow(dead_code)]
 pub(crate) fn from_kernel_err_ptr<T>(ptr: *mut T) -> Result<*mut T> {
-    extern "C" {
-        #[allow(improper_ctypes)]
-        fn rust_helper_is_err(ptr: *const c_types::c_void) -> bool;
-
-        #[allow(improper_ctypes)]
-        fn rust_helper_ptr_err(ptr: *const c_types::c_void) -> c_types::c_long;
-    }
-
     // CAST: casting a pointer to `*const c_types::c_void` is always valid.
     let const_ptr: *const c_types::c_void = ptr.cast();
     // SAFETY: the FFI function does not deref the pointer.
-    if unsafe { rust_helper_is_err(const_ptr) } {
+    if unsafe { bindings::IS_ERR(const_ptr) } {
         // SAFETY: the FFI function does not deref the pointer.
-        let err = unsafe { rust_helper_ptr_err(const_ptr) };
-        // CAST: if `rust_helper_is_err()` returns `true`,
-        // then `rust_helper_ptr_err()` is guaranteed to return a
+        let err = unsafe { bindings::PTR_ERR(const_ptr) };
+        // CAST: if `IS_ERR()` returns `true`,
+        // then `PTR_ERR()` is guaranteed to return a
         // negative value greater-or-equal to `-bindings::MAX_ERRNO`,
         // which always fits in an `i16`, as per the invariant above.
         // And an `i16` always fits in an `i32`. So casting `err` to
         // an `i32` can never overflow, and is always valid.
         //
-        // SAFETY: `rust_helper_is_err()` ensures `err` is a
+        // SAFETY: `IS_ERR()` ensures `err` is a
         // negative value greater-or-equal to `-bindings::MAX_ERRNO`
         return Err(unsafe { Error::from_kernel_errno_unchecked(err as i32) });
     }

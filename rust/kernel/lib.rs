@@ -232,10 +232,11 @@ macro_rules! container_of {
 #[cfg(not(any(testlib, test)))]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo<'_>) -> ! {
-    extern "C" {
-        fn rust_helper_BUG() -> !;
-    }
     pr_emerg!("{}\n", info);
     // SAFETY: FFI call.
-    unsafe { rust_helper_BUG() };
+    unsafe { bindings::BUG() };
+    // Bindgen currently does not recognize `__noreturn` so `BUG` returns `()`
+    // instead of `!`.
+    // https://github.com/rust-lang/rust-bindgen/issues/2094
+    loop {}
 }

@@ -29,19 +29,6 @@ pub struct Registration {
 // (it is fine for multiple threads to have a shared reference to it).
 unsafe impl Sync for Registration {}
 
-extern "C" {
-    #[allow(improper_ctypes)]
-    fn rust_helper_platform_get_drvdata(
-        pdev: *const bindings::platform_device,
-    ) -> *mut c_types::c_void;
-
-    #[allow(improper_ctypes)]
-    fn rust_helper_platform_set_drvdata(
-        pdev: *mut bindings::platform_device,
-        data: *mut c_types::c_void,
-    );
-}
-
 extern "C" fn probe_callback<P: PlatformDriver>(
     pdev: *mut bindings::platform_device,
 ) -> c_types::c_int {
@@ -52,7 +39,7 @@ extern "C" fn probe_callback<P: PlatformDriver>(
         let drv_data = drv_data.into_pointer() as *mut c_types::c_void;
         // SAFETY: `pdev` is guaranteed to be a valid, non-null pointer.
         unsafe {
-            rust_helper_platform_set_drvdata(pdev, drv_data);
+            bindings::platform_set_drvdata(pdev, drv_data);
         }
         Ok(0)
     }
@@ -65,7 +52,7 @@ extern "C" fn remove_callback<P: PlatformDriver>(
         // SAFETY: `pdev` is guaranteed to be a valid, non-null pointer.
         let device_id = unsafe { (*pdev).id };
         // SAFETY: `pdev` is guaranteed to be a valid, non-null pointer.
-        let ptr = unsafe { rust_helper_platform_get_drvdata(pdev) };
+        let ptr = unsafe { bindings::platform_get_drvdata(pdev) };
         // SAFETY:
         //   - we allocated this pointer using `P::DrvData::into_pointer`,
         //     so it is safe to turn back into a `P::DrvData`.
