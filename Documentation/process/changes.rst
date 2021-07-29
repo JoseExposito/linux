@@ -36,7 +36,7 @@ know what you are doing, use the exact version listed here. Please see
 ====================== ===============  ========================================
 GNU C                  4.9              gcc --version
 Clang/LLVM (optional)  10.0.1           clang --version
-rustc (optional)       1.54.0-beta.1    rustc --version
+rustc (optional)       1.54.0           rustc --version
 bindgen (optional)     0.56.0           bindgen --version
 GNU make               3.81             make --version
 binutils               2.23             ld -v

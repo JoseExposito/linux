@@ -13,7 +13,7 @@ jobs:
         arch: [arm, arm64, ppc64le, riscv64, x86_64]
         toolchain: [gcc, clang, llvm]
         config: [debug, release]
-        rustc: [2021-06-23]
+        rustc: [1.54.0]
         output: [src] # [src, build]
         install: [rustup] # [rustup, standalone]
         sysroot: [common] # [common, custom]
@@ -37,7 +37,7 @@ jobs:
           - arch: arm64
             toolchain: gcc
             config: debug
-            rustc: 2021-06-23
+            rustc: 1.54.0
             output: build
             install: rustup
             sysroot: custom
@@ -45,7 +45,7 @@ jobs:
           - arch: ppc64le
             toolchain: clang
             config: release
-            rustc: 2021-06-23
+            rustc: 1.54.0
             output: build
             install: standalone
             sysroot: common
@@ -53,7 +53,7 @@ jobs:
           - arch: x86_64
             toolchain: llvm
             config: debug
-            rustc: 2021-06-23
+            rustc: 1.54.0
             output: build
             install: standalone
             sysroot: custom
@@ -178,14 +178,12 @@ jobs:
       # Setup: rustc
       - if: matrix.install == 'rustup'
         run: |
-          rustup default beta-${{ matrix.rustc }}
+          rustup default ${{ matrix.rustc }}
           rustup component add rustfmt
       - if: matrix.install == 'standalone'
         run: |
-          # FIXME: there is no beta equivalent for https://static.rust-lang.org/dist/channel-rust-x.yy.z.toml,
-          # so just hardcode the URL/date for the moment, since we will moving to a stable release soon anyway.
-          curl https://static.rust-lang.org/dist/${{ matrix.rustc }}/rust-beta-x86_64-unknown-linux-gnu.tar.gz | tar xz
-          rust-beta-x86_64-unknown-linux-gnu/install.sh --without=rust-docs --prefix=$HOME/rustc
+          curl https://static.rust-lang.org/dist/rust-${{ matrix.rustc }}-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          rust-${{ matrix.rustc }}-x86_64-unknown-linux-gnu/install.sh --without=rust-docs --prefix=$HOME/rustc
           echo $HOME/rustc/bin >> $GITHUB_PATH
 
       # Setup: rustc native libs
