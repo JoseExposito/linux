@@ -15,6 +15,7 @@
 #![feature(
     allocator_api,
     associated_type_defaults,
+    concat_idents,
     const_fn_trait_bound,
     const_mut_refs,
     const_panic,
@@ -73,6 +74,7 @@ pub mod sync;
 pub mod sysctl;
 
 pub mod io_buffer;
+pub mod io_mem;
 pub mod iov_iter;
 pub mod of;
 pub mod platdev;
