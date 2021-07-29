@@ -202,7 +202,7 @@ bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-Wno-packed-not-aligned -Wno-format-truncation -Wno-format-overflow \
 	-Wno-stringop-truncation -Wno-unused-but-set-variable \
 	-Wno-stringop-overflow -Wno-restrict -Wno-maybe-uninitialized \
-	-Werror=designated-init -Wno-zero-length-bounds \
+	-Werror=designated-init -Wno-zero-length-bounds -Wimplicit-fallthrough=% \
 	--param=% --param asan-%
 
 # PowerPC
