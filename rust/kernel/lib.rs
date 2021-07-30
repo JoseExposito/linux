@@ -21,6 +21,7 @@
     const_raw_ptr_deref,
     const_unreachable_unchecked,
     doc_cfg,
+    ptr_metadata,
     receiver_trait,
     coerce_unsized,
     dispatch_from_dyn,
