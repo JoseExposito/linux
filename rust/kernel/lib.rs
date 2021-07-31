@@ -197,7 +197,8 @@ macro_rules! offset_of {
 /// # Safety
 ///
 /// Callers must ensure that the pointer to the field is in fact a pointer to the specified field,
-/// as opposed to a pointer to another object of the same type.
+/// as opposed to a pointer to another object of the same type. If this condition is not met,
+/// any dereference of the resulting pointer is UB.
 ///
 /// # Example
 ///
@@ -212,7 +213,7 @@ macro_rules! offset_of {
 /// fn test() {
 ///     let test = Test { a: 10, b: 20 };
 ///     let b_ptr = &test.b;
-///     let test_alias = unsafe { container_of!(b_ptr, Test, b) };
+///     let test_alias = container_of!(b_ptr, Test, b);
 ///     // This prints `true`.
 ///     pr_info!("{}\n", core::ptr::eq(&test, test_alias));
 /// }
@@ -222,6 +223,6 @@ macro_rules! container_of {
     ($ptr:expr, $type:ty, $($f:tt)*) => {{
         let ptr = $ptr as *const _ as *const u8;
         let offset = $crate::offset_of!($type, $($f)*);
-        unsafe { ptr.offset(-offset) as *const $type }
+        ptr.wrapping_offset(-offset) as *const $type
     }}
 }
