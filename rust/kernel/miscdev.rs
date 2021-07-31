@@ -85,10 +85,8 @@ impl<T: Sync> FileOpenAdapter for Registration<T> {
     type Arg = T;
 
     unsafe fn convert(_inode: *mut bindings::inode, file: *mut bindings::file) -> *const Self::Arg {
-        // TODO: `SAFETY` comment required here even if `unsafe` is not present,
-        // because `container_of!` hides it. Ideally we would not allow
-        // `unsafe` code as parameters to macros.
-        let reg = crate::container_of!((*file).private_data, Self, mdev);
+        // SAFETY: the caller must guarantee that `file` is valid.
+        let reg = crate::container_of!(unsafe { (*file).private_data }, Self, mdev);
         unsafe { &(*reg).context }
     }
 }
