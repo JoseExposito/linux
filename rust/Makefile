@@ -197,7 +197,8 @@ bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-mskip-rax-setup -mgeneral-regs-only -msign-return-address=% \
 	-mindirect-branch=thunk-extern -mindirect-branch-register -mrecord-mcount \
 	-mabi=lp64 -mstack-protector-guard% -fconserve-stack -falign-jumps=% \
-	-falign-loops=% -fno-ipa-cp-clone -fno-partial-inlining \
+	-falign-loops=% \
+	-fno-ipa-cp-clone -fno-ipa-sra -fno-partial-inlining \
 	-fno-reorder-blocks -fno-allow-store-data-races -fasan-shadow-offset=% \
 	-Wno-packed-not-aligned -Wno-format-truncation -Wno-format-overflow \
 	-Wno-stringop-truncation -Wno-unused-but-set-variable \
