@@ -17,6 +17,7 @@ jobs:
         output: [src] # [src, build]
         install: [rustup] # [rustup, standalone]
         sysroot: [common] # [common, custom]
+        lto: [none] # [none, thin]
 
         exclude:
           # arm 32-bit gcc not yet supported
@@ -34,6 +35,7 @@ jobs:
         # A few independent combinations to avoid exploding the matrix:
         #   - The other option for `output`.
         #   - Different releases for `rustc`.
+        #   - Explicitly enabling `lto` on platforms which support LTO.
         #   - The other three (`install`, `sysroot`) combinations
         #     (they are interrelated, so the cross-product needs to be tested)
         include:
@@ -44,6 +46,25 @@ jobs:
             output: build
             install: rustup
             sysroot: custom
+            lto: none
+
+          - arch: arm64
+            toolchain: llvm
+            config: debug
+            rustc: 1.55.0
+            output: build
+            install: rustup
+            sysroot: custom
+            lto: thin
+
+          - arch: arm64
+            toolchain: llvm
+            config: release
+            rustc: 1.55.0
+            output: build
+            install: rustup
+            sysroot: custom
+            lto: thin
 
           - arch: ppc64le
             toolchain: clang
@@ -52,6 +73,7 @@ jobs:
             output: build
             install: standalone
             sysroot: common
+            lto: none
 
           - arch: x86_64
             toolchain: llvm
@@ -60,6 +82,25 @@ jobs:
             output: build
             install: standalone
             sysroot: custom
+            lto: none
+
+          - arch: x86_64
+            toolchain: llvm
+            config: debug
+            rustc: 1.55.0
+            output: src
+            install: rustup
+            sysroot: common
+            lto: thin
+
+          - arch: x86_64
+            toolchain: llvm
+            config: release
+            rustc: 1.55.0
+            output: src
+            install: rustup
+            sysroot: common
+            lto: thin
 
     steps:
       # Setup: checkout
@@ -123,6 +164,12 @@ jobs:
         run: echo 'MAKE_TOOLCHAIN=CC=clang-12' >> $GITHUB_ENV
       - if: matrix.toolchain == 'llvm'
         run: echo 'MAKE_TOOLCHAIN=LLVM=1' >> $GITHUB_ENV
+
+      # if arch is supported and ThinLTO is enabled, enable LLVM's integrated assembler
+      - if: matrix.arch == 'arm64' && matrix.toolchain == 'llvm' && matrix.lto == 'thin'
+        run: echo 'MAKE_LLVM_IAS=LLVM_IAS=1' >> $GITHUB_ENV
+      - if: matrix.arch == 'x86_64' && matrix.toolchain == 'llvm' && matrix.lto == 'thin'
+        run: echo 'MAKE_LLVM_IAS=LLVM_IAS=1' >> $GITHUB_ENV
 
       - if: matrix.output == 'build'
         run: |
@@ -246,7 +293,10 @@ jobs:
           echo 'obj-m	+= rust_module_parameters_loadable_custom.o'  >> samples/rust/Makefile
 
       # Build
-      - run: mv .github/workflows/kernel-${{ matrix.arch }}-${{ matrix.config }}.config .config
+      - if: matrix.lto == 'none'
+        run: mv .github/workflows/kernel-${{ matrix.arch }}-${{ matrix.config }}.config .config
+      - if: matrix.lto == 'thin'
+        run: mv .github/workflows/kernel-${{ matrix.arch }}-${{ matrix.config }}-thinlto.config .config
 
       - if: matrix.output == 'build'
         run: |
@@ -389,7 +439,7 @@ jobs:
             ${{ env.BUILD_DIR }}vmlinux \
             ${{ env.BUILD_DIR }}${{ env.IMAGE_PATH }}
 
-          size \
+          .github/workflows/size.sh \
             ${{ env.BUILD_DIR }}samples/rust/*.o \
             ${{ env.BUILD_DIR }}samples/rust/*.ko \
             ${{ env.BUILD_DIR }}drivers/android/rust_binder.o \
