@@ -23,12 +23,13 @@ def generate_crates(srctree, objtree, sysroot_src, bindings_file):
     crates = []
     crates_indexes = {}
 
-    def append_crate(display_name, root_module, is_workspace_member, deps, cfg):
+    def append_crate(display_name, root_module, deps, cfg=[], is_workspace_member=True, is_proc_macro=False):
         crates_indexes[display_name] = len(crates)
         crates.append({
             "display_name": display_name,
             "root_module": str(root_module),
             "is_workspace_member": is_workspace_member,
+            "is_proc_macro": is_proc_macro,
             "deps": [{"crate": crates_indexes[dep], "name": dep} for dep in deps],
             "cfg": cfg,
             "edition": "2018",
@@ -41,50 +42,41 @@ def generate_crates(srctree, objtree, sysroot_src, bindings_file):
     append_crate(
         "core",
         sysroot_src / "core" / "src" / "lib.rs",
-        False,
         [],
-        [],
+        is_workspace_member=False,
     )
 
     append_crate(
         "compiler_builtins",
         srctree / "rust" / "compiler_builtins.rs",
-        True,
-        [],
         [],
     )
 
     append_crate(
         "alloc",
         srctree / "rust" / "alloc" / "lib.rs",
-        True,
         ["core", "compiler_builtins"],
-        [],
     )
 
     append_crate(
         "macros",
         srctree / "rust" / "macros" / "lib.rs",
-        True,
         [],
-        [],
+        is_proc_macro=True,
     )
     crates[-1]["proc_macro_dylib_path"] = "rust/libmacros.so"
 
     append_crate(
         "build_error",
         srctree / "rust" / "build_error.rs",
-        True,
         ["core", "compiler_builtins"],
-        [],
     )
 
     append_crate(
         "kernel",
         srctree / "rust" / "kernel" / "lib.rs",
-        True,
         ["core", "alloc", "macros", "build_error"],
-        cfg,
+        cfg=cfg,
     )
     crates[-1]["env"]["RUST_BINDINGS_FILE"] = str(bindings_file.resolve(True))
     crates[-1]["source"] = {
@@ -111,9 +103,8 @@ def generate_crates(srctree, objtree, sysroot_src, bindings_file):
             append_crate(
                 name,
                 path,
-                True,
                 ["core", "alloc", "kernel"],
-                cfg,
+                cfg=cfg,
             )
 
     return crates
