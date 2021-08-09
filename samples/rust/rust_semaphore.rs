@@ -77,7 +77,7 @@ impl FileOpener<Ref<Semaphore>> for FileState {
 impl FileOperations for FileState {
     declare_file_operations!(read, write, ioctl);
 
-    fn read<T: IoBufferWriter>(this: &Self, _: &File, data: &mut T, offset: u64) -> Result<usize> {
+    fn read(this: &Self, _: &File, data: &mut impl IoBufferWriter, offset: u64) -> Result<usize> {
         if data.is_empty() || offset > 0 {
             return Ok(0);
         }
@@ -87,7 +87,7 @@ impl FileOperations for FileState {
         Ok(1)
     }
 
-    fn write<T: IoBufferReader>(this: &Self, _: &File, data: &mut T, _offs: u64) -> Result<usize> {
+    fn write(this: &Self, _: &File, data: &mut impl IoBufferReader, _offs: u64) -> Result<usize> {
         {
             let mut inner = this.shared.inner.lock();
             inner.count = inner.count.saturating_add(data.len());

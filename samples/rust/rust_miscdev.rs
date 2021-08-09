@@ -68,10 +68,10 @@ impl FileOperations for Token {
 
     kernel::declare_file_operations!(read, write);
 
-    fn read<T: IoBufferWriter>(
+    fn read(
         shared: &Ref<SharedState>,
         _: &File,
-        data: &mut T,
+        data: &mut impl IoBufferWriter,
         offset: u64,
     ) -> Result<usize> {
         // Succeed if the caller doesn't provide a buffer or if not at the start.
@@ -101,10 +101,10 @@ impl FileOperations for Token {
         Ok(1)
     }
 
-    fn write<T: IoBufferReader>(
+    fn write(
         shared: &Ref<SharedState>,
         _: &File,
-        data: &mut T,
+        data: &mut impl IoBufferReader,
         _offset: u64,
     ) -> Result<usize> {
         {

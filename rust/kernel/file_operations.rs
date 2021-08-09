@@ -622,10 +622,10 @@ pub trait FileOperations: Send + Sync + Sized {
     /// Reads data from this file to the caller's buffer.
     ///
     /// Corresponds to the `read` and `read_iter` function pointers in `struct file_operations`.
-    fn read<T: IoBufferWriter>(
+    fn read(
         _this: &<<Self::Wrapper as PointerWrapper>::Borrowed as Deref>::Target,
         _file: &File,
-        _data: &mut T,
+        _data: &mut impl IoBufferWriter,
         _offset: u64,
     ) -> Result<usize> {
         Err(Error::EINVAL)
@@ -634,10 +634,10 @@ pub trait FileOperations: Send + Sync + Sized {
     /// Writes data from the caller's buffer to this file.
     ///
     /// Corresponds to the `write` and `write_iter` function pointers in `struct file_operations`.
-    fn write<T: IoBufferReader>(
+    fn write(
         _this: &<<Self::Wrapper as PointerWrapper>::Borrowed as Deref>::Target,
         _file: &File,
-        _data: &mut T,
+        _data: &mut impl IoBufferReader,
         _offset: u64,
     ) -> Result<usize> {
         Err(Error::EINVAL)
