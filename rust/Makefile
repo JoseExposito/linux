@@ -199,6 +199,7 @@ bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-mabi=lp64 -mstack-protector-guard% -fconserve-stack -falign-jumps=% \
 	-falign-loops=% \
 	-fno-ipa-cp-clone -fno-ipa-sra -fno-partial-inlining \
+	-fplugin-arg-arm_ssp_per_task_plugin-% \
 	-fno-reorder-blocks -fno-allow-store-data-races -fasan-shadow-offset=% \
 	-Wno-packed-not-aligned -Wno-format-truncation -Wno-format-overflow \
 	-Wno-stringop-truncation -Wno-unused-but-set-variable \
