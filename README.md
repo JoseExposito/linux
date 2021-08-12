@@ -1,6 +1,6 @@
 # Config
 
-My configuration to build the Linux kernel 5.13.0 on elementary OS 6 (based on Ubuntu 20.04.1 LTS).
+My configuration to build the Linux kernel 5.14.0 on elementary OS 6 (based on Ubuntu 20.04.1 LTS).
 
 DO NOT USE IT, this config is for my hardware and your kernel won't boot with it.
 
