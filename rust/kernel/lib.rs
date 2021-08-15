@@ -67,6 +67,8 @@ pub mod prelude;
 pub mod print;
 pub mod random;
 mod static_assert;
+#[doc(hidden)]
+pub mod std_vendor;
 pub mod sync;
 
 #[cfg(any(CONFIG_SYSCTL, doc))]
