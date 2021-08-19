@@ -133,14 +133,3 @@ define_panicking_intrinsics!("`u64` division/modulo should not be used", {
     __aeabi_uldivmod,
     __mulodi4,
 });
-
-extern "C" {
-    fn rust_helper_BUG() -> !;
-}
-
-#[panic_handler]
-fn panic(_info: &core::panic::PanicInfo<'_>) -> ! {
-    unsafe {
-        rust_helper_BUG();
-    }
-}
