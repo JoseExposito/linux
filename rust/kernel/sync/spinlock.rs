@@ -81,7 +81,7 @@ impl<T: ?Sized> SpinLock<T> {
     pub fn lock(&self) -> Guard<'_, Self> {
         self.lock_noguard();
         // SAFETY: The spinlock was just acquired.
-        unsafe { Guard::new(self) }
+        unsafe { Guard::new(self, ()) }
     }
 }
 
@@ -93,13 +93,16 @@ impl<T: ?Sized> NeedsLockClass for SpinLock<T> {
 
 impl<T: ?Sized> Lock for SpinLock<T> {
     type Inner = T;
+    type GuardContext = ();
 
     fn lock_noguard(&self) {
         // SAFETY: `spin_lock` points to valid memory.
         unsafe { rust_helper_spin_lock(self.spin_lock.get()) };
     }
 
-    unsafe fn unlock(&self) {
+    unsafe fn unlock(&self, _: &mut ()) {
+        // SAFETY: The safety requirements of the function ensure that the spinlock is owned by the
+        // caller.
         unsafe { rust_helper_spin_unlock(self.spin_lock.get()) };
     }
 
