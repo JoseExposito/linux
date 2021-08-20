@@ -228,3 +228,14 @@ macro_rules! container_of {
         ptr.wrapping_offset(-offset) as *const $type
     }}
 }
+
+#[cfg(not(any(testlib, test)))]
+#[panic_handler]
+fn panic(info: &core::panic::PanicInfo<'_>) -> ! {
+    extern "C" {
+        fn rust_helper_BUG() -> !;
+    }
+    pr_emerg!("{}\n", info);
+    // SAFETY: FFI call.
+    unsafe { rust_helper_BUG() };
+}
