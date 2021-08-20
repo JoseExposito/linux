@@ -12,6 +12,18 @@ use core::fmt;
 use core::num::TryFromIntError;
 use core::str::{self, Utf8Error};
 
+macro_rules! declare_err {
+    ($err:tt) => {
+        pub const $err: Self = Error(-(bindings::$err as i32));
+    };
+    ($err:tt, $($doc:expr),+) => {
+        $(
+        #[doc = $doc]
+        )*
+        pub const $err: Self = Error(-(bindings::$err as i32));
+    };
+}
+
 /// Generic integer kernel error.
 ///
 /// The kernel defines a set of integer generic error codes based on C and
@@ -24,113 +36,81 @@ use core::str::{self, Utf8Error};
 pub struct Error(c_types::c_int);
 
 impl Error {
-    /// Operation not permitted.
-    pub const EPERM: Self = Error(-(bindings::EPERM as i32));
+    declare_err!(EPERM, "Operation not permitted.");
 
-    /// No such file or directory.
-    pub const ENOENT: Self = Error(-(bindings::ENOENT as i32));
+    declare_err!(ENOENT, "No such file or directory.");
 
-    /// No such process.
-    pub const ESRCH: Self = Error(-(bindings::ESRCH as i32));
+    declare_err!(ESRCH, "No such process.");
 
-    /// Interrupted system call.
-    pub const EINTR: Self = Error(-(bindings::EINTR as i32));
+    declare_err!(EINTR, "Interrupted system call.");
 
-    /// I/O error.
-    pub const EIO: Self = Error(-(bindings::EIO as i32));
+    declare_err!(EIO, "I/O error.");
 
-    /// No such device or address.
-    pub const ENXIO: Self = Error(-(bindings::ENXIO as i32));
+    declare_err!(ENXIO, "No such device or address.");
 
-    /// Argument list too long.
-    pub const E2BIG: Self = Error(-(bindings::E2BIG as i32));
+    declare_err!(E2BIG, "Argument list too long.");
 
-    /// Exec format error.
-    pub const ENOEXEC: Self = Error(-(bindings::ENOEXEC as i32));
+    declare_err!(ENOEXEC, "Exec format error.");
 
-    /// Bad file number.
-    pub const EBADF: Self = Error(-(bindings::EBADF as i32));
+    declare_err!(EBADF, "Bad file number.");
 
-    /// No child processes.
-    pub const ECHILD: Self = Error(-(bindings::ECHILD as i32));
+    declare_err!(ECHILD, "Exec format error.");
 
-    /// Try again.
-    pub const EAGAIN: Self = Error(-(bindings::EAGAIN as i32));
+    declare_err!(EAGAIN, "Try again.");
 
-    /// Out of memory.
-    pub const ENOMEM: Self = Error(-(bindings::ENOMEM as i32));
+    declare_err!(ENOMEM, "Out of memory.");
 
-    /// Permission denied.
-    pub const EACCES: Self = Error(-(bindings::EACCES as i32));
+    declare_err!(EACCES, "Permission denied.");
 
-    /// Bad address.
-    pub const EFAULT: Self = Error(-(bindings::EFAULT as i32));
+    declare_err!(EFAULT, "Bad address.");
 
-    /// Block device required.
-    pub const ENOTBLK: Self = Error(-(bindings::ENOTBLK as i32));
+    declare_err!(ENOTBLK, "Block device required.");
 
-    /// Device or resource busy.
-    pub const EBUSY: Self = Error(-(bindings::EBUSY as i32));
+    declare_err!(EBUSY, "Device or resource busy.");
 
-    /// File exists.
-    pub const EEXIST: Self = Error(-(bindings::EEXIST as i32));
+    declare_err!(EEXIST, "File exists.");
 
-    /// Cross-device link.
-    pub const EXDEV: Self = Error(-(bindings::EXDEV as i32));
+    declare_err!(EXDEV, "Cross-device link.");
 
-    /// No such device.
-    pub const ENODEV: Self = Error(-(bindings::ENODEV as i32));
+    declare_err!(ENODEV, "No such device.");
 
-    /// Not a directory.
-    pub const ENOTDIR: Self = Error(-(bindings::ENOTDIR as i32));
+    declare_err!(ENOTDIR, "Not a directory.");
 
-    /// Is a directory.
-    pub const EISDIR: Self = Error(-(bindings::EISDIR as i32));
+    declare_err!(EISDIR, "Is a directory.");
 
-    /// Invalid argument.
-    pub const EINVAL: Self = Error(-(bindings::EINVAL as i32));
+    declare_err!(EINVAL, "Invalid argument.");
 
-    /// File table overflow.
-    pub const ENFILE: Self = Error(-(bindings::ENFILE as i32));
+    declare_err!(ENFILE, "File table overflow.");
 
-    /// Too many open files.
-    pub const EMFILE: Self = Error(-(bindings::EMFILE as i32));
+    declare_err!(EMFILE, "Too many open files.");
 
-    /// Not a typewriter.
-    pub const ENOTTY: Self = Error(-(bindings::ENOTTY as i32));
+    declare_err!(ENOTTY, "Not a typewriter.");
 
-    /// Text file busy.
-    pub const ETXTBSY: Self = Error(-(bindings::ETXTBSY as i32));
+    declare_err!(ETXTBSY, "Text file busy.");
 
-    /// File too large.
-    pub const EFBIG: Self = Error(-(bindings::EFBIG as i32));
+    declare_err!(EFBIG, "File too large.");
 
-    /// No space left on device.
-    pub const ENOSPC: Self = Error(-(bindings::ENOSPC as i32));
+    declare_err!(ENOSPC, "No space left on device.");
 
-    /// Illegal seek.
-    pub const ESPIPE: Self = Error(-(bindings::ESPIPE as i32));
+    declare_err!(ESPIPE, "Illegal seek.");
 
-    /// Read-only file system.
-    pub const EROFS: Self = Error(-(bindings::EROFS as i32));
+    declare_err!(EROFS, "Read-only file system.");
 
-    /// Too many links.
-    pub const EMLINK: Self = Error(-(bindings::EMLINK as i32));
+    declare_err!(EMLINK, "Too many links.");
 
-    /// Broken pipe.
-    pub const EPIPE: Self = Error(-(bindings::EPIPE as i32));
+    declare_err!(EPIPE, "Broken pipe.");
 
-    /// Math argument out of domain of func.
-    pub const EDOM: Self = Error(-(bindings::EDOM as i32));
+    declare_err!(EDOM, "Math argument out of domain of func.");
 
-    /// Math result not representable.
-    pub const ERANGE: Self = Error(-(bindings::ERANGE as i32));
+    declare_err!(ERANGE, "Math result not representable.");
 
-    /// Cannot assign requested address.
-    pub const EADDRNOTAVAIL: Self = Error(-(bindings::EADDRNOTAVAIL as i32));
+    declare_err!(EDEADLK, "Resource deadlock would occur");
 
-    /// Restart the system call.
-    pub const ERESTARTSYS: Self = Error(-(bindings::ERESTARTSYS as i32));
+    declare_err!(ENAMETOOLONG, "File name too long");
+
+    declare_err!(EADDRNOTAVAIL, "Cannot assign requested address.");
+
+    declare_err!(ERESTARTSYS, "Restart the system call.");
 
     /// Creates an [`Error`] from a kernel error code.
     ///
