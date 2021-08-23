@@ -12,6 +12,18 @@ use core::fmt;
 use core::num::TryFromIntError;
 use core::str::{self, Utf8Error};
 
+macro_rules! declare_err {
+    ($err:tt) => {
+        pub const $err: Self = Error(-(bindings::$err as i32));
+    };
+    ($err:tt, $($doc:expr),+) => {
+        $(
+        #[doc = $doc]
+        )*
+        pub const $err: Self = Error(-(bindings::$err as i32));
+    };
+}
+
 /// Generic integer kernel error.
 ///
 /// The kernel defines a set of integer generic error codes based on C and
@@ -24,110 +36,282 @@ use core::str::{self, Utf8Error};
 pub struct Error(c_types::c_int);
 
 impl Error {
-    /// Operation not permitted.
-    pub const EPERM: Self = Error(-(bindings::EPERM as i32));
+    declare_err!(EPERM, "Operation not permitted.");
 
-    /// No such file or directory.
-    pub const ENOENT: Self = Error(-(bindings::ENOENT as i32));
+    declare_err!(ENOENT, "No such file or directory.");
 
-    /// No such process.
-    pub const ESRCH: Self = Error(-(bindings::ESRCH as i32));
+    declare_err!(ESRCH, "No such process.");
 
-    /// Interrupted system call.
-    pub const EINTR: Self = Error(-(bindings::EINTR as i32));
+    declare_err!(EINTR, "Interrupted system call.");
 
-    /// I/O error.
-    pub const EIO: Self = Error(-(bindings::EIO as i32));
+    declare_err!(EIO, "I/O error.");
 
-    /// No such device or address.
-    pub const ENXIO: Self = Error(-(bindings::ENXIO as i32));
+    declare_err!(ENXIO, "No such device or address.");
 
-    /// Argument list too long.
-    pub const E2BIG: Self = Error(-(bindings::E2BIG as i32));
+    declare_err!(E2BIG, "Argument list too long.");
 
-    /// Exec format error.
-    pub const ENOEXEC: Self = Error(-(bindings::ENOEXEC as i32));
+    declare_err!(ENOEXEC, "Exec format error.");
 
-    /// Bad file number.
-    pub const EBADF: Self = Error(-(bindings::EBADF as i32));
+    declare_err!(EBADF, "Bad file number.");
 
-    /// No child processes.
-    pub const ECHILD: Self = Error(-(bindings::ECHILD as i32));
+    declare_err!(ECHILD, "Exec format error.");
 
-    /// Try again.
-    pub const EAGAIN: Self = Error(-(bindings::EAGAIN as i32));
+    declare_err!(EAGAIN, "Try again.");
 
-    /// Out of memory.
-    pub const ENOMEM: Self = Error(-(bindings::ENOMEM as i32));
+    declare_err!(ENOMEM, "Out of memory.");
 
-    /// Permission denied.
-    pub const EACCES: Self = Error(-(bindings::EACCES as i32));
+    declare_err!(EACCES, "Permission denied.");
 
-    /// Bad address.
-    pub const EFAULT: Self = Error(-(bindings::EFAULT as i32));
+    declare_err!(EFAULT, "Bad address.");
 
-    /// Block device required.
-    pub const ENOTBLK: Self = Error(-(bindings::ENOTBLK as i32));
+    declare_err!(ENOTBLK, "Block device required.");
 
-    /// Device or resource busy.
-    pub const EBUSY: Self = Error(-(bindings::EBUSY as i32));
+    declare_err!(EBUSY, "Device or resource busy.");
 
-    /// File exists.
-    pub const EEXIST: Self = Error(-(bindings::EEXIST as i32));
+    declare_err!(EEXIST, "File exists.");
 
-    /// Cross-device link.
-    pub const EXDEV: Self = Error(-(bindings::EXDEV as i32));
+    declare_err!(EXDEV, "Cross-device link.");
 
-    /// No such device.
-    pub const ENODEV: Self = Error(-(bindings::ENODEV as i32));
+    declare_err!(ENODEV, "No such device.");
 
-    /// Not a directory.
-    pub const ENOTDIR: Self = Error(-(bindings::ENOTDIR as i32));
+    declare_err!(ENOTDIR, "Not a directory.");
 
-    /// Is a directory.
-    pub const EISDIR: Self = Error(-(bindings::EISDIR as i32));
+    declare_err!(EISDIR, "Is a directory.");
 
-    /// Invalid argument.
-    pub const EINVAL: Self = Error(-(bindings::EINVAL as i32));
+    declare_err!(EINVAL, "Invalid argument.");
 
-    /// File table overflow.
-    pub const ENFILE: Self = Error(-(bindings::ENFILE as i32));
+    declare_err!(ENFILE, "File table overflow.");
 
-    /// Too many open files.
-    pub const EMFILE: Self = Error(-(bindings::EMFILE as i32));
+    declare_err!(EMFILE, "Too many open files.");
 
-    /// Not a typewriter.
-    pub const ENOTTY: Self = Error(-(bindings::ENOTTY as i32));
+    declare_err!(ENOTTY, "Not a typewriter.");
 
-    /// Text file busy.
-    pub const ETXTBSY: Self = Error(-(bindings::ETXTBSY as i32));
+    declare_err!(ETXTBSY, "Text file busy.");
 
-    /// File too large.
-    pub const EFBIG: Self = Error(-(bindings::EFBIG as i32));
+    declare_err!(EFBIG, "File too large.");
 
-    /// No space left on device.
-    pub const ENOSPC: Self = Error(-(bindings::ENOSPC as i32));
+    declare_err!(ENOSPC, "No space left on device.");
 
-    /// Illegal seek.
-    pub const ESPIPE: Self = Error(-(bindings::ESPIPE as i32));
+    declare_err!(ESPIPE, "Illegal seek.");
 
-    /// Read-only file system.
-    pub const EROFS: Self = Error(-(bindings::EROFS as i32));
+    declare_err!(EROFS, "Read-only file system.");
 
-    /// Too many links.
-    pub const EMLINK: Self = Error(-(bindings::EMLINK as i32));
+    declare_err!(EMLINK, "Too many links.");
 
-    /// Broken pipe.
-    pub const EPIPE: Self = Error(-(bindings::EPIPE as i32));
+    declare_err!(EPIPE, "Broken pipe.");
 
-    /// Math argument out of domain of func.
-    pub const EDOM: Self = Error(-(bindings::EDOM as i32));
+    declare_err!(EDOM, "Math argument out of domain of func.");
 
-    /// Math result not representable.
-    pub const ERANGE: Self = Error(-(bindings::ERANGE as i32));
+    declare_err!(ERANGE, "Math result not representable.");
 
-    /// Restart the system call.
-    pub const ERESTARTSYS: Self = Error(-(bindings::ERESTARTSYS as i32));
+    declare_err!(EDEADLK, "Resource deadlock would occur");
+
+    declare_err!(ENAMETOOLONG, "File name too long");
+
+    declare_err!(ENOLCK, "No record locks available");
+
+    declare_err!(
+        ENOSYS,
+        "Invalid system call number.",
+        "",
+        "This error code is special: arch syscall entry code will return",
+        "[`Self::ENOSYS`] if users try to call a syscall that doesn't exist.",
+        "To keep failures of syscalls that really do exist distinguishable from",
+        "failures due to attempts to use a nonexistent syscall, syscall",
+        "implementations should refrain from returning [`Self::ENOSYS`]."
+    );
+
+    declare_err!(ENOTEMPTY, "Directory not empty.");
+
+    declare_err!(ELOOP, "Too many symbolic links encountered.");
+
+    declare_err!(EWOULDBLOCK, "Operation would block.");
+
+    declare_err!(ENOMSG, "No message of desired type.");
+
+    declare_err!(EIDRM, "Identifier removed.");
+
+    declare_err!(ECHRNG, "Channel number out of range.");
+
+    declare_err!(EL2NSYNC, "Level 2 not synchronized.");
+
+    declare_err!(EL3HLT, "Level 3 halted.");
+
+    declare_err!(EL3RST, "Level 3 reset.");
+
+    declare_err!(ELNRNG, "Link number out of range.");
+
+    declare_err!(EUNATCH, "Protocol driver not attached.");
+
+    declare_err!(ENOCSI, "No CSI structure available.");
+
+    declare_err!(EL2HLT, "Level 2 halted.");
+
+    declare_err!(EBADE, "Invalid exchange.");
+
+    declare_err!(EBADR, "Invalid request descriptor.");
+
+    declare_err!(EXFULL, "Exchange full.");
+
+    declare_err!(ENOANO, "No anode.");
+
+    declare_err!(EBADRQC, "Invalid request code.");
+
+    declare_err!(EBADSLT, "Invalid slot.");
+
+    declare_err!(EDEADLOCK, "Resource deadlock would occur.");
+
+    declare_err!(EBFONT, "Bad font file format.");
+
+    declare_err!(ENOSTR, "Device not a stream.");
+
+    declare_err!(ENODATA, "No data available.");
+
+    declare_err!(ETIME, "Timer expired.");
+
+    declare_err!(ENOSR, "Out of streams resources.");
+
+    declare_err!(ENONET, "Machine is not on the network.");
+
+    declare_err!(ENOPKG, "Package not installed.");
+
+    declare_err!(EREMOTE, "Object is remote.");
+
+    declare_err!(ENOLINK, "Link has been severed.");
+
+    declare_err!(EADV, "Advertise error.");
+
+    declare_err!(ESRMNT, "Srmount error.");
+
+    declare_err!(ECOMM, "Communication error on send.");
+
+    declare_err!(EPROTO, "Protocol error.");
+
+    declare_err!(EMULTIHOP, "Multihop attempted.");
+
+    declare_err!(EDOTDOT, "RFS specific error.");
+
+    declare_err!(EBADMSG, "Not a data message.");
+
+    declare_err!(EOVERFLOW, "Value too large for defined data type.");
+
+    declare_err!(ENOTUNIQ, "Name not unique on network.");
+
+    declare_err!(EBADFD, "File descriptor in bad state.");
+
+    declare_err!(EREMCHG, "Remote address changed.");
+
+    declare_err!(ELIBACC, "Can not access a needed shared library.");
+
+    declare_err!(ELIBBAD, "Accessing a corrupted shared library.");
+
+    declare_err!(ELIBSCN, ".lib section in a.out corrupted.");
+
+    declare_err!(ELIBMAX, "Attempting to link in too many shared libraries.");
+
+    declare_err!(ELIBEXEC, "Cannot exec a shared library directly.");
+
+    declare_err!(EILSEQ, "Illegal byte sequence.");
+
+    declare_err!(ERESTART, "Interrupted system call should be restarted.");
+
+    declare_err!(ESTRPIPE, "Streams pipe error.");
+
+    declare_err!(EUSERS, "Too many users.");
+
+    declare_err!(ENOTSOCK, "Socket operation on non-socket.");
+
+    declare_err!(EDESTADDRREQ, "Destination address required.");
+
+    declare_err!(EMSGSIZE, "Message too long.");
+
+    declare_err!(EPROTOTYPE, "Protocol wrong type for socket.");
+
+    declare_err!(ENOPROTOOPT, "Protocol not available.");
+
+    declare_err!(EPROTONOSUPPORT, "Protocol not supported.");
+
+    declare_err!(ESOCKTNOSUPPORT, "Socket type not supported.");
+
+    declare_err!(EOPNOTSUPP, "Operation not supported on transport endpoint.");
+
+    declare_err!(EPFNOSUPPORT, "Protocol family not supported.");
+
+    declare_err!(EAFNOSUPPORT, "Address family not supported by protocol.");
+
+    declare_err!(EADDRINUSE, "Address already in use.");
+
+    declare_err!(EADDRNOTAVAIL, "Cannot assign requested address.");
+
+    declare_err!(ENETDOWN, "Network is down.");
+
+    declare_err!(ENETUNREACH, "Network is unreachable.");
+
+    declare_err!(ENETRESET, "Network dropped connection because of reset.");
+
+    declare_err!(ECONNABORTED, "Software caused connection abort.");
+
+    declare_err!(ECONNRESET, "Connection reset by peer.");
+
+    declare_err!(ENOBUFS, "No buffer space available.");
+
+    declare_err!(EISCONN, "Transport endpoint is already connected.");
+
+    declare_err!(ENOTCONN, "Transport endpoint is not connected.");
+
+    declare_err!(ESHUTDOWN, "Cannot send after transport endpoint shutdown.");
+
+    declare_err!(ETOOMANYREFS, "Too many references: cannot splice.");
+
+    declare_err!(ETIMEDOUT, "Connection timed out.");
+
+    declare_err!(ECONNREFUSED, "Connection refused.");
+
+    declare_err!(EHOSTDOWN, "Host is down.");
+
+    declare_err!(EHOSTUNREACH, "No route to host.");
+
+    declare_err!(EALREADY, "Operation already in progress.");
+
+    declare_err!(EINPROGRESS, "Operation now in progress.");
+
+    declare_err!(ESTALE, "Stale file handle.");
+
+    declare_err!(EUCLEAN, "Structure needs cleaning.");
+
+    declare_err!(ENOTNAM, "Not a XENIX named type file.");
+
+    declare_err!(ENAVAIL, "No XENIX semaphores available.");
+
+    declare_err!(EISNAM, "Is a named type file.");
+
+    declare_err!(EREMOTEIO, "Remote I/O error.");
+
+    declare_err!(EDQUOT, "Quota exceeded.");
+
+    declare_err!(ENOMEDIUM, "No medium found.");
+
+    declare_err!(EMEDIUMTYPE, "Wrong medium type.");
+
+    declare_err!(ECANCELED, "Operation Canceled.");
+
+    declare_err!(ENOKEY, "Required key not available.");
+
+    declare_err!(EKEYEXPIRED, "Key has expired.");
+
+    declare_err!(EKEYREVOKED, "Key has been revoked.");
+
+    declare_err!(EKEYREJECTED, "Key was rejected by service.");
+
+    declare_err!(EOWNERDEAD, "Owner died.", "", "For robust mutexes.");
+
+    declare_err!(ENOTRECOVERABLE, "State not recoverable.");
+
+    declare_err!(ERFKILL, "Operation not possible due to RF-kill.");
+
+    declare_err!(EHWPOISON, "Memory page has hardware error.");
+
+    declare_err!(ERESTARTSYS, "Restart the system call.");
 
     /// Creates an [`Error`] from a kernel error code.
     ///
