@@ -662,7 +662,7 @@ pub trait FileOperations: Send + Sync + Sized {
         _file: &File,
         _cmd: &mut IoctlCommand,
     ) -> Result<i32> {
-        Err(Error::EINVAL)
+        Err(Error::ENOTTY)
     }
 
     /// Performs 32-bit IO control operations on that are specific to the file on 64-bit kernels.
@@ -673,7 +673,7 @@ pub trait FileOperations: Send + Sync + Sized {
         _file: &File,
         _cmd: &mut IoctlCommand,
     ) -> Result<i32> {
-        Err(Error::EINVAL)
+        Err(Error::ENOTTY)
     }
 
     /// Syncs pending changes to this file.
