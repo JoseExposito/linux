@@ -61,10 +61,11 @@ pub struct IoMem<const SIZE: usize> {
 }
 
 macro_rules! define_read {
-    ($name:ident, $try_name:ident, $type_name:ty) => {
+    ($(#[$attr:meta])* $name:ident, $try_name:ident, $type_name:ty) => {
         /// Reads IO data from the given offset known, at compile time.
         ///
         /// If the offset is not known at compile time, the build will fail.
+        $(#[$attr])*
         pub fn $name(&self, offset: usize) -> $type_name {
             Self::check_offset::<$type_name>(offset);
             let ptr = self.ptr.wrapping_add(offset);
@@ -77,6 +78,7 @@ macro_rules! define_read {
         /// Reads IO data from the given offset.
         ///
         /// It fails if/when the offset (plus the type size) is out of bounds.
+        $(#[$attr])*
         pub fn $try_name(&self, offset: usize) -> Result<$type_name> {
             if !Self::offset_ok::<$type_name>(offset) {
                 return Err(Error::EINVAL);
@@ -91,10 +93,11 @@ macro_rules! define_read {
 }
 
 macro_rules! define_write {
-    ($name:ident, $try_name:ident, $type_name:ty) => {
+    ($(#[$attr:meta])* $name:ident, $try_name:ident, $type_name:ty) => {
         /// Writes IO data to the given offset, known at compile time.
         ///
         /// If the offset is not known at compile time, the build will fail.
+        $(#[$attr])*
         pub fn $name(&self, value: $type_name, offset: usize) {
             Self::check_offset::<$type_name>(offset);
             let ptr = self.ptr.wrapping_add(offset);
@@ -107,6 +110,7 @@ macro_rules! define_write {
         /// Writes IO data to the given offset.
         ///
         /// It fails if/when the offset (plus the type size) is out of bounds.
+        $(#[$attr])*
         pub fn $try_name(&self, value: $type_name, offset: usize) -> Result {
             if !Self::offset_ok::<$type_name>(offset) {
                 return Err(Error::EINVAL);
@@ -174,12 +178,22 @@ impl<const SIZE: usize> IoMem<SIZE> {
     define_read!(readb, try_readb, u8);
     define_read!(readw, try_readw, u16);
     define_read!(readl, try_readl, u32);
-    define_read!(readq, try_readq, u64);
+    define_read!(
+        #[cfg(CONFIG_64BIT)]
+        readq,
+        try_readq,
+        u64
+    );
 
     define_write!(writeb, try_writeb, u8);
     define_write!(writew, try_writew, u16);
     define_write!(writel, try_writel, u32);
-    define_write!(writeq, try_writeq, u64);
+    define_write!(
+        #[cfg(CONFIG_64BIT)]
+        writeq,
+        try_writeq,
+        u64
+    );
 }
 
 impl<const SIZE: usize> Drop for IoMem<SIZE> {
