@@ -7,20 +7,9 @@
 //! See <https://www.kernel.org/doc/Documentation/locking/spinlocks.txt>.
 
 use super::{Guard, Lock, NeedsLockClass};
+use crate::bindings;
 use crate::str::CStr;
-use crate::{bindings, c_types};
 use core::{cell::UnsafeCell, marker::PhantomPinned, pin::Pin};
-
-extern "C" {
-    #[allow(improper_ctypes)]
-    fn rust_helper_spin_lock_init(
-        lock: *mut bindings::spinlock_t,
-        name: *const c_types::c_char,
-        key: *mut bindings::lock_class_key,
-    );
-    fn rust_helper_spin_lock(lock: *mut bindings::spinlock);
-    fn rust_helper_spin_unlock(lock: *mut bindings::spinlock);
-}
 
 /// Safely initialises a [`SpinLock`] with the given name, generating a new lock class.
 #[macro_export]
@@ -87,7 +76,7 @@ impl<T: ?Sized> SpinLock<T> {
 
 impl<T: ?Sized> NeedsLockClass for SpinLock<T> {
     unsafe fn init(self: Pin<&mut Self>, name: &'static CStr, key: *mut bindings::lock_class_key) {
-        unsafe { rust_helper_spin_lock_init(self.spin_lock.get(), name.as_char_ptr(), key) };
+        unsafe { bindings::__spin_lock_init(self.spin_lock.get(), name.as_char_ptr(), key) };
     }
 }
 
@@ -97,13 +86,13 @@ impl<T: ?Sized> Lock for SpinLock<T> {
 
     fn lock_noguard(&self) {
         // SAFETY: `spin_lock` points to valid memory.
-        unsafe { rust_helper_spin_lock(self.spin_lock.get()) };
+        unsafe { bindings::spin_lock(self.spin_lock.get()) };
     }
 
     unsafe fn unlock(&self, _: &mut ()) {
         // SAFETY: The safety requirements of the function ensure that the spinlock is owned by the
         // caller.
-        unsafe { rust_helper_spin_unlock(self.spin_lock.get()) };
+        unsafe { bindings::spin_unlock(self.spin_lock.get()) };
     }
 
     fn locked_data(&self) -> &UnsafeCell<T> {

@@ -28,12 +28,6 @@ use core::{
     ptr::{self, NonNull},
 };
 
-extern "C" {
-    fn rust_helper_refcount_new() -> bindings::refcount_t;
-    fn rust_helper_refcount_inc(r: *mut bindings::refcount_t);
-    fn rust_helper_refcount_dec_and_test(r: *mut bindings::refcount_t) -> bool;
-}
-
 /// A reference-counted pointer to an instance of `T`.
 ///
 /// The reference count is incremented when new instances of [`Ref`] are created, and decremented
@@ -88,7 +82,7 @@ impl<T> Ref<T> {
         // INVARIANT: The refcount is initialised to a non-zero value.
         let mut inner = Box::try_new(RefInner {
             // SAFETY: Just an FFI call that returns a `refcount_t` initialised to 1.
-            refcount: UnsafeCell::new(unsafe { rust_helper_refcount_new() }),
+            refcount: UnsafeCell::new(unsafe { bindings::REFCOUNT_INIT(1) }),
             data: contents,
         })?;
 
@@ -219,7 +213,7 @@ impl<T: ?Sized> Clone for Ref<T> {
         // INVARIANT: C `refcount_inc` saturates the refcount, so it cannot overflow to zero.
         // SAFETY: By the type invariant, there is necessarily a reference to the object, so it is
         // safe to increment the refcount.
-        unsafe { rust_helper_refcount_inc(self.ptr.as_ref().refcount.get()) };
+        unsafe { bindings::refcount_inc(self.ptr.as_ref().refcount.get()) };
         Self {
             ptr: self.ptr,
             _p: PhantomData,
@@ -246,7 +240,7 @@ impl<T: ?Sized> Drop for Ref<T> {
         // INVARIANT: If the refcount reaches zero, there are no other instances of `Ref`, and
         // this instance is being dropped, so the broken invariant is not observable.
         // SAFETY: Also by the type invariant, we are allowed to decrement the refcount.
-        let is_zero = unsafe { rust_helper_refcount_dec_and_test(refcount) };
+        let is_zero = unsafe { bindings::refcount_dec_and_test(refcount) };
         if is_zero {
             // The count reached zero, we must free the memory.
             //

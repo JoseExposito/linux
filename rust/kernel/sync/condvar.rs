@@ -9,10 +9,6 @@ use super::{Guard, Lock, NeedsLockClass};
 use crate::{bindings, str::CStr, task::Task};
 use core::{cell::UnsafeCell, marker::PhantomPinned, mem::MaybeUninit, pin::Pin};
 
-extern "C" {
-    fn rust_helper_init_wait(wq: *mut bindings::wait_queue_entry);
-}
-
 /// Safely initialises a [`CondVar`] with the given name, generating a new lock class.
 #[macro_export]
 macro_rules! condvar_init {
@@ -69,7 +65,7 @@ impl CondVar {
         let mut wait = MaybeUninit::<bindings::wait_queue_entry>::uninit();
 
         // SAFETY: `wait` points to valid memory.
-        unsafe { rust_helper_init_wait(wait.as_mut_ptr()) };
+        unsafe { bindings::init_wait(wait.as_mut_ptr()) };
 
         // SAFETY: Both `wait` and `wait_list` point to valid memory.
         unsafe {

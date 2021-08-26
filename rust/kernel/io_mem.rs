@@ -4,25 +4,8 @@
 //!
 //! C header: [`include/asm-generic/io.h`](../../../../include/asm-generic/io.h)
 
-use crate::{bindings, c_types, Error, Result};
+use crate::{bindings, Error, Result};
 use core::convert::TryInto;
-
-extern "C" {
-    fn rust_helper_ioremap(
-        offset: bindings::resource_size_t,
-        size: c_types::c_ulong,
-    ) -> *mut c_types::c_void;
-
-    fn rust_helper_readb(addr: *const c_types::c_void) -> u8;
-    fn rust_helper_readw(addr: *const c_types::c_void) -> u16;
-    fn rust_helper_readl(addr: *const c_types::c_void) -> u32;
-    fn rust_helper_readq(addr: *const c_types::c_void) -> u64;
-
-    fn rust_helper_writeb(value: u8, addr: *mut c_types::c_void);
-    fn rust_helper_writew(value: u16, addr: *mut c_types::c_void);
-    fn rust_helper_writel(value: u32, addr: *mut c_types::c_void);
-    fn rust_helper_writeq(value: u64, addr: *mut c_types::c_void);
-}
 
 /// Represents a memory resource.
 pub struct Resource {
@@ -78,22 +61,24 @@ pub struct IoMem<const SIZE: usize> {
 }
 
 macro_rules! define_read {
-    ($name:ident, $try_name:ident, $type_name:ty) => {
+    ($(#[$attr:meta])* $name:ident, $try_name:ident, $type_name:ty) => {
         /// Reads IO data from the given offset known, at compile time.
         ///
         /// If the offset is not known at compile time, the build will fail.
+        $(#[$attr])*
         pub fn $name(&self, offset: usize) -> $type_name {
             Self::check_offset::<$type_name>(offset);
             let ptr = self.ptr.wrapping_add(offset);
             // SAFETY: The type invariants guarantee that `ptr` is a valid pointer. The check above
             // guarantees that the code won't build if `offset` makes the read go out of bounds
             // (including the type size).
-            unsafe { concat_idents!(rust_helper_, $name)(ptr as _) }
+            unsafe { bindings::$name(ptr as _) }
         }
 
         /// Reads IO data from the given offset.
         ///
         /// It fails if/when the offset (plus the type size) is out of bounds.
+        $(#[$attr])*
         pub fn $try_name(&self, offset: usize) -> Result<$type_name> {
             if !Self::offset_ok::<$type_name>(offset) {
                 return Err(Error::EINVAL);
@@ -102,28 +87,30 @@ macro_rules! define_read {
             // SAFETY: The type invariants guarantee that `ptr` is a valid pointer. The check above
             // returns an error if `offset` would make the read go out of bounds (including the
             // type size).
-            Ok(unsafe { concat_idents!(rust_helper_, $name)(ptr as _) })
+            Ok(unsafe { bindings::$name(ptr as _) })
         }
     };
 }
 
 macro_rules! define_write {
-    ($name:ident, $try_name:ident, $type_name:ty) => {
+    ($(#[$attr:meta])* $name:ident, $try_name:ident, $type_name:ty) => {
         /// Writes IO data to the given offset, known at compile time.
         ///
         /// If the offset is not known at compile time, the build will fail.
+        $(#[$attr])*
         pub fn $name(&self, value: $type_name, offset: usize) {
             Self::check_offset::<$type_name>(offset);
             let ptr = self.ptr.wrapping_add(offset);
             // SAFETY: The type invariants guarantee that `ptr` is a valid pointer. The check above
             // guarantees that the code won't link if `offset` makes the write go out of bounds
             // (including the type size).
-            unsafe { concat_idents!(rust_helper_, $name)(value, ptr as _) }
+            unsafe { bindings::$name(value, ptr as _) }
         }
 
         /// Writes IO data to the given offset.
         ///
         /// It fails if/when the offset (plus the type size) is out of bounds.
+        $(#[$attr])*
         pub fn $try_name(&self, value: $type_name, offset: usize) -> Result {
             if !Self::offset_ok::<$type_name>(offset) {
                 return Err(Error::EINVAL);
@@ -132,7 +119,7 @@ macro_rules! define_write {
             // SAFETY: The type invariants guarantee that `ptr` is a valid pointer. The check above
             // returns an error if `offset` would make the write go out of bounds (including the
             // type size).
-            unsafe { concat_idents!(rust_helper_, $name)(value, ptr as _) };
+            unsafe { bindings::$name(value, ptr as _) };
             Ok(())
         }
     };
@@ -165,9 +152,7 @@ impl<const SIZE: usize> IoMem<SIZE> {
 
         // Try to map the resource.
         // SAFETY: Just mapping the memory range.
-        // TODO: Remove `into` call below (and disabling of clippy warning) once #465 is fixed.
-        #[allow(clippy::complexity)]
-        let addr = unsafe { rust_helper_ioremap(res.offset, res.size.into()) };
+        let addr = unsafe { bindings::ioremap(res.offset, res.size as _) };
         if addr.is_null() {
             Err(Error::ENOMEM)
         } else {
@@ -193,12 +178,22 @@ impl<const SIZE: usize> IoMem<SIZE> {
     define_read!(readb, try_readb, u8);
     define_read!(readw, try_readw, u16);
     define_read!(readl, try_readl, u32);
-    define_read!(readq, try_readq, u64);
+    define_read!(
+        #[cfg(CONFIG_64BIT)]
+        readq,
+        try_readq,
+        u64
+    );
 
     define_write!(writeb, try_writeb, u8);
     define_write!(writew, try_writew, u16);
     define_write!(writel, try_writel, u32);
-    define_write!(writeq, try_writeq, u64);
+    define_write!(
+        #[cfg(CONFIG_64BIT)]
+        writeq,
+        try_writeq,
+        u64
+    );
 }
 
 impl<const SIZE: usize> Drop for IoMem<SIZE> {

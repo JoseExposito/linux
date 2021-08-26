@@ -10,20 +10,6 @@ use crate::{
 };
 use core::{marker::PhantomData, ptr};
 
-extern "C" {
-    #[allow(improper_ctypes)]
-    fn rust_helper_alloc_pages(
-        gfp_mask: bindings::gfp_t,
-        order: c_types::c_uint,
-    ) -> *mut bindings::page;
-
-    #[allow(improper_ctypes)]
-    fn rust_helper_kmap(page: *mut bindings::page) -> *mut c_types::c_void;
-
-    #[allow(improper_ctypes)]
-    fn rust_helper_kunmap(page: *mut bindings::page);
-}
-
 /// A set of physical pages.
 ///
 /// `Pages` holds a reference to a set of pages of order `ORDER`. Having the order as a generic
@@ -42,7 +28,7 @@ impl<const ORDER: u32> Pages<ORDER> {
         // TODO: Consider whether we want to allow callers to specify flags.
         // SAFETY: This only allocates pages. We check that it succeeds in the next statement.
         let pages = unsafe {
-            rust_helper_alloc_pages(
+            bindings::alloc_pages(
                 bindings::GFP_KERNEL | bindings::__GFP_ZERO | bindings::__GFP_HIGHMEM,
                 ORDER,
             )
@@ -141,7 +127,7 @@ impl<const ORDER: u32> Pages<ORDER> {
         let page = unsafe { self.pages.add(index) };
 
         // SAFETY: `page` is valid based on the checks above.
-        let ptr = unsafe { rust_helper_kmap(page) };
+        let ptr = unsafe { bindings::kmap(page) };
         if ptr.is_null() {
             return None;
         }
@@ -171,6 +157,6 @@ impl Drop for PageMapping<'_> {
     fn drop(&mut self) {
         // SAFETY: An instance of `PageMapping` is created only when `kmap` succeeded for the given
         // page, so it is safe to unmap it here.
-        unsafe { rust_helper_kunmap(self.page) };
+        unsafe { bindings::kunmap(self.page) };
     }
 }

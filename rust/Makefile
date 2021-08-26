@@ -5,7 +5,7 @@ extra-$(CONFIG_RUST) += exports_core_generated.h
 
 extra-$(CONFIG_RUST) += libmacros.so
 
-extra-$(CONFIG_RUST) += bindings_generated.rs
+extra-$(CONFIG_RUST) += bindings_generated.rs bindings_helpers_generated.rs
 obj-$(CONFIG_RUST) += alloc.o kernel.o
 extra-$(CONFIG_RUST) += exports_alloc_generated.h exports_kernel_generated.h
 
@@ -30,7 +30,7 @@ endif
 
 quiet_cmd_rustdoc = RUSTDOC $(if $(rustdoc_host),H, ) $<
       cmd_rustdoc = \
-	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
+	OBJTREE=$(abspath $(objtree)) \
 	$(RUSTDOC) $(if $(rustdoc_host),,$(rust_cross_flags)) \
 		$(filter-out -Cpanic=abort, $(filter-out --emit=%, $(rust_flags))) \
 		$(rustc_target_flags) -L $(objtree)/rust \
@@ -73,12 +73,13 @@ rustdoc-kernel: private rustc_target_flags = --extern alloc \
     --extern macros=$(objtree)/rust/libmacros.so
 rustdoc-kernel: $(srctree)/rust/kernel/lib.rs rustdoc-core \
     rustdoc-macros rustdoc-compiler_builtins rustdoc-alloc \
-    $(objtree)/rust/libmacros.so $(objtree)/rust/bindings_generated.rs FORCE
+    $(objtree)/rust/libmacros.so $(objtree)/rust/bindings_generated.rs \
+    $(objtree)/rust/bindings_helpers_generated.rs FORCE
 	$(call if_changed,rustdoc)
 
 quiet_cmd_rustc_test_library = RUSTC TL $<
       cmd_rustc_test_library = \
-	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
+	OBJTREE=$(abspath $(objtree)) \
 	$(RUSTC) $(filter-out --sysroot=%, $(filter-out -Cpanic=abort, $(filter-out --emit=%, $(rust_flags)))) \
 		$(rustc_target_flags) --crate-type $(if $(rustc_test_library_proc),proc-macro,rlib) \
 		--out-dir $(objtree)/rust/test/ --cfg testlib \
@@ -95,7 +96,7 @@ rusttestlib-macros: $(srctree)/rust/macros/lib.rs rusttest-prepare FORCE
 
 quiet_cmd_rustdoc_test = RUSTDOC T $<
       cmd_rustdoc_test = \
-	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
+	OBJTREE=$(abspath $(objtree)) \
 	$(RUSTDOC) --test $(filter-out --sysroot=%, $(filter-out -Cpanic=abort, $(filter-out --emit=%, $(rust_flags)))) \
 		$(rustc_target_flags) $(rustdoc_test_target_flags) \
 		--sysroot $(objtree)/rust/test/sysroot $(rustdoc_test_quiet) \
@@ -107,7 +108,7 @@ quiet_cmd_rustdoc_test = RUSTDOC T $<
 # so for the moment we skip `-Cpanic=abort`.
 quiet_cmd_rustc_test = RUSTC T  $<
       cmd_rustc_test = \
-	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
+	OBJTREE=$(abspath $(objtree)) \
 	$(RUSTC) --test $(filter-out --sysroot=%, $(filter-out -Cpanic=abort, $(filter-out --emit=%, $(rust_flags)))) \
 		$(rustc_target_flags) --out-dir $(objtree)/rust/test \
 		--sysroot $(objtree)/rust/test/sysroot \
@@ -230,6 +231,19 @@ $(objtree)/rust/bindings_generated.rs: $(srctree)/rust/kernel/bindings_helper.h 
 	$(srctree)/rust/bindgen_parameters FORCE
 	$(call if_changed_dep,bindgen)
 
+quiet_cmd_bindgen_helper = BINDGEN $@
+      cmd_bindgen_helper = \
+	$(BINDGEN) $< --blacklist-type '.*' --whitelist-var '' \
+		--whitelist-function 'rust_helper_.*' \
+		--use-core --with-derive-default --ctypes-prefix c_types \
+		--no-debug '.*' \
+		--size_t-is-usize -o $@ -- $(bindgen_c_flags_final) \
+		-I$(objtree)/rust/ -DMODULE; \
+	sed -Ei 's/pub fn rust_helper_([a-zA-Z0-9_]*)/\#[link_name="rust_helper_\1"]\n    pub fn \1/g' $@
+
+$(objtree)/rust/bindings_helpers_generated.rs: $(srctree)/rust/helpers.c FORCE
+	$(call if_changed_dep,bindgen_helper)
+
 quiet_cmd_exports = EXPORTS $@
       cmd_exports = \
 	$(NM) -p --defined-only $< \
@@ -267,7 +281,7 @@ $(objtree)/rust/libmacros.so: $(srctree)/rust/macros/lib.rs \
 
 quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L $@
       cmd_rustc_library = \
-	RUST_BINDINGS_FILE=$(abspath $(objtree)/rust/bindings_generated.rs) \
+	OBJTREE=$(abspath $(objtree)) \
 	$(if $(skip_clippy),$(RUSTC),$(RUSTC_OR_CLIPPY)) \
 		$(rust_flags) $(rust_cross_flags) $(rustc_target_flags) \
 		--crate-type rlib --out-dir $(objtree)/rust/ -L $(objtree)/rust/ \
@@ -305,7 +319,8 @@ $(objtree)/rust/kernel.o: private rustc_target_flags = --extern alloc \
     --extern macros=$(objtree)/rust/libmacros.so
 $(objtree)/rust/kernel.o: $(srctree)/rust/kernel/lib.rs $(objtree)/rust/alloc.o \
     $(objtree)/rust/build_error.o \
-    $(objtree)/rust/libmacros.so $(objtree)/rust/bindings_generated.rs FORCE
+    $(objtree)/rust/libmacros.so $(objtree)/rust/bindings_generated.rs \
+    $(objtree)/rust/bindings_helpers_generated.rs FORCE
 	$(call if_changed_dep,rustc_library)
 
 # Targets that need to expand twice

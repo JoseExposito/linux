@@ -7,11 +7,6 @@
 use crate::{bindings, c_types, from_kernel_result, sync::Ref, types::PointerWrapper, Result};
 use core::{marker::PhantomData, ops::Deref};
 
-extern "C" {
-    #[allow(improper_ctypes)]
-    fn rust_helper_dev_get_drvdata(dev: *mut bindings::device) -> *mut c_types::c_void;
-}
-
 /// Corresponds to the kernel's `struct dev_pm_ops`.
 ///
 /// It is meant to be implemented by drivers that support power-management operations.
@@ -47,7 +42,7 @@ macro_rules! pm_callback {
         ) -> c_types::c_int {
             from_kernel_result! {
                 // SAFETY: `dev` is valid as it was passed in by the C portion.
-                let ptr = unsafe { rust_helper_dev_get_drvdata(dev) };
+                let ptr = unsafe { bindings::dev_get_drvdata(dev) };
                 // SAFETY: By the safety requirements of `OpsTable::build`, we know that `ptr` came
                 // from a previous call to `T::Data::into_pointer`.
                 let data = unsafe { T::Data::borrow(ptr) };

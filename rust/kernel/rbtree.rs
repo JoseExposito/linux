@@ -16,14 +16,6 @@ use core::{
     ptr::{addr_of_mut, NonNull},
 };
 
-extern "C" {
-    fn rust_helper_rb_link_node(
-        node: *mut bindings::rb_node,
-        parent: *const bindings::rb_node,
-        rb_link: *mut *mut bindings::rb_node,
-    );
-}
-
 struct Node<K, V> {
     links: bindings::rb_node,
     key: K,
@@ -289,7 +281,7 @@ impl<K, V> RBTree<K, V> {
         // "forgot" it with `Box::into_raw`.
         // SAFETY: All pointers are non-null and valid (`*new_link` is null, but `new_link` is a
         // mutable reference).
-        unsafe { rust_helper_rb_link_node(node_links, parent, new_link) };
+        unsafe { bindings::rb_link_node(node_links, parent, new_link) };
 
         // SAFETY: All pointers are valid. `node` has just been inserted into the tree.
         unsafe { bindings::rb_insert_color(node_links, &mut self.root) };

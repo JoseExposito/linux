@@ -77,17 +77,15 @@ impl<T: ?Sized> NeedsLockClass for Mutex<T> {
     }
 }
 
-extern "C" {
-    fn rust_helper_mutex_lock(mutex: *mut bindings::mutex);
-}
-
 impl<T: ?Sized> Lock for Mutex<T> {
     type Inner = T;
     type GuardContext = ();
 
     fn lock_noguard(&self) {
         // SAFETY: `mutex` points to valid memory.
-        unsafe { rust_helper_mutex_lock(self.mutex.get()) };
+        unsafe {
+            bindings::mutex_lock(self.mutex.get());
+        }
     }
 
     unsafe fn unlock(&self, _: &mut ()) {

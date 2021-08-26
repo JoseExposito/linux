@@ -13,7 +13,7 @@
 #include <linux/security.h>
 #include <asm/io.h>
 
-void rust_helper_BUG(void)
+__noreturn void rust_helper_BUG(void)
 {
 	BUG();
 }
@@ -91,8 +91,8 @@ void rust_helper_writeq(u64 value, volatile void __iomem *addr)
 EXPORT_SYMBOL_GPL(rust_helper_writeq);
 #endif
 
-void rust_helper_spin_lock_init(spinlock_t *lock, const char *name,
-				struct lock_class_key *key)
+void rust_helper___spin_lock_init(spinlock_t *lock, const char *name,
+				  struct lock_class_key *key)
 {
 #ifdef CONFIG_DEBUG_SPINLOCK
 	__spin_lock_init(lock, name, key);
@@ -100,7 +100,7 @@ void rust_helper_spin_lock_init(spinlock_t *lock, const char *name,
 	spin_lock_init(lock);
 #endif
 }
-EXPORT_SYMBOL_GPL(rust_helper_spin_lock_init);
+EXPORT_SYMBOL_GPL(rust_helper___spin_lock_init);
 
 void rust_helper_spin_lock(spinlock_t *lock)
 {
@@ -162,22 +162,23 @@ size_t rust_helper_copy_to_iter(const void *addr, size_t bytes, struct iov_iter 
 }
 EXPORT_SYMBOL_GPL(rust_helper_copy_to_iter);
 
-bool rust_helper_is_err(__force const void *ptr)
+bool rust_helper_IS_ERR(__force const void *ptr)
 {
 	return IS_ERR(ptr);
 }
-EXPORT_SYMBOL_GPL(rust_helper_is_err);
+EXPORT_SYMBOL_GPL(rust_helper_IS_ERR);
 
-long rust_helper_ptr_err(__force const void *ptr)
+long rust_helper_PTR_ERR(__force const void *ptr)
 {
 	return PTR_ERR(ptr);
 }
-EXPORT_SYMBOL_GPL(rust_helper_ptr_err);
+EXPORT_SYMBOL_GPL(rust_helper_PTR_ERR);
 
 const char *rust_helper_errname(int err)
 {
 	return errname(err);
 }
+EXPORT_SYMBOL_GPL(rust_helper_errname);
 
 void rust_helper_mutex_lock(struct mutex *lock)
 {
@@ -200,11 +201,11 @@ rust_helper_platform_set_drvdata(struct platform_device *pdev,
 }
 EXPORT_SYMBOL_GPL(rust_helper_platform_set_drvdata);
 
-refcount_t rust_helper_refcount_new(void)
+refcount_t rust_helper_REFCOUNT_INIT(int n)
 {
-	return (refcount_t)REFCOUNT_INIT(1);
+	return (refcount_t)REFCOUNT_INIT(n);
 }
-EXPORT_SYMBOL_GPL(rust_helper_refcount_new);
+EXPORT_SYMBOL_GPL(rust_helper_REFCOUNT_INIT);
 
 void rust_helper_refcount_inc(refcount_t *r)
 {

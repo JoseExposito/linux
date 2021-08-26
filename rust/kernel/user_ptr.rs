@@ -5,28 +5,12 @@
 //! C header: [`include/linux/uaccess.h`](../../../../include/linux/uaccess.h)
 
 use crate::{
-    c_types,
+    bindings, c_types,
     error::Error,
     io_buffer::{IoBufferReader, IoBufferWriter},
     Result,
 };
 use alloc::vec::Vec;
-
-extern "C" {
-    fn rust_helper_copy_from_user(
-        to: *mut c_types::c_void,
-        from: *const c_types::c_void,
-        n: c_types::c_ulong,
-    ) -> c_types::c_ulong;
-
-    fn rust_helper_copy_to_user(
-        to: *mut c_types::c_void,
-        from: *const c_types::c_void,
-        n: c_types::c_ulong,
-    ) -> c_types::c_ulong;
-
-    fn rust_helper_clear_user(to: *mut c_types::c_void, n: c_types::c_ulong) -> c_types::c_ulong;
-}
 
 /// A reference to an area in userspace memory, which can be either
 /// read-only or read-write.
@@ -130,7 +114,7 @@ impl IoBufferReader for UserSlicePtrReader {
         if len > self.1 || len > u32::MAX as usize {
             return Err(Error::EFAULT);
         }
-        let res = unsafe { rust_helper_copy_from_user(out as _, self.0, len as _) };
+        let res = unsafe { bindings::copy_from_user(out as _, self.0, len as _) };
         if res != 0 {
             return Err(Error::EFAULT);
         }
@@ -162,7 +146,7 @@ impl IoBufferWriter for UserSlicePtrWriter {
 
         // SAFETY: The buffer will be validated by `clear_user`. We ensure that `len` is within
         // bounds in the check above.
-        let left = unsafe { rust_helper_clear_user(self.0, len as _) } as usize;
+        let left = unsafe { bindings::clear_user(self.0, len as _) } as usize;
         if left != 0 {
             ret = Err(Error::EFAULT);
             len -= left;
@@ -177,7 +161,7 @@ impl IoBufferWriter for UserSlicePtrWriter {
         if len > self.1 || len > u32::MAX as usize {
             return Err(Error::EFAULT);
         }
-        let res = unsafe { rust_helper_copy_to_user(self.0, data as _, len as _) };
+        let res = unsafe { bindings::copy_to_user(self.0, data as _, len as _) };
         if res != 0 {
             return Err(Error::EFAULT);
         }

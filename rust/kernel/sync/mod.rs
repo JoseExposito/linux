@@ -20,8 +20,8 @@
 //! pr_info!("{}\n", *data.lock());
 //! ```
 
+use crate::bindings;
 use crate::str::CStr;
-use crate::{bindings, c_types};
 use core::pin::Pin;
 
 mod arc;
@@ -37,10 +37,6 @@ pub use guard::{Guard, Lock};
 pub use locked_by::LockedBy;
 pub use mutex::Mutex;
 pub use spinlock::SpinLock;
-
-extern "C" {
-    fn rust_helper_cond_resched() -> c_types::c_int;
-}
 
 /// Safely initialises an object that has an `init` function that takes a name and a lock class as
 /// arguments, examples of these are [`Mutex`] and [`SpinLock`]. Each of them also provides a more
@@ -80,5 +76,5 @@ pub trait NeedsLockClass {
 /// Reschedules the caller's task if needed.
 pub fn cond_resched() -> bool {
     // SAFETY: No arguments, reschedules `current` if needed.
-    unsafe { rust_helper_cond_resched() != 0 }
+    unsafe { bindings::cond_resched() != 0 }
 }
