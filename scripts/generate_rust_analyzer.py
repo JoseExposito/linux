@@ -8,7 +8,7 @@ import logging
 import pathlib
 import sys
 
-def generate_crates(srctree, objtree, sysroot_src, bindings_file):
+def generate_crates(srctree, objtree, sysroot_src):
     # Generate the configuration list.
     cfg = []
     with open(objtree / "include" / "generated" / "rustc_cfg") as fd:
@@ -78,7 +78,7 @@ def generate_crates(srctree, objtree, sysroot_src, bindings_file):
         ["core", "alloc", "macros", "build_error"],
         cfg=cfg,
     )
-    crates[-1]["env"]["RUST_BINDINGS_FILE"] = str(bindings_file.resolve(True))
+    crates[-1]["env"]["OBJTREE"] = str(objtree.resolve(True))
     crates[-1]["source"] = {
         "include_dirs": [
             str(srctree / "rust" / "kernel"),
@@ -115,7 +115,6 @@ def main():
     parser.add_argument("srctree", type=pathlib.Path)
     parser.add_argument("objtree", type=pathlib.Path)
     parser.add_argument("sysroot_src", type=pathlib.Path)
-    parser.add_argument("bindings_file", type=pathlib.Path)
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -124,7 +123,7 @@ def main():
     )
 
     rust_project = {
-        "crates": generate_crates(args.srctree, args.objtree, args.sysroot_src, args.bindings_file),
+        "crates": generate_crates(args.srctree, args.objtree, args.sysroot_src),
         "sysroot_src": str(args.sysroot_src),
     }
 

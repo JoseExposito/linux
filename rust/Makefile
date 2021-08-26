@@ -296,7 +296,7 @@ rustc_host_target = $(shell $(RUSTC) --version --verbose | grep -F 'host: ' | cu
 RUST_LIB_SRC ?= $(rustc_sysroot)/lib/rustlib/src/rust/library
 
 rust-analyzer:
-	$(Q)$(srctree)/scripts/generate_rust_analyzer.py $(srctree) $(objtree) $(RUST_LIB_SRC) $(objtree)/rust/bindings_generated.rs > $(objtree)/rust-project.json
+	$(Q)$(srctree)/scripts/generate_rust_analyzer.py $(srctree) $(objtree) $(RUST_LIB_SRC) > $(objtree)/rust-project.json
 
 $(objtree)/rust/compiler_builtins.o: private rustc_objcopy = -w -W '__*'
 $(objtree)/rust/compiler_builtins.o: $(srctree)/rust/compiler_builtins.rs \
