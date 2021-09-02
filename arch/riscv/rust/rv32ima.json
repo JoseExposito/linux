@@ -9,7 +9,6 @@
   "env": "gnu",
   "features": "+m,+a",
   "function-sections": false,
-  "is-builtin": true,
   "linker-flavor": "gcc",
   "linker-is-gnu": true,
   "llvm-target": "riscv32",

@@ -9,7 +9,6 @@
   "function-sections": false,
   "has-elf-tls": true,
   "has-rpath": true,
-  "is-builtin": true,
   "linker-is-gnu": true,
   "llvm-target": "arm-unknown-linux-gnueabi",
   "max-atomic-width": 64,

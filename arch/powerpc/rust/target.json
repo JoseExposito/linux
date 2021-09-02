@@ -6,7 +6,6 @@
   "env": "gnu",
   "features": "-altivec,-vsx,-hard-float",
   "function-sections": false,
-  "is-builtin": true,
   "linker-flavor": "gcc",
   "linker-is-gnu": true,
   "llvm-target": "powerpc64le-elf",
