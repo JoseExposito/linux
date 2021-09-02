@@ -7,7 +7,6 @@
   "env": "gnu",
   "features": "+strict-align,+neon,+fp-armv8",
   "function-sections": false,
-  "is-builtin": true,
   "linker-flavor": "gcc",
   "linker-is-gnu": true,
   "llvm-target": "aarch64-unknown-none",
