@@ -146,14 +146,8 @@ impl CStr {
     /// `NUL` byte (or the string will be truncated).
     #[inline]
     pub const unsafe fn from_bytes_with_nul_unchecked(bytes: &[u8]) -> &CStr {
-        // Note: This can be done using pointer deref (which requires
-        // `const_raw_ptr_deref` to be const) or `transmute` (which requires
-        // `const_transmute` to be const) or `ptr::from_raw_parts` (which
-        // requires `ptr_metadata`).
-        // While none of them are current stable, it is very likely that one of
-        // them will eventually be.
         // SAFETY: Properties of `bytes` guaranteed by the safety precondition.
-        unsafe { &*(bytes as *const [u8] as *const Self) }
+        unsafe { core::mem::transmute(bytes) }
     }
 
     /// Returns a C pointer to the string.
