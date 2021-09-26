@@ -13,7 +13,7 @@ jobs:
         arch: [arm, arm64, ppc64le, riscv64, x86_64]
         toolchain: [gcc, clang, llvm]
         config: [debug, release]
-        rustc: [1.54.0]
+        rustc: [1.55.0]
         output: [src] # [src, build]
         install: [rustup] # [rustup, standalone]
         sysroot: [common] # [common, custom]
@@ -37,7 +37,7 @@ jobs:
           - arch: arm64
             toolchain: gcc
             config: debug
-            rustc: 1.54.0
+            rustc: 1.55.0
             output: build
             install: rustup
             sysroot: custom
@@ -45,7 +45,7 @@ jobs:
           - arch: ppc64le
             toolchain: clang
             config: release
-            rustc: 1.54.0
+            rustc: 1.55.0
             output: build
             install: standalone
             sysroot: common
@@ -53,7 +53,7 @@ jobs:
           - arch: x86_64
             toolchain: llvm
             config: debug
-            rustc: 1.54.0
+            rustc: 1.55.0
             output: build
             install: standalone
             sysroot: custom
