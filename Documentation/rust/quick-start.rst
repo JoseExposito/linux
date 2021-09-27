@@ -29,7 +29,7 @@ may not work because, for the moment, we depend on some unstable Rust features.
 If you are using ``rustup``, enter the checked out source code directory
 and run::
 
-    rustup override set 1.54.0
+    rustup override set 1.55.0
 
 Otherwise, fetch a standalone installer or install ``rustup`` from:
 
