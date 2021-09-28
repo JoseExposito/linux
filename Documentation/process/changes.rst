@@ -34,7 +34,7 @@ know what you are doing, use the exact version listed here. Please see
 ====================== ===============  ========================================
         Program        Minimal version       Command to check the version
 ====================== ===============  ========================================
-GNU C                  4.9              gcc --version
+GNU C                  5.1              gcc --version
 Clang/LLVM (optional)  10.0.1           clang --version
 rustc (optional)       1.55.0           rustc --version
 bindgen (optional)     0.56.0           bindgen --version
