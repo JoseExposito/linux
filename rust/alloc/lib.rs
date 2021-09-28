@@ -58,6 +58,10 @@
 //! [`Rc`]: rc
 //! [`RefCell`]: core::cell
 
+// To run liballoc tests without x.py without ending up with two copies of liballoc, Miri needs to be
+// able to "empty" this crate. See <https://github.com/rust-lang/miri-test-libstd/issues/4>.
+// rustc itself never sets the feature, so this line has no affect there.
+#![cfg(any(not(feature = "miri-test-libstd"), test, doctest))]
 #![allow(unused_attributes)]
 #![stable(feature = "alloc", since = "1.36.0")]
 #![doc(
@@ -111,7 +115,6 @@
 #![feature(iter_zip)]
 #![feature(lang_items)]
 #![feature(layout_for_ptr)]
-#![feature(maybe_uninit_ref)]
 #![feature(negative_impls)]
 #![feature(never_type)]
 #![feature(nll)]
@@ -139,8 +142,7 @@
 #![feature(maybe_uninit_extra, maybe_uninit_slice, maybe_uninit_uninit_array)]
 #![feature(alloc_layout_extra)]
 #![feature(trusted_random_access)]
-#![cfg_attr(bootstrap, feature(try_trait))]
-#![cfg_attr(not(bootstrap), feature(try_trait_v2))]
+#![feature(try_trait_v2)]
 #![feature(min_type_alias_impl_trait)]
 #![feature(associated_type_bounds)]
 #![feature(slice_group_by)]

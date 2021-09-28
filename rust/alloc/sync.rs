@@ -496,6 +496,14 @@ impl<T> Arc<T> {
         unsafe { Pin::new_unchecked(Arc::new(data)) }
     }
 
+    /// Constructs a new `Pin<Arc<T>>`, return an error if allocation fails.
+    #[cfg(not(no_global_oom_handling))]
+    #[unstable(feature = "allocator_api", issue = "32838")]
+    #[inline]
+    pub fn try_pin(data: T) -> Result<Pin<Arc<T>>, AllocError> {
+        unsafe { Ok(Pin::new_unchecked(Arc::try_new(data)?)) }
+    }
+
     /// Constructs a new `Arc<T>`, returning an error if allocation fails.
     ///
     /// # Examples
@@ -2333,6 +2341,20 @@ impl<T: ?Sized + Hash> Hash for Arc<T> {
 #[cfg(not(no_global_oom_handling))]
 #[stable(feature = "from_for_ptrs", since = "1.6.0")]
 impl<T> From<T> for Arc<T> {
+    /// Converts a `T` into an `Arc<T>`
+    ///
+    /// The conversion moves the value into a
+    /// newly allocated `Arc`. It is equivalent to
+    /// calling `Arc::new(t)`.
+    ///
+    /// # Example
+    /// ```rust
+    /// # use std::sync::Arc;
+    /// let x = 5;
+    /// let arc = Arc::new(5);
+    ///
+    /// assert_eq!(Arc::from(x), arc);
+    /// ```
     fn from(t: T) -> Self {
         Arc::new(t)
     }
