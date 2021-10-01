@@ -70,12 +70,12 @@ pub mod format_strings {
     /// The length of the fixed format strings.
     pub const LENGTH: usize = 10;
 
-    /// Generates a fixed format string for the kernel's [`printk`].
+    /// Generates a fixed format string for the kernel's [`_printk`].
     ///
     /// The format string is always the same for a given level, i.e. for a
     /// given `prefix`, which are the kernel's `KERN_*` constants.
     ///
-    /// [`printk`]: ../../../../include/linux/printk.h
+    /// [`_printk`]: ../../../../include/linux/printk.h
     const fn generate(is_cont: bool, prefix: &[u8; 3]) -> [u8; LENGTH] {
         // Ensure the `KERN_*` macros are what we expect.
         assert!(prefix[0] == b'\x01');
@@ -115,7 +115,7 @@ pub mod format_strings {
     pub static CONT: [u8; LENGTH] = generate(true, bindings::KERN_CONT);
 }
 
-/// Prints a message via the kernel's [`printk`].
+/// Prints a message via the kernel's [`_printk`].
 ///
 /// Public but hidden since it should only be used from public macros.
 ///
@@ -124,16 +124,16 @@ pub mod format_strings {
 /// The format string must be one of the ones in [`format_strings`], and
 /// the module name must be null-terminated.
 ///
-/// [`printk`]: ../../../../include/linux/printk.h
+/// [`_printk`]: ../../../../include/linux/_printk.h
 #[doc(hidden)]
 pub unsafe fn call_printk(
     format_string: &[u8; format_strings::LENGTH],
     module_name: &[u8],
     args: fmt::Arguments<'_>,
 ) {
-    // `printk` does not seem to fail in any path.
+    // `_printk` does not seem to fail in any path.
     unsafe {
-        bindings::printk(
+        bindings::_printk(
             format_string.as_ptr() as _,
             module_name.as_ptr(),
             &args as *const _ as *const c_void,
@@ -141,18 +141,18 @@ pub unsafe fn call_printk(
     }
 }
 
-/// Prints a message via the kernel's [`printk`] for the `CONT` level.
+/// Prints a message via the kernel's [`_printk`] for the `CONT` level.
 ///
 /// Public but hidden since it should only be used from public macros.
 ///
-/// [`printk`]: ../../../../include/linux/printk.h
+/// [`_printk`]: ../../../../include/linux/printk.h
 #[doc(hidden)]
 pub fn call_printk_cont(args: fmt::Arguments<'_>) {
-    // `printk` does not seem to fail in any path.
+    // `_printk` does not seem to fail in any path.
     //
     // SAFETY: The format string is fixed.
     unsafe {
-        bindings::printk(
+        bindings::_printk(
             format_strings::CONT.as_ptr() as _,
             &args as *const _ as *const c_void,
         );

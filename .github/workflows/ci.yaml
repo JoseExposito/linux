@@ -22,6 +22,9 @@ jobs:
           # arm 32-bit gcc not yet supported
           - arch: arm
             toolchain: gcc
+          # riscv64 debug (see #500 and #502).
+          - arch: riscv64
+            config: debug
           # Exclude `LLVM=1` where not supported.
           - arch: ppc64le
             toolchain: llvm
@@ -93,6 +96,7 @@ jobs:
         run: |
           echo 'MAKE_ARCH=ARCH=powerpc' >> $GITHUB_ENV
           echo 'MAKE_CROSS_COMPILE=CROSS_COMPILE=powerpc64le-linux-gnu-' >> $GITHUB_ENV
+          echo 'MAKE_LLVM_IAS=LLVM_IAS=0' >> $GITHUB_ENV
           echo 'IMAGE_PATH=vmlinux' >> $GITHUB_ENV
           echo 'QEMU_ARCH=ppc64' >> $GITHUB_ENV
           echo 'QEMU_MACHINE=pseries' >> $GITHUB_ENV
@@ -250,7 +254,7 @@ jobs:
           mv .config ${{ env.BUILD_DIR }}.config
           sed -i 's:samples/rust/:${{ env.BUILD_DIR }}samples/rust/:' .github/workflows/qemu-initramfs.desc
 
-      - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3
+      - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_LLVM_IAS }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3
 
       # Run
       - run: ${{ env.BUILD_DIR }}usr/gen_init_cpio .github/workflows/qemu-initramfs.desc > qemu-initramfs.img
@@ -393,16 +397,16 @@ jobs:
             ${{ env.BUILD_DIR }}vmlinux
 
       # Clippy
-      - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 CLIPPY=1
+      - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_LLVM_IAS }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 CLIPPY=1
 
       # Docs
-      - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 rustdoc
+      - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_LLVM_IAS }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 rustdoc
 
       # Tests
-      - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 rusttest
+      - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_LLVM_IAS }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 rusttest
 
       # Formatting
-      - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 rustfmtcheck
+      - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_LLVM_IAS }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 rustfmtcheck
 
       # View changes to ccache
       - run: ccache -s
