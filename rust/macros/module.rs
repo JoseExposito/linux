@@ -308,9 +308,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
 
     let info = ModuleInfo::parse(&mut it);
 
-    let name = info.name.clone();
-
-    let mut modinfo = ModInfoBuilder::new(&name);
+    let mut modinfo = ModInfoBuilder::new(info.name.as_ref());
     if let Some(author) = info.author {
         modinfo.emit("author", &author);
     }
@@ -396,7 +394,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
                             unsafe {{ <{param_type_internal} as kernel::module_param::ModuleParam>::value(&__{name}_{param_name}_value) }}
                         }}
                     ",
-                    name = name,
+                    name = info.name,
                     param_name = param_name,
                     param_type_internal = param_type_internal,
                 )
@@ -408,7 +406,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
                             unsafe {{ <{param_type_internal} as kernel::module_param::ModuleParam>::value(&__{name}_{param_name}_value) }}
                         }}
                     ",
-                    name = name,
+                    name = info.name,
                     param_name = param_name,
                     param_type_internal = param_type_internal,
                 )
@@ -419,7 +417,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
                         arg: unsafe {{ &__{name}_{param_name}_value }} as *const _ as *mut kernel::c_types::c_void,
                     }},
                 ",
-                name = name,
+                name = info.name,
                 param_name = param_name,
             );
             modinfo.buffer.push_str(
@@ -468,7 +466,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
                         __bindgen_anon_1: {kparam}
                     }});
                     ",
-                    name = name,
+                    name = info.name,
                     param_type_internal = param_type_internal,
                     read_func = read_func,
                     param_default = param_default,
