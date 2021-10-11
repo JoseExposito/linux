@@ -326,6 +326,7 @@ $(objtree)/rust/kernel.o: $(srctree)/rust/kernel/lib.rs $(objtree)/rust/alloc.o 
 # Targets that need to expand twice
 .SECONDEXPANSION:
 $(objtree)/rust/core.o: private skip_clippy = 1
+$(objtree)/rust/core.o: private rustc_target_flags = --cfg no_fp_fmt_parse
 $(objtree)/rust/core.o: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
 	$(call if_changed_dep,rustc_library)
 
