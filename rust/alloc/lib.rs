@@ -180,12 +180,12 @@ pub mod collections;
 pub mod fmt;
 pub mod prelude;
 pub mod raw_vec;
-#[cfg(not(CONFIG_RUST))]
+#[cfg(not(no_rc))]
 pub mod rc;
 pub mod slice;
 pub mod str;
 pub mod string;
-#[cfg(all(target_has_atomic = "ptr", not(CONFIG_RUST)))]
+#[cfg(all(not(no_sync), target_has_atomic = "ptr"))]
 pub mod sync;
 #[cfg(all(not(no_global_oom_handling), target_has_atomic = "ptr"))]
 pub mod task;
