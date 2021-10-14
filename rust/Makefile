@@ -28,6 +28,9 @@ else
 cargo_quiet=--verbose
 endif
 
+core-cfgs = \
+    --cfg no_fp_fmt_parse
+
 alloc-cfgs = \
     --cfg no_global_oom_handling \
     --cfg no_rc \
@@ -331,9 +334,10 @@ $(objtree)/rust/kernel.o: $(srctree)/rust/kernel/lib.rs $(objtree)/rust/alloc.o 
 # Targets that need to expand twice
 .SECONDEXPANSION:
 $(objtree)/rust/core.o: private skip_clippy = 1
-$(objtree)/rust/core.o: private rustc_target_flags = --cfg no_fp_fmt_parse
+$(objtree)/rust/core.o: private rustc_target_flags = $(core-cfgs)
 $(objtree)/rust/core.o: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
 	$(call if_changed_dep,rustc_library)
 
+rustdoc-core: private rustc_target_flags = $(core-cfgs)
 rustdoc-core: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
 	$(call if_changed,rustdoc)
