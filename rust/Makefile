@@ -28,6 +28,11 @@ else
 cargo_quiet=--verbose
 endif
 
+alloc-cfgs = \
+    --cfg no_global_oom_handling \
+    --cfg no_rc \
+    --cfg no_sync
+
 quiet_cmd_rustdoc = RUSTDOC $(if $(rustdoc_host),H, ) $<
       cmd_rustdoc = \
 	OBJTREE=$(abspath $(objtree)) \
@@ -62,7 +67,7 @@ rustdoc-compiler_builtins: $(srctree)/rust/compiler_builtins.rs rustdoc-core FOR
 # `no_global_oom_handling` functions refer to non-`no_global_oom_handling`
 # functions. Ideally `rustdoc` would have a way to distinguish broken links
 # due to things that are "configured out" vs. entirely non-existing ones.
-rustdoc-alloc: private rustc_target_flags = --cfg no_global_oom_handling \
+rustdoc-alloc: private rustc_target_flags = $(alloc-cfgs) \
     -Abroken_intra_doc_links
 rustdoc-alloc: $(srctree)/rust/alloc/lib.rs rustdoc-core \
     rustdoc-compiler_builtins FORCE
@@ -304,7 +309,7 @@ $(objtree)/rust/compiler_builtins.o: $(srctree)/rust/compiler_builtins.rs \
 	$(call if_changed_dep,rustc_library)
 
 $(objtree)/rust/alloc.o: private skip_clippy = 1
-$(objtree)/rust/alloc.o: private rustc_target_flags = --cfg no_global_oom_handling
+$(objtree)/rust/alloc.o: private rustc_target_flags = $(alloc-cfgs)
 $(objtree)/rust/alloc.o: $(srctree)/rust/alloc/lib.rs \
     $(objtree)/rust/compiler_builtins.o FORCE
 	$(call if_changed_dep,rustc_library)
