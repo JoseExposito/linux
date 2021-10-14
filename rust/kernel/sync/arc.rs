@@ -25,8 +25,8 @@ use core::{
     cell::UnsafeCell,
     convert::{AsRef, TryFrom},
     marker::{PhantomData, Unsize},
-    mem::ManuallyDrop,
-    ops::Deref,
+    mem::{ManuallyDrop, MaybeUninit},
+    ops::{Deref, DerefMut},
     pin::Pin,
     ptr::{self, NonNull},
 };
@@ -75,17 +75,10 @@ unsafe impl<T: ?Sized + Sync + Send> Sync for Ref<T> {}
 impl<T> Ref<T> {
     /// Constructs a new reference counted instance of `T`.
     pub fn try_new(contents: T) -> Result<Self> {
-        Self::try_new_and_init(contents, |_| {})
-    }
-
-    /// Constructs a new reference counted instance of `T` and calls the initialisation function.
-    ///
-    /// This is useful because it provides a mutable reference to `T` at its final location.
-    pub fn try_new_and_init<U: FnOnce(Pin<&mut T>)>(contents: T, init: U) -> Result<Self> {
         let layout = Layout::new::<RefInner<T>>();
         // SAFETY: The layout size is guaranteed to be non-zero because `RefInner` contains the
         // reference count.
-        let mut inner = NonNull::new(unsafe { alloc(layout) })
+        let inner = NonNull::new(unsafe { alloc(layout) })
             .ok_or(Error::ENOMEM)?
             .cast::<RefInner<T>>();
 
@@ -98,16 +91,16 @@ impl<T> Ref<T> {
         // SAFETY: `inner` is writable and properly aligned.
         unsafe { inner.as_ptr().write(value) };
 
-        // SAFETY: By the invariant, `RefInner` is pinned and `T` is also pinned.
-        let pinned = unsafe { Pin::new_unchecked(&mut inner.as_mut().data) };
-
-        // INVARIANT: The only places where `&mut T` is available are here, which is explicitly
-        // pinned, and in `drop`. Both are compatible with the pin requirements.
-        init(pinned);
-
         // SAFETY: We just created `inner` with a reference count of 1, which is owned by the new
         // `Ref` object.
         Ok(unsafe { Self::from_inner(inner) })
+    }
+
+    /// Constructs a new reference counted instance of `T` and calls the initialisation function.
+    ///
+    /// This is useful because it provides a mutable reference to `T` at its final location.
+    pub fn try_new_and_init<U: FnOnce(Pin<&mut T>)>(contents: T, init: U) -> Result<Self> {
+        Ok(UniqueRef::try_new(contents)?.pin_init_and_share(init))
     }
 
     /// Deconstructs a [`Ref`] object into a `usize`.
@@ -306,6 +299,12 @@ impl<T> TryFrom<Vec<T>> for Ref<[T]> {
     }
 }
 
+impl<T: ?Sized> From<UniqueRef<T>> for Ref<T> {
+    fn from(item: UniqueRef<T>) -> Self {
+        item.inner
+    }
+}
+
 /// A borrowed [`Ref`] with manually-managed lifetime.
 ///
 /// # Invariants
@@ -335,5 +334,147 @@ impl<T: ?Sized> Deref for RefBorrow<T> {
 
     fn deref(&self) -> &Self::Target {
         self.inner_ref.deref()
+    }
+}
+
+/// A refcounted object that is known to have a refcount of 1.
+///
+/// It is mutable and can be converted to a [`Ref`] so that it can be shared.
+///
+/// # Invariants
+///
+/// `inner` always has a reference count of 1.
+///
+/// # Examples
+///
+/// In the following example, we make changes to the inner object before turning it into a
+/// `Ref<Test>` object (after which point, it cannot be mutated directly). Note that `x.into()`
+/// cannot fail.
+///
+/// ```
+/// # use kernel::prelude::*;
+/// use kernel::sync::{Ref, UniqueRef};
+///
+/// struct Example {
+///     a: u32,
+///     b: u32,
+/// }
+///
+/// fn test() -> Result<Ref<Example>> {
+///     let mut x = UniqueRef::try_new(Example { a: 10, b: 20 })?;
+///     x.a += 1;
+///     x.b += 1;
+///     Ok(x.into())
+/// }
+/// ```
+///
+/// In the following example we first allocate memory for a ref-counted `Example` but we don't
+/// initialise it on allocation. We do initialise it later with a call to [`UniqueRef::write`],
+/// followed by a conversion to `Ref<Example>`. This is particularly useful when allocation happens
+/// in one context (e.g., sleepable) and initialisation in another (e.g., atomic):
+///
+/// ```
+/// # use kernel::prelude::*;
+/// use kernel::sync::{Ref, UniqueRef};
+///
+/// struct Example {
+///     a: u32,
+///     b: u32,
+/// }
+///
+/// fn test2() -> Result<Ref<Example>> {
+///     let x = UniqueRef::try_new_uninit()?;
+///     Ok(x.write(Example { a: 10, b: 20 }).into())
+/// }
+/// ```
+///
+/// In the last example below, the caller gets a pinned instance of `Example` while converting to
+/// `Ref<Example>`; this is useful in scenarios where one needs a pinned reference during
+/// initialisation, for example, when initialising fields that are wrapped in locks.
+///
+/// ```
+/// # use kernel::prelude::*;
+/// use kernel::sync::{Ref, UniqueRef};
+///
+/// struct Example {
+///     a: u32,
+///     b: u32,
+/// }
+///
+/// fn test2() -> Result<Ref<Example>> {
+///     let mut x = UniqueRef::try_new(Example { a: 10, b: 20 })?;
+///     // We can modify `pinned` because it is `Unpin`.
+///     Ok(x.pin_init_and_share(|mut pinned| pinned.a += 1))
+/// }
+/// ```
+pub struct UniqueRef<T: ?Sized> {
+    inner: Ref<T>,
+}
+
+impl<T> UniqueRef<T> {
+    /// Tries to allocate a new [`UniqueRef`] instance.
+    pub fn try_new(value: T) -> Result<Self> {
+        Ok(Self {
+            // INVARIANT: The newly-created object has a ref-count of 1.
+            inner: Ref::try_new(value)?,
+        })
+    }
+
+    /// Tries to allocate a new [`UniqueRef`] instance whose contents are not initialised yet.
+    pub fn try_new_uninit() -> Result<UniqueRef<MaybeUninit<T>>> {
+        Ok(UniqueRef::<MaybeUninit<T>> {
+            // INVARIANT: The newly-created object has a ref-count of 1.
+            inner: Ref::try_new(MaybeUninit::uninit())?,
+        })
+    }
+}
+
+impl<T: ?Sized> UniqueRef<T> {
+    /// Converts a [`UniqueRef<T>`] into a [`Ref<T>`].
+    ///
+    /// It allows callers to get a `Pin<&mut T>` that they can use to initialise the inner object
+    /// just before it becomes shareable.
+    pub fn pin_init_and_share<U: FnOnce(Pin<&mut T>)>(mut self, init: U) -> Ref<T> {
+        let inner = self.deref_mut();
+
+        // SAFETY: By the `Ref` invariant, `RefInner` is pinned and `T` is also pinned.
+        let pinned = unsafe { Pin::new_unchecked(inner) };
+
+        // INVARIANT: The only places where `&mut T` is available are here (where it is explicitly
+        // pinned, i.e. implementations of `init` will see a Pin<&mut T>), and in `Ref::drop`. Both
+        // are compatible with the pin requirements of the invariants of `Ref`.
+        init(pinned);
+
+        self.into()
+    }
+}
+
+impl<T> UniqueRef<MaybeUninit<T>> {
+    /// Converts a `UniqueRef<MaybeUninit<T>>` into a `UniqueRef<T>` by writing a value into it.
+    pub fn write(mut self, value: T) -> UniqueRef<T> {
+        self.deref_mut().write(value);
+        let inner = ManuallyDrop::new(self).inner.ptr;
+        UniqueRef {
+            // SAFETY: The new `Ref` is taking over `ptr` from `self.inner` (which won't be
+            // dropped). The types are compatible because `MaybeUninit<T>` is compatible with `T`.
+            inner: unsafe { Ref::from_inner(inner.cast()) },
+        }
+    }
+}
+
+impl<T: ?Sized> Deref for UniqueRef<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.inner.deref()
+    }
+}
+
+impl<T: ?Sized> DerefMut for UniqueRef<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        // SAFETY: By the `Ref` type invariant, there is necessarily a reference to the object, so
+        // it is safe to dereference it. Additionally, we know there is only one reference when
+        // it's inside a `UniqueRef`, so it is safe to get a mutable reference.
+        unsafe { &mut self.inner.ptr.as_mut().data }
     }
 }
