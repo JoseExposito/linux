@@ -15,8 +15,8 @@
 //!
 //! [`Arc`]: https://doc.rust-lang.org/std/sync/struct.Arc.html
 
-use crate::{bindings, Result};
-use alloc::boxed::Box;
+use crate::{bindings, Error, Result};
+use alloc::alloc::{alloc, dealloc};
 use core::{
     alloc::Layout,
     cell::UnsafeCell,
@@ -79,23 +79,32 @@ impl<T> Ref<T> {
     ///
     /// This is useful because it provides a mutable reference to `T` at its final location.
     pub fn try_new_and_init<U: FnOnce(Pin<&mut T>)>(contents: T, init: U) -> Result<Self> {
+        let layout = Layout::new::<RefInner<T>>();
+        // SAFETY: The layout size is guaranteed to be non-zero because `RefInner` contains the
+        // reference count.
+        let mut inner = NonNull::new(unsafe { alloc(layout) })
+            .ok_or(Error::ENOMEM)?
+            .cast::<RefInner<T>>();
+
         // INVARIANT: The refcount is initialised to a non-zero value.
-        let mut inner = Box::try_new(RefInner {
+        let value = RefInner {
             // SAFETY: Just an FFI call that returns a `refcount_t` initialised to 1.
             refcount: UnsafeCell::new(unsafe { bindings::REFCOUNT_INIT(1) }),
             data: contents,
-        })?;
+        };
+        // SAFETY: `inner` is writable and properly aligned.
+        unsafe { inner.as_ptr().write(value) };
 
         // SAFETY: By the invariant, `RefInner` is pinned and `T` is also pinned.
-        let pinned = unsafe { Pin::new_unchecked(&mut inner.data) };
+        let pinned = unsafe { Pin::new_unchecked(&mut inner.as_mut().data) };
 
         // INVARIANT: The only places where `&mut T` is available are here, which is explicitly
         // pinned, and in `drop`. Both are compatible with the pin requirements.
         init(pinned);
 
-        // SAFETY: We just created `inner` with a reference count of 1 and we're leaking it. So the
-        // new `Ref` object owns the reference.
-        Ok(unsafe { Self::from_inner(NonNull::from(Box::leak(inner))) })
+        // SAFETY: We just created `inner` with a reference count of 1, which is owned by the new
+        // `Ref` object.
+        Ok(unsafe { Self::from_inner(inner) })
     }
 
     /// Deconstructs a [`Ref`] object into a `usize`.
@@ -243,9 +252,15 @@ impl<T: ?Sized> Drop for Ref<T> {
         let is_zero = unsafe { bindings::refcount_dec_and_test(refcount) };
         if is_zero {
             // The count reached zero, we must free the memory.
-            //
-            // SAFETY: The pointer was initialised from the result of `Box::leak`.
-            unsafe { Box::from_raw(self.ptr.as_ptr()) };
+
+            // SAFETY: This thread holds the only remaining reference to `self`, so it is safe to
+            // get a mutable reference to it.
+            let inner = unsafe { self.ptr.as_mut() };
+            let layout = Layout::for_value(inner);
+            // SAFETY: The value stored in inner is valid.
+            unsafe { core::ptr::drop_in_place(inner) };
+            // SAFETY: The pointer was initialised from the result of a call to `alloc`.
+            unsafe { dealloc(self.ptr.cast().as_ptr(), layout) };
         }
     }
 }
