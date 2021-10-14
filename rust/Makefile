@@ -225,8 +225,14 @@ bindgen_c_flags = $(filter-out $(bindgen_skip_c_flags), $(c_flags)) \
 	$(bindgen_extra_c_flags)
 endif
 
+ifdef CONFIG_LTO
+bindgen_c_flags_lto = $(filter-out $(CC_FLAGS_LTO), $(bindgen_c_flags))
+else
+bindgen_c_flags_lto = $(bindgen_c_flags)
+endif
+
 # To avoid several recompilations in PowerPC, which inserts `-D_TASK_CPU`
-bindgen_c_flags_final = $(filter-out -D_TASK_CPU=%, $(bindgen_c_flags))
+bindgen_c_flags_final = $(filter-out -D_TASK_CPU=%, $(bindgen_c_flags_lto))
 
 quiet_cmd_bindgen = BINDGEN $@
       cmd_bindgen = \
