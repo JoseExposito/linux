@@ -6,7 +6,10 @@
 
 use crate::str::CStr;
 use crate::{bindings, c_types};
-use alloc::{alloc::AllocError, collections::TryReserveError};
+use alloc::{
+    alloc::{AllocError, LayoutError},
+    collections::TryReserveError,
+};
 use core::convert::From;
 use core::fmt;
 use core::num::TryFromIntError;
@@ -381,6 +384,12 @@ impl From<Utf8Error> for Error {
 
 impl From<TryReserveError> for Error {
     fn from(_: TryReserveError) -> Error {
+        Error::ENOMEM
+    }
+}
+
+impl From<LayoutError> for Error {
+    fn from(_: LayoutError) -> Error {
         Error::ENOMEM
     }
 }
