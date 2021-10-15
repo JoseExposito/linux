@@ -5,7 +5,7 @@
 //! This module allows Rust code to use the kernel's [`struct wait_queue_head`] as a condition
 //! variable.
 
-use super::{Guard, Lock, NeedsLockClass};
+use super::{GuardMut, Lock, NeedsLockClass};
 use crate::{bindings, str::CStr, task::Task};
 use core::{cell::UnsafeCell, marker::PhantomPinned, mem::MaybeUninit, pin::Pin};
 
@@ -60,7 +60,7 @@ impl CondVar {
     ///
     /// Returns whether there is a signal pending.
     #[must_use = "wait returns if a signal is pending, so the caller must check the return value"]
-    pub fn wait<L: Lock>(&self, guard: &mut Guard<'_, L>) -> bool {
+    pub fn wait<L: Lock>(&self, guard: &mut GuardMut<'_, L>) -> bool {
         let lock = guard.lock;
         let mut wait = MaybeUninit::<bindings::wait_queue_entry>::uninit();
 
