@@ -77,7 +77,8 @@ impl<T: ?Sized> NeedsLockClass for Mutex<T> {
     }
 }
 
-impl<T: ?Sized> Lock for Mutex<T> {
+// SAFETY: The underlying kernel `struct mutex` object ensures mutual exclusion.
+unsafe impl<T: ?Sized> Lock for Mutex<T> {
     type Inner = T;
     type GuardContext = ();
 

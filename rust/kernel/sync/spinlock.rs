@@ -80,7 +80,8 @@ impl<T: ?Sized> NeedsLockClass for SpinLock<T> {
     }
 }
 
-impl<T: ?Sized> Lock for SpinLock<T> {
+// SAFETY: The underlying kernel `spinlock_t` object ensures mutual exclusion.
+unsafe impl<T: ?Sized> Lock for SpinLock<T> {
     type Inner = T;
     type GuardContext = ();
 

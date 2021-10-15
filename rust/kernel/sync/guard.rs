@@ -64,7 +64,12 @@ impl<'a, L: Lock + ?Sized> Guard<'a, L> {
 ///
 /// [`Guard`] is written such that any mutual exclusion primitive that can implement this trait can
 /// also benefit from having an automatic way to unlock itself.
-pub trait Lock {
+///
+/// # Safety
+///
+/// Implementers of this trait must ensure that only one thread/CPU may access the protected data
+/// once the lock is held, that is, between calls to `lock_noguard` and `unlock`.
+pub unsafe trait Lock {
     /// The type of the data protected by the lock.
     type Inner: ?Sized;
 
