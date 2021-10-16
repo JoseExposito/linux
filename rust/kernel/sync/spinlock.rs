@@ -6,7 +6,7 @@
 //!
 //! See <https://www.kernel.org/doc/Documentation/locking/spinlocks.txt>.
 
-use super::{GuardMut, Lock, NeedsLockClass};
+use super::{CreatableLock, GuardMut, Lock};
 use crate::bindings;
 use crate::str::CStr;
 use core::{cell::UnsafeCell, marker::PhantomPinned, pin::Pin};
@@ -23,7 +23,7 @@ macro_rules! spinlock_init {
 /// one at a time is allowed to progress, the others will block (spinning) until the spinlock is
 /// unlocked, at which point another CPU will be allowed to make progress.
 ///
-/// A [`SpinLock`] must first be initialised with a call to [`SpinLock::init`] before it can be
+/// A [`SpinLock`] must first be initialised with a call to [`SpinLock::init_lock`] before it can be
 /// used. The [`spinlock_init`] macro is provided to automatically assign a new lock class to a
 /// spinlock instance.
 ///
@@ -54,7 +54,7 @@ impl<T> SpinLock<T> {
     ///
     /// # Safety
     ///
-    /// The caller must call [`SpinLock::init`] before using the spinlock.
+    /// The caller must call [`SpinLock::init_lock`] before using the spinlock.
     pub unsafe fn new(t: T) -> Self {
         Self {
             spin_lock: UnsafeCell::new(bindings::spinlock::default()),
@@ -74,8 +74,17 @@ impl<T: ?Sized> SpinLock<T> {
     }
 }
 
-impl<T: ?Sized> NeedsLockClass for SpinLock<T> {
-    unsafe fn init(self: Pin<&mut Self>, name: &'static CStr, key: *mut bindings::lock_class_key) {
+impl<T> CreatableLock for SpinLock<T> {
+    unsafe fn new_lock(data: Self::Inner) -> Self {
+        // SAFETY: The safety requirements of `new_lock` also require that `init_lock` be called.
+        unsafe { Self::new(data) }
+    }
+
+    unsafe fn init_lock(
+        self: Pin<&mut Self>,
+        name: &'static CStr,
+        key: *mut bindings::lock_class_key,
+    ) {
         unsafe { bindings::__spin_lock_init(self.spin_lock.get(), name.as_char_ptr(), key) };
     }
 }

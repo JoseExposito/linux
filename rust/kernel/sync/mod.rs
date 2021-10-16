@@ -20,8 +20,7 @@
 //! pr_info!("{}\n", *data.lock());
 //! ```
 
-use crate::bindings;
-use crate::str::CStr;
+use crate::{bindings, str::CStr};
 use core::pin::Pin;
 
 mod arc;
@@ -29,13 +28,15 @@ mod condvar;
 mod guard;
 mod locked_by;
 mod mutex;
+mod seqlock;
 mod spinlock;
 
 pub use arc::{Ref, RefBorrow, UniqueRef};
 pub use condvar::CondVar;
-pub use guard::{GuardMut, Lock};
+pub use guard::{CreatableLock, Guard, GuardMut, Lock};
 pub use locked_by::LockedBy;
 pub use mutex::Mutex;
+pub use seqlock::{SeqLock, SeqLockReadGuard};
 pub use spinlock::SpinLock;
 
 /// Safely initialises an object that has an `init` function that takes a name and a lock class as
@@ -45,14 +46,17 @@ pub use spinlock::SpinLock;
 #[macro_export]
 macro_rules! init_with_lockdep {
     ($obj:expr, $name:literal) => {{
-        static mut CLASS: core::mem::MaybeUninit<$crate::bindings::lock_class_key> =
+        static mut CLASS1: core::mem::MaybeUninit<$crate::bindings::lock_class_key> =
+            core::mem::MaybeUninit::uninit();
+        static mut CLASS2: core::mem::MaybeUninit<$crate::bindings::lock_class_key> =
             core::mem::MaybeUninit::uninit();
         let obj = $obj;
         let name = $crate::c_str!($name);
-        // SAFETY: `CLASS` is never used by Rust code directly; the kernel may change it though.
+        // SAFETY: `CLASS1` and `CLASS2` are never used by Rust code directly; the C portion of the
+        // kernel may change it though.
         #[allow(unused_unsafe)]
         unsafe {
-            $crate::sync::NeedsLockClass::init(obj, name, CLASS.as_mut_ptr())
+            $crate::sync::NeedsLockClass::init(obj, name, CLASS1.as_mut_ptr(), CLASS2.as_mut_ptr())
         };
     }};
 }
@@ -69,8 +73,14 @@ pub trait NeedsLockClass {
     ///
     /// # Safety
     ///
-    /// `key` must point to a valid memory location as it will be used by the kernel.
-    unsafe fn init(self: Pin<&mut Self>, name: &'static CStr, key: *mut bindings::lock_class_key);
+    /// `key1` and `key2` must point to valid memory locations and remain valid until `self` is
+    /// dropped.
+    unsafe fn init(
+        self: Pin<&mut Self>,
+        name: &'static CStr,
+        key1: *mut bindings::lock_class_key,
+        key2: *mut bindings::lock_class_key,
+    );
 }
 
 /// Reschedules the caller's task if needed.

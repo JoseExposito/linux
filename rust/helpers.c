@@ -278,6 +278,37 @@ void *rust_helper_dev_get_drvdata(struct device *dev)
 }
 EXPORT_SYMBOL_GPL(rust_helper_dev_get_drvdata);
 
+void rust_helper___seqcount_init(seqcount_t *s, const char *name,
+                               struct lock_class_key *key)
+{
+        __seqcount_init(s, name, key);
+}
+EXPORT_SYMBOL_GPL(rust_helper___seqcount_init);
+
+unsigned rust_helper_read_seqcount_begin(seqcount_t *s)
+{
+        return read_seqcount_begin(s);
+}
+EXPORT_SYMBOL_GPL(rust_helper_read_seqcount_begin);
+
+int rust_helper_read_seqcount_retry(seqcount_t *s, unsigned start)
+{
+        return read_seqcount_retry(s, start);
+}
+EXPORT_SYMBOL_GPL(rust_helper_read_seqcount_retry);
+
+void rust_helper_write_seqcount_begin(seqcount_t *s)
+{
+        do_write_seqcount_begin(s);
+}
+EXPORT_SYMBOL_GPL(rust_helper_write_seqcount_begin);
+
+void rust_helper_write_seqcount_end(seqcount_t *s)
+{
+        do_write_seqcount_end(s);
+}
+EXPORT_SYMBOL_GPL(rust_helper_write_seqcount_end);
+
 /* We use bindgen's --size_t-is-usize option to bind the C size_t type
  * as the Rust usize type, so we can use it in contexts where Rust
  * expects a usize like slice (array) indices. usize is defined to be

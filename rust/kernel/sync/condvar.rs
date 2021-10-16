@@ -61,7 +61,7 @@ impl CondVar {
     /// Returns whether there is a signal pending.
     #[must_use = "wait returns if a signal is pending, so the caller must check the return value"]
     pub fn wait<L: Lock>(&self, guard: &mut GuardMut<'_, L>) -> bool {
-        let lock = guard.lock;
+        let lock = guard.guard.lock;
         let mut wait = MaybeUninit::<bindings::wait_queue_entry>::uninit();
 
         // SAFETY: `wait` points to valid memory.
@@ -77,12 +77,12 @@ impl CondVar {
         }
 
         // SAFETY: The guard is evidence that the caller owns the lock.
-        unsafe { lock.unlock(&mut guard.context) };
+        unsafe { lock.unlock(&mut guard.guard.context) };
 
         // SAFETY: No arguments, switches to another thread.
         unsafe { bindings::schedule() };
 
-        guard.context = lock.lock_noguard();
+        guard.guard.context = lock.lock_noguard();
 
         // SAFETY: Both `wait` and `wait_list` point to valid memory.
         unsafe { bindings::finish_wait(self.wait_list.get(), wait.as_mut_ptr()) };
@@ -126,7 +126,12 @@ impl CondVar {
 }
 
 impl NeedsLockClass for CondVar {
-    unsafe fn init(self: Pin<&mut Self>, name: &'static CStr, key: *mut bindings::lock_class_key) {
+    unsafe fn init(
+        self: Pin<&mut Self>,
+        name: &'static CStr,
+        key: *mut bindings::lock_class_key,
+        _: *mut bindings::lock_class_key,
+    ) {
         unsafe { bindings::__init_waitqueue_head(self.wait_list.get(), name.as_char_ptr(), key) };
     }
 }
