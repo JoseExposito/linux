@@ -4,6 +4,8 @@
 //!
 //! C header: [`include/linux/pm.h`](../../../../include/linux/pm.h)
 
+#![allow(dead_code)]
+
 use crate::{bindings, c_types, from_kernel_result, sync::Ref, types::PointerWrapper, Result};
 use core::{marker::PhantomData, ops::Deref};
 
