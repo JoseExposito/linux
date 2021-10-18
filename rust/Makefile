@@ -66,12 +66,12 @@ rustdoc-macros: $(srctree)/rust/macros/lib.rs FORCE
 rustdoc-compiler_builtins: $(srctree)/rust/compiler_builtins.rs rustdoc-core FORCE
 	$(call if_changed,rustdoc)
 
-# We need to allow `broken_intra_doc_links` because some
+# We need to allow `rustdoc::broken_intra_doc_links` because some
 # `no_global_oom_handling` functions refer to non-`no_global_oom_handling`
 # functions. Ideally `rustdoc` would have a way to distinguish broken links
 # due to things that are "configured out" vs. entirely non-existing ones.
 rustdoc-alloc: private rustc_target_flags = $(alloc-cfgs) \
-    -Abroken_intra_doc_links
+    -Arustdoc::broken_intra_doc_links
 rustdoc-alloc: $(srctree)/rust/alloc/lib.rs rustdoc-core \
     rustdoc-compiler_builtins FORCE
 	$(call if_changed,rustdoc)
