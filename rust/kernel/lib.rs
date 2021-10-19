@@ -89,6 +89,8 @@ pub use build_error::build_error;
 pub use crate::error::{Error, Result};
 pub use crate::types::{Mode, ScopeGuard};
 
+use core::marker::PhantomData;
+
 /// Page size defined in terms of the `PAGE_SHIFT` macro from C.
 ///
 /// [`PAGE_SHIFT`]: ../../../include/asm-generic/page.h
@@ -139,7 +141,11 @@ impl ThisModule {
             bindings::kernel_param_lock(self.0)
         }
 
-        KParamGuard { this_module: self }
+        KParamGuard {
+            #[cfg(CONFIG_SYSFS)]
+            this_module: self,
+            phantom: PhantomData,
+        }
     }
 }
 
@@ -147,7 +153,9 @@ impl ThisModule {
 ///
 /// Lock will be released when this struct is dropped.
 pub struct KParamGuard<'a> {
+    #[cfg(CONFIG_SYSFS)]
     this_module: &'a ThisModule,
+    phantom: PhantomData<&'a ()>,
 }
 
 #[cfg(CONFIG_SYSFS)]

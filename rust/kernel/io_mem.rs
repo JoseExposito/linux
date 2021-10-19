@@ -4,6 +4,8 @@
 //!
 //! C header: [`include/asm-generic/io.h`](../../../../include/asm-generic/io.h)
 
+#![allow(dead_code)]
+
 use crate::{bindings, Error, Result};
 use core::convert::TryInto;
 
