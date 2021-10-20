@@ -199,9 +199,7 @@ else
 #
 # For the moment, here we are tweaking the flags on the fly. Some config
 # options may not work (e.g. `GCC_PLUGIN_RANDSTRUCT` if we end up using one
-# of those structs). We might want to redo how Clang flags are kept track of
-# in the general `Makefile` even for GCC builds, similar to what we did with
-# `TENTATIVE_CLANG_FLAGS`.
+# of those structs).
 bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-mskip-rax-setup -mgeneral-regs-only -msign-return-address=% \
 	-mindirect-branch=thunk-extern -mindirect-branch-register -mrecord-mcount \
@@ -220,7 +218,15 @@ bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 bindgen_skip_c_flags += -mtraceback=no -mno-pointers-to-nested-functions \
 	-mno-string -mno-strict-align
 
-bindgen_extra_c_flags = $(TENTATIVE_CLANG_FLAGS) -Wno-address-of-packed-member
+# Derived from `scripts/Makefile.clang`
+BINDGEN_TARGET_arm	:= arm-linux-gnueabi
+BINDGEN_TARGET_arm64	:= aarch64-linux-gnu
+BINDGEN_TARGET_powerpc	:= powerpc64le-linux-gnu
+BINDGEN_TARGET_riscv	:= riscv64-linux-gnu
+BINDGEN_TARGET_x86	:= x86_64-linux-gnu
+BINDGEN_TARGET		:= $(BINDGEN_TARGET_$(SRCARCH))
+
+bindgen_extra_c_flags = --target=$(BINDGEN_TARGET) -Wno-address-of-packed-member
 bindgen_c_flags = $(filter-out $(bindgen_skip_c_flags), $(c_flags)) \
 	$(bindgen_extra_c_flags)
 endif
