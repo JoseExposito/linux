@@ -19,7 +19,6 @@
     const_fn_trait_bound,
     const_mut_refs,
     const_panic,
-    const_fn_transmute,
     const_unreachable_unchecked,
     doc_cfg,
     ptr_metadata,
