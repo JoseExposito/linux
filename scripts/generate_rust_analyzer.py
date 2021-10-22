@@ -32,7 +32,7 @@ def generate_crates(srctree, objtree, sysroot_src):
             "is_proc_macro": is_proc_macro,
             "deps": [{"crate": crates_indexes[dep], "name": dep} for dep in deps],
             "cfg": cfg,
-            "edition": "2018",
+            "edition": "2021",
             "env": {
                 "RUST_MODFILE": "This is only for rust-analyzer"
             }
