@@ -15,14 +15,13 @@
 //!
 //! [`Arc`]: https://doc.rust-lang.org/std/sync/struct.Arc.html
 
-use crate::{bindings, Error, Result};
+use crate::{bindings, Error, Opaque, Result};
 use alloc::{
     alloc::{alloc, dealloc},
     vec::Vec,
 };
 use core::{
     alloc::Layout,
-    cell::UnsafeCell,
     convert::{AsRef, TryFrom},
     marker::{PhantomData, Unsize},
     mem::{ManuallyDrop, MaybeUninit},
@@ -47,7 +46,7 @@ pub struct Ref<T: ?Sized> {
 
 #[repr(C)]
 struct RefInner<T: ?Sized> {
-    refcount: UnsafeCell<bindings::refcount_t>,
+    refcount: Opaque<bindings::refcount_t>,
     data: T,
 }
 
@@ -85,7 +84,7 @@ impl<T> Ref<T> {
         // INVARIANT: The refcount is initialised to a non-zero value.
         let value = RefInner {
             // SAFETY: Just an FFI call that returns a `refcount_t` initialised to 1.
-            refcount: UnsafeCell::new(unsafe { bindings::REFCOUNT_INIT(1) }),
+            refcount: Opaque::new(unsafe { bindings::REFCOUNT_INIT(1) }),
             data: contents,
         };
         // SAFETY: `inner` is writable and properly aligned.
@@ -277,7 +276,7 @@ impl<T> TryFrom<Vec<T>> for Ref<[T]> {
             core::ptr::slice_from_raw_parts_mut(ptr.as_ptr() as _, v.len()) as *mut RefInner<[T]>;
 
         // SAFETY: Just an FFI call that returns a `refcount_t` initialised to 1.
-        let count = UnsafeCell::new(unsafe { bindings::REFCOUNT_INIT(1) });
+        let count = Opaque::new(unsafe { bindings::REFCOUNT_INIT(1) });
         // SAFETY: `inner.refcount` is writable and properly aligned.
         unsafe { core::ptr::addr_of_mut!((*inner).refcount).write(count) };
         // SAFETY: The contents of `v` as readable and properly aligned; `inner.data` is writable

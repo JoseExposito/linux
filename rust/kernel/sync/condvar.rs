@@ -6,8 +6,8 @@
 //! variable.
 
 use super::{GuardMut, Lock, NeedsLockClass};
-use crate::{bindings, str::CStr, task::Task};
-use core::{cell::UnsafeCell, marker::PhantomPinned, mem::MaybeUninit, pin::Pin};
+use crate::{bindings, str::CStr, task::Task, Opaque};
+use core::{marker::PhantomPinned, pin::Pin};
 
 /// Safely initialises a [`CondVar`] with the given name, generating a new lock class.
 #[macro_export]
@@ -27,7 +27,7 @@ const POLLFREE: u32 = 0x4000;
 ///
 /// [`struct wait_queue_head`]: ../../../include/linux/wait.h
 pub struct CondVar {
-    pub(crate) wait_list: UnsafeCell<bindings::wait_queue_head>,
+    pub(crate) wait_list: Opaque<bindings::wait_queue_head>,
 
     /// A condvar needs to be pinned because it contains a [`struct list_head`] that is
     /// self-referential, so it cannot be safely moved once it is initialised.
@@ -49,7 +49,7 @@ impl CondVar {
     /// The caller must call `CondVar::init` before using the conditional variable.
     pub unsafe fn new() -> Self {
         Self {
-            wait_list: UnsafeCell::new(bindings::wait_queue_head::default()),
+            wait_list: Opaque::uninit(),
             _pin: PhantomPinned,
         }
     }
@@ -62,19 +62,19 @@ impl CondVar {
     #[must_use = "wait returns if a signal is pending, so the caller must check the return value"]
     pub fn wait<L: Lock>(&self, guard: &mut GuardMut<'_, L>) -> bool {
         let lock = guard.guard.lock;
-        let mut wait = MaybeUninit::<bindings::wait_queue_entry>::uninit();
+        let wait = Opaque::<bindings::wait_queue_entry>::uninit();
 
         // SAFETY: `wait` points to valid memory.
-        unsafe { bindings::init_wait(wait.as_mut_ptr()) };
+        unsafe { bindings::init_wait(wait.get()) };
 
         // SAFETY: Both `wait` and `wait_list` point to valid memory.
         unsafe {
             bindings::prepare_to_wait_exclusive(
                 self.wait_list.get(),
-                wait.as_mut_ptr(),
+                wait.get(),
                 bindings::TASK_INTERRUPTIBLE as _,
-            );
-        }
+            )
+        };
 
         // SAFETY: The guard is evidence that the caller owns the lock.
         unsafe { lock.unlock(&mut guard.guard.context) };
@@ -85,7 +85,7 @@ impl CondVar {
         guard.guard.context = lock.lock_noguard();
 
         // SAFETY: Both `wait` and `wait_list` point to valid memory.
-        unsafe { bindings::finish_wait(self.wait_list.get(), wait.as_mut_ptr()) };
+        unsafe { bindings::finish_wait(self.wait_list.get(), wait.get()) };
 
         Task::current().signal_pending()
     }

@@ -8,7 +8,7 @@
 //! See <https://www.kernel.org/doc/Documentation/locking/seqlock.rst>.
 
 use super::{CreatableLock, Guard, Lock, NeedsLockClass};
-use crate::{bindings, str::CStr};
+use crate::{bindings, str::CStr, Opaque};
 use core::{cell::UnsafeCell, marker::PhantomPinned, ops::Deref, pin::Pin};
 
 /// Exposes sequential locks backed by the kernel's `seqcount_t`.
@@ -54,7 +54,7 @@ use core::{cell::UnsafeCell, marker::PhantomPinned, ops::Deref, pin::Pin};
 /// ```
 pub struct SeqLock<L: CreatableLock + ?Sized> {
     _p: PhantomPinned,
-    count: UnsafeCell<bindings::seqcount>,
+    count: Opaque<bindings::seqcount>,
     write_lock: L,
 }
 
@@ -78,7 +78,7 @@ impl<L: CreatableLock> SeqLock<L> {
     {
         Self {
             _p: PhantomPinned,
-            count: UnsafeCell::new(bindings::seqcount::default()),
+            count: Opaque::uninit(),
             // SAFETY: `L::init_lock` is called from `SeqLock::init`, which is required to be
             // called by the function's safety requirements.
             write_lock: unsafe { L::new_lock(data) },
