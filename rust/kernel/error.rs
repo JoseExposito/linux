@@ -521,3 +521,14 @@ pub(crate) fn from_kernel_err_ptr<T>(ptr: *mut T) -> Result<*mut T> {
     }
     Ok(ptr)
 }
+
+/// Calls a kernel function that returns an integer error code on failure and converts the result
+/// to a [`Result`].
+pub fn to_result(func: impl FnOnce() -> c_types::c_int) -> Result {
+    let err = func();
+    if err < 0 {
+        Err(Error::from_kernel_errno(err))
+    } else {
+        Ok(())
+    }
+}

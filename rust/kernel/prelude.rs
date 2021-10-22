@@ -23,6 +23,9 @@ pub use super::{dbg, pr_alert, pr_crit, pr_debug, pr_emerg, pr_err, pr_info, pr_
 
 pub use super::module_misc_device;
 
+#[cfg(CONFIG_ARM_AMBA)]
+pub use super::module_amba_driver;
+
 pub use super::static_assert;
 
 pub use super::{Error, KernelModule, Result};
