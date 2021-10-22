@@ -531,7 +531,7 @@ KBUILD_CFLAGS   := -Wall -Wundef -Werror=strict-prototypes -Wno-trigraphs \
 		   -std=gnu89
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_RUST_TARGET := $(srctree)/arch/$(SRCARCH)/rust/target.json
-KBUILD_RUSTFLAGS := --emit=dep-info,obj,metadata --edition=2018 \
+KBUILD_RUSTFLAGS := --emit=dep-info,obj,metadata --edition=2021 \
 		     -Cpanic=abort -Cembed-bitcode=n -Clto=n -Crpath=n \
 		     -Cforce-unwind-tables=n -Ccodegen-units=1 \
 		     -Zbinary_dep_depinfo=y -Zsymbol-mangling-version=v0 \
