@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use crate::alloc::Allocator;
-use crate::vec::TryReserveError;
+use crate::collections::{TryReserveError, TryReserveErrorKind};
 use core::iter::TrustedLen;
 use core::ptr::{self};
 use core::slice::{self};
@@ -104,7 +104,7 @@ where
             }
             Ok(())
         } else {
-            Err(TryReserveError::CapacityOverflow)
+            Err(TryReserveErrorKind::CapacityOverflow.into())
         }
     }
 }

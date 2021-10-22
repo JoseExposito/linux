@@ -923,7 +923,7 @@ impl String {
     /// assert!(s.capacity() >= 10);
     /// ```
     ///
-    /// This may not actually increase the capacity:
+    /// This might not actually increase the capacity:
     ///
     /// ```
     /// let mut s = String::with_capacity(10);
@@ -971,7 +971,7 @@ impl String {
     /// assert!(s.capacity() >= 10);
     /// ```
     ///
-    /// This may not actually increase the capacity:
+    /// This might not actually increase the capacity:
     ///
     /// ```
     /// let mut s = String::with_capacity(10);
@@ -1037,7 +1037,9 @@ impl String {
     ///
     /// Note that the allocator may give the collection more space than it
     /// requests. Therefore, capacity can not be relied upon to be precisely
-    /// minimal. Prefer `reserve` if future insertions are expected.
+    /// minimal. Prefer [`reserve`] if future insertions are expected.
+    ///
+    /// [`reserve`]: String::reserve
     ///
     /// # Errors
     ///
@@ -1100,7 +1102,6 @@ impl String {
     /// # Examples
     ///
     /// ```
-    /// #![feature(shrink_to)]
     /// let mut s = String::from("foo");
     ///
     /// s.reserve(100);
@@ -1113,7 +1114,7 @@ impl String {
     /// ```
     #[cfg(not(no_global_oom_handling))]
     #[inline]
-    #[unstable(feature = "shrink_to", reason = "new API", issue = "56431")]
+    #[stable(feature = "shrink_to", since = "1.56.0")]
     pub fn shrink_to(&mut self, min_capacity: usize) {
         self.vec.shrink_to(min_capacity)
     }
@@ -1352,13 +1353,14 @@ impl String {
     /// assert_eq!(s, "foobar");
     /// ```
     ///
-    /// The exact order may be useful for tracking external state, like an index.
+    /// Because the elements are visited exactly once in the original order,
+    /// external state may be used to decide which elements to keep.
     ///
     /// ```
     /// let mut s = String::from("abcde");
     /// let keep = [false, true, true, false, true];
-    /// let mut i = 0;
-    /// s.retain(|_| (keep[i], i += 1).0);
+    /// let mut iter = keep.iter();
+    /// s.retain(|_| *iter.next().unwrap());
     /// assert_eq!(s, "bce");
     /// ```
     #[inline]
@@ -1519,7 +1521,7 @@ impl String {
     }
 
     /// Returns the length of this `String`, in bytes, not [`char`]s or
-    /// graphemes. In other words, it may not be what a human considers the
+    /// graphemes. In other words, it might not be what a human considers the
     /// length of the string.
     ///
     /// # Examples
@@ -2105,7 +2107,8 @@ impl_eq! { Cow<'a, str>, &'b str }
 impl_eq! { Cow<'a, str>, String }
 
 #[stable(feature = "rust1", since = "1.0.0")]
-impl Default for String {
+#[rustc_const_unstable(feature = "const_default_impls", issue = "87864")]
+impl const Default for String {
     /// Creates an empty `String`.
     #[inline]
     fn default() -> String {

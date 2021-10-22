@@ -60,7 +60,31 @@ use core::fmt::Display;
 /// The error type for `try_reserve` methods.
 #[derive(Clone, PartialEq, Eq, Debug)]
 #[unstable(feature = "try_reserve", reason = "new API", issue = "48043")]
-pub enum TryReserveError {
+pub struct TryReserveError {
+    kind: TryReserveErrorKind,
+}
+
+impl TryReserveError {
+    /// Details about the allocation that caused the error
+    #[inline]
+    #[unstable(
+        feature = "try_reserve_kind",
+        reason = "Uncertain how much info should be exposed",
+        issue = "48043"
+    )]
+    pub fn kind(&self) -> TryReserveErrorKind {
+        self.kind.clone()
+    }
+}
+
+/// Details of the allocation that caused a `TryReserveError`
+#[derive(Clone, PartialEq, Eq, Debug)]
+#[unstable(
+    feature = "try_reserve_kind",
+    reason = "Uncertain how much info should be exposed",
+    issue = "48043"
+)]
+pub enum TryReserveErrorKind {
     /// Error due to the computed capacity exceeding the collection's maximum
     /// (usually `isize::MAX` bytes).
     CapacityOverflow,
@@ -83,12 +107,24 @@ pub enum TryReserveError {
     },
 }
 
-#[unstable(feature = "try_reserve", reason = "new API", issue = "48043")]
-impl From<LayoutError> for TryReserveError {
-    /// Always evaluates to [`TryReserveError::CapacityOverflow`].
+#[unstable(
+    feature = "try_reserve_kind",
+    reason = "Uncertain how much info should be exposed",
+    issue = "48043"
+)]
+impl From<TryReserveErrorKind> for TryReserveError {
+    #[inline]
+    fn from(kind: TryReserveErrorKind) -> Self {
+        Self { kind }
+    }
+}
+
+#[unstable(feature = "try_reserve_kind", reason = "new API", issue = "48043")]
+impl From<LayoutError> for TryReserveErrorKind {
+    /// Always evaluates to [`TryReserveErrorKind::CapacityOverflow`].
     #[inline]
     fn from(_: LayoutError) -> Self {
-        TryReserveError::CapacityOverflow
+        TryReserveErrorKind::CapacityOverflow
     }
 }
 
@@ -99,11 +135,13 @@ impl Display for TryReserveError {
         fmt: &mut core::fmt::Formatter<'_>,
     ) -> core::result::Result<(), core::fmt::Error> {
         fmt.write_str("memory allocation failed")?;
-        let reason = match &self {
-            TryReserveError::CapacityOverflow => {
+        let reason = match self.kind {
+            TryReserveErrorKind::CapacityOverflow => {
                 " because the computed capacity exceeded the collection's maximum"
             }
-            TryReserveError::AllocError { .. } => " because the memory allocator returned a error",
+            TryReserveErrorKind::AllocError { .. } => {
+                " because the memory allocator returned a error"
+            }
         };
         fmt.write_str(reason)
     }
