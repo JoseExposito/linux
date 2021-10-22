@@ -1,4 +1,4 @@
-edition = "2018"
+edition = "2021"
 newline_style = "Unix"
 
 # Unstable options that help catching some mistakes in formatting and that we may want to enable
