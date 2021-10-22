@@ -41,52 +41,52 @@ EXPORT_SYMBOL_GPL(rust_helper_ioremap);
 
 u8 rust_helper_readb(const volatile void __iomem *addr)
 {
-        return readb(addr);
+	return readb(addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_readb);
 
 u16 rust_helper_readw(const volatile void __iomem *addr)
 {
-        return readw(addr);
+	return readw(addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_readw);
 
 u32 rust_helper_readl(const volatile void __iomem *addr)
 {
-        return readl(addr);
+	return readl(addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_readl);
 
 #ifdef CONFIG_64BIT
 u64 rust_helper_readq(const volatile void __iomem *addr)
 {
-        return readq(addr);
+	return readq(addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_readq);
 #endif
 
 void rust_helper_writeb(u8 value, volatile void __iomem *addr)
 {
-        writeb(value, addr);
+	writeb(value, addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_writeb);
 
 void rust_helper_writew(u16 value, volatile void __iomem *addr)
 {
-        writew(value, addr);
+	writew(value, addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_writew);
 
 void rust_helper_writel(u32 value, volatile void __iomem *addr)
 {
-        writel(value, addr);
+	writel(value, addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_writel);
 
 #ifdef CONFIG_64BIT
 void rust_helper_writeq(u64 value, volatile void __iomem *addr)
 {
-        writeq(value, addr);
+	writeq(value, addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_writeq);
 #endif
@@ -279,33 +279,33 @@ void *rust_helper_dev_get_drvdata(struct device *dev)
 EXPORT_SYMBOL_GPL(rust_helper_dev_get_drvdata);
 
 void rust_helper___seqcount_init(seqcount_t *s, const char *name,
-                               struct lock_class_key *key)
+				 struct lock_class_key *key)
 {
-        __seqcount_init(s, name, key);
+	__seqcount_init(s, name, key);
 }
 EXPORT_SYMBOL_GPL(rust_helper___seqcount_init);
 
 unsigned rust_helper_read_seqcount_begin(seqcount_t *s)
 {
-        return read_seqcount_begin(s);
+	return read_seqcount_begin(s);
 }
 EXPORT_SYMBOL_GPL(rust_helper_read_seqcount_begin);
 
 int rust_helper_read_seqcount_retry(seqcount_t *s, unsigned start)
 {
-        return read_seqcount_retry(s, start);
+	return read_seqcount_retry(s, start);
 }
 EXPORT_SYMBOL_GPL(rust_helper_read_seqcount_retry);
 
 void rust_helper_write_seqcount_begin(seqcount_t *s)
 {
-        do_write_seqcount_begin(s);
+	do_write_seqcount_begin(s);
 }
 EXPORT_SYMBOL_GPL(rust_helper_write_seqcount_begin);
 
 void rust_helper_write_seqcount_end(seqcount_t *s)
 {
-        do_write_seqcount_end(s);
+	do_write_seqcount_end(s);
 }
 EXPORT_SYMBOL_GPL(rust_helper_write_seqcount_end);
 
