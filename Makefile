@@ -937,11 +937,12 @@ endif
 
 ifndef CONFIG_AS_IS_LLVM
 KBUILD_AFLAGS	+= -Wa,-gdwarf-2
+endif
+
 ifdef CONFIG_DEBUG_INFO_REDUCED
 DEBUG_RUSTFLAGS += -Cdebuginfo=1
 else
 DEBUG_RUSTFLAGS += -Cdebuginfo=2
-endif
 endif
 
 ifndef CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT
