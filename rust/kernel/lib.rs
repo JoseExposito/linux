@@ -54,6 +54,7 @@ mod error;
 pub mod file;
 pub mod file_operations;
 pub mod gpio;
+pub mod hwrng;
 pub mod irq;
 pub mod miscdev;
 pub mod mm;
