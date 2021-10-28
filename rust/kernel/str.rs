@@ -168,9 +168,9 @@ impl CStr {
         &self.0
     }
 
-    /// Yields a [`&str`] slice if the `CStr` contains valid UTF-8.
+    /// Yields a [`&str`] slice if the [`CStr`] contains valid UTF-8.
     ///
-    /// If the contents of the `CStr` are valid UTF-8 data, this
+    /// If the contents of the [`CStr`] are valid UTF-8 data, this
     /// function will return the corresponding [`&str`] slice. Otherwise,
     /// it will return an error with details of where UTF-8 validation failed.
     ///
@@ -186,7 +186,7 @@ impl CStr {
         core::str::from_utf8(self.as_bytes())
     }
 
-    /// Unsafely convert this CStr into a `&str`, without checking for
+    /// Unsafely convert this [`CStr`] into a [`&str`], without checking for
     /// valid UTF-8.
     ///
     /// # Safety
@@ -308,12 +308,12 @@ mod tests {
     #[should_panic]
     fn test_cstr_to_str_panic() {
         let bad_bytes = b"\xc3\x28\0";
-        let unchecked_c_str = unsafe { CStr::from_bytes_with_nul_unchecked(bad_bytes) };
-        unchecked_c_str.to_str().unwrap();
+        let checked_cstr = CStr::from_bytes_with_nul(bad_bytes).unwrap();
+        checked_cstr.to_str().unwrap();
     }
 
     #[test]
-    fn test_cstr_as_str() {
+    fn test_cstr_as_str_unchecked() {
         let good_bytes = b"\xf0\x9f\x90\xA7\0";
         let checked_cstr = CStr::from_bytes_with_nul(good_bytes).unwrap();
         let unchecked_str = unsafe { checked_cstr.as_str_unchecked() };
