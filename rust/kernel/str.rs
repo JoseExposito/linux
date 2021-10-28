@@ -191,19 +191,15 @@ impl CStr {
     ///
     /// # Safety
     ///
-    /// Callers *must* ensure that CStr is valid UTF-8 before
-    /// calling this method. Converting a CStr into a `&str` that is
-    /// not valid UTF-8 is considered undefined behavior.
+    /// The contents must be valid UTF-8.
     ///
     /// # Examples
-    ///
-    /// Basic usage:
     ///
     /// ```
     /// # use kernel::c_str;
     /// # use kernel::str::CStr;
-    /// // SAFETY: This is safe because string literals are guaranteed to be
-    /// // valid UTF-8 by the Rust compiler.
+    /// // SAFETY: String literals are guaranteed to be valid UTF-8
+    /// // by the Rust compiler.
     /// let bar = c_str!("ツ");
     /// assert_eq!(unsafe { bar.as_str_unchecked() }, "ツ");
     /// ```
