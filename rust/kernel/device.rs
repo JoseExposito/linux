@@ -4,6 +4,9 @@
 //!
 //! C header: [`include/linux/device.h`](../../../../include/linux/device.h)
 
+#[cfg(CONFIG_COMMON_CLK)]
+use crate::{clk::Clk, error::from_kernel_err_ptr};
+
 use crate::{
     bindings,
     revocable::{Revocable, RevocableGuard},
@@ -43,6 +46,24 @@ pub unsafe trait RawDevice {
         // by the compiler because of their lifetimes).
         unsafe { CStr::from_char_ptr(name) }
     }
+
+    /// Lookups a clock producer consumed by this device.
+    ///
+    /// Returns a managed reference to the clock producer.
+    #[cfg(CONFIG_COMMON_CLK)]
+    fn clk_get(&self, id: Option<&CStr>) -> Result<Clk> {
+        let id_ptr = match id {
+            Some(cstr) => cstr.as_char_ptr(),
+            None => core::ptr::null(),
+        };
+
+        // SAFETY: id_ptr is optional and may be either a valid pointer
+        // from the type invariant or NULL otherwise.
+        let clk_ptr = unsafe { from_kernel_err_ptr(bindings::clk_get(self.raw_device(), id_ptr)) }?;
+
+        // SAFETY: clock is initialized with valid pointer returned from `bindings::clk_get` call.
+        unsafe { Ok(Clk::new(clk_ptr)) }
+    }
 }
 
 /// A ref-counted device.
@@ -62,7 +83,7 @@ impl Device {
     ///
     /// Callers must ensure that `ptr` is valid, non-null, and has a non-zero reference count.
     pub unsafe fn new(ptr: *mut bindings::device) -> Self {
-        // SAFETY: By the safety requiments, ptr is valid and its refcounted will be incremented.
+        // SAFETY: By the safety requirements, ptr is valid and its refcounted will be incremented.
         unsafe { bindings::get_device(ptr) };
         // INVARIANT: The safety requirements satisfy all but one invariant, which is that `self`
         // owns a reference. This is satisfied by the call to `get_device` above.

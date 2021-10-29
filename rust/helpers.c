@@ -2,6 +2,7 @@
 
 #include <linux/bug.h>
 #include <linux/build_bug.h>
+#include <linux/clk.h>
 #include <linux/uaccess.h>
 #include <linux/sched/signal.h>
 #include <linux/gfp.h>
@@ -21,6 +22,18 @@ __noreturn void rust_helper_BUG(void)
 {
 	BUG();
 }
+
+void rust_helper_clk_disable_unprepare(struct clk *clk)
+{
+	return clk_disable_unprepare(clk);
+}
+EXPORT_SYMBOL_GPL(rust_helper_clk_disable_unprepare);
+
+int rust_helper_clk_prepare_enable(struct clk *clk)
+{
+	return clk_prepare_enable(clk);
+}
+EXPORT_SYMBOL_GPL(rust_helper_clk_prepare_enable);
 
 unsigned long rust_helper_copy_from_user(void *to, const void __user *from, unsigned long n)
 {
