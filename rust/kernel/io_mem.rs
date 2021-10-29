@@ -187,6 +187,16 @@ impl<const SIZE: usize> IoMem<SIZE> {
         u64
     );
 
+    define_read!(readb_relaxed, try_readb_relaxed, u8);
+    define_read!(readw_relaxed, try_readw_relaxed, u16);
+    define_read!(readl_relaxed, try_readl_relaxed, u32);
+    define_read!(
+        #[cfg(CONFIG_64BIT)]
+        readq_relaxed,
+        try_readq_relaxed,
+        u64
+    );
+
     define_write!(writeb, try_writeb, u8);
     define_write!(writew, try_writew, u16);
     define_write!(writel, try_writel, u32);
@@ -194,6 +204,16 @@ impl<const SIZE: usize> IoMem<SIZE> {
         #[cfg(CONFIG_64BIT)]
         writeq,
         try_writeq,
+        u64
+    );
+
+    define_write!(writeb_relaxed, try_writeb_relaxed, u8);
+    define_write!(writew_relaxed, try_writew_relaxed, u16);
+    define_write!(writel_relaxed, try_writel_relaxed, u32);
+    define_write!(
+        #[cfg(CONFIG_64BIT)]
+        writeq_relaxed,
+        try_writeq_relaxed,
         u64
     );
 }
