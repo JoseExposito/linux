@@ -244,28 +244,28 @@ void rust_helper_put_task_struct(struct task_struct * t)
 }
 EXPORT_SYMBOL_GPL(rust_helper_put_task_struct);
 
-int rust_helper_security_binder_set_context_mgr(struct task_struct *mgr)
+int rust_helper_security_binder_set_context_mgr(const struct cred *mgr)
 {
 	return security_binder_set_context_mgr(mgr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_security_binder_set_context_mgr);
 
-int rust_helper_security_binder_transaction(struct task_struct *from,
-					    struct task_struct *to)
+int rust_helper_security_binder_transaction(const struct cred *from,
+					    const struct cred *to)
 {
 	return security_binder_transaction(from, to);
 }
 EXPORT_SYMBOL_GPL(rust_helper_security_binder_transaction);
 
-int rust_helper_security_binder_transfer_binder(struct task_struct *from,
-						struct task_struct *to)
+int rust_helper_security_binder_transfer_binder(const struct cred *from,
+						const struct cred *to)
 {
 	return security_binder_transfer_binder(from, to);
 }
 EXPORT_SYMBOL_GPL(rust_helper_security_binder_transfer_binder);
 
-int rust_helper_security_binder_transfer_file(struct task_struct *from,
-					      struct task_struct *to,
+int rust_helper_security_binder_transfer_file(const struct cred *from,
+					      const struct cred *to,
 					      struct file *file)
 {
 	return security_binder_transfer_file(from, to, file);

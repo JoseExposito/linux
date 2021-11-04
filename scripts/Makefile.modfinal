@@ -44,7 +44,8 @@ quiet_cmd_btf_ko = BTF [M] $@
 	elif $(srctree)/scripts/is_rust_module.sh $@; then 		\
 		printf "Skipping BTF generation for %s because it's a Rust module\n" $@ 1>&2; \
 	else								\
-		LLVM_OBJCOPY="$(OBJCOPY)" $(PAHOLE) -J --btf_base vmlinux $@; \
+		LLVM_OBJCOPY="$(OBJCOPY)" $(PAHOLE) -J $(PAHOLE_FLAGS) --btf_base vmlinux $@; \
+		$(RESOLVE_BTFIDS) -b vmlinux $@; 			\
 	fi;
 
 # Same as newer-prereqs, but allows to exclude specified extra dependencies
