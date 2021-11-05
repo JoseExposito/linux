@@ -156,6 +156,12 @@ unsafe impl<L: CreatableLock + ?Sized> Lock for SeqLock<L> {
         ctx
     }
 
+    fn relock(&self, ctx: &mut L::GuardContext) {
+        self.write_lock.relock(ctx);
+        // SAFETY: `count` contains valid memory.
+        unsafe { bindings::write_seqcount_begin(self.count.get()) };
+    }
+
     unsafe fn unlock(&self, ctx: &mut L::GuardContext) {
         // SAFETY: The safety requirements of the function ensure that lock is owned by the caller.
         unsafe { bindings::write_seqcount_end(self.count.get()) };

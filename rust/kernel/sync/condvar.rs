@@ -82,7 +82,7 @@ impl CondVar {
         // SAFETY: No arguments, switches to another thread.
         unsafe { bindings::schedule() };
 
-        guard.guard.context = lock.lock_noguard();
+        lock.relock(&mut guard.guard.context);
 
         // SAFETY: Both `wait` and `wait_list` point to valid memory.
         unsafe { bindings::finish_wait(self.wait_list.get(), wait.get()) };

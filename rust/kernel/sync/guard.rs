@@ -122,7 +122,18 @@ pub unsafe trait Lock {
     type GuardContext;
 
     /// Acquires the lock, making the caller its owner.
+    #[must_use]
     fn lock_noguard(&self) -> Self::GuardContext;
+
+    /// Reacquires the lock, making the caller its owner.
+    ///
+    /// The guard context before the last unlock is passed in.
+    ///
+    /// Locks that don't require this state on relock can simply use the default implementation
+    /// that calls [`Lock::lock_noguard`].
+    fn relock(&self, ctx: &mut Self::GuardContext) {
+        *ctx = self.lock_noguard();
+    }
 
     /// Releases the lock, giving up ownership of the lock.
     ///
