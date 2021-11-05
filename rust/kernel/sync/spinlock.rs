@@ -7,8 +7,7 @@
 //! See <https://www.kernel.org/doc/Documentation/locking/spinlocks.txt>.
 
 use super::{CreatableLock, GuardMut, Lock};
-use crate::bindings;
-use crate::str::CStr;
+use crate::{bindings, str::CStr, Opaque};
 use core::{cell::UnsafeCell, marker::PhantomPinned, pin::Pin};
 
 /// Safely initialises a [`SpinLock`] with the given name, generating a new lock class.
@@ -33,7 +32,7 @@ macro_rules! spinlock_init {
 ///
 /// [`spinlock_t`]: ../../../include/linux/spinlock.h
 pub struct SpinLock<T: ?Sized> {
-    spin_lock: UnsafeCell<bindings::spinlock>,
+    spin_lock: Opaque<bindings::spinlock>,
 
     /// Spinlocks are architecture-defined. So we conservatively require them to be pinned in case
     /// some architecture uses self-references now or in the future.
@@ -57,7 +56,7 @@ impl<T> SpinLock<T> {
     /// The caller must call [`SpinLock::init_lock`] before using the spinlock.
     pub unsafe fn new(t: T) -> Self {
         Self {
-            spin_lock: UnsafeCell::new(bindings::spinlock::default()),
+            spin_lock: Opaque::uninit(),
             data: UnsafeCell::new(t),
             _pin: PhantomPinned,
         }

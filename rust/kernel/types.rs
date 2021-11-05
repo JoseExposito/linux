@@ -9,7 +9,7 @@ use crate::{
     sync::{Ref, RefBorrow},
 };
 use alloc::boxed::Box;
-use core::{ops::Deref, pin::Pin, ptr::NonNull};
+use core::{cell::UnsafeCell, mem::MaybeUninit, ops::Deref, pin::Pin, ptr::NonNull};
 
 /// Permissions.
 ///
@@ -224,5 +224,27 @@ impl<T: FnOnce()> Drop for ScopeGuard<T> {
         if let Some(cleanup) = self.cleanup_func.take() {
             cleanup();
         }
+    }
+}
+
+/// Stores an opaque value.
+///
+/// This is meant to be used with FFI objects that are never interpreted by Rust code.
+pub struct Opaque<T>(MaybeUninit<UnsafeCell<T>>);
+
+impl<T> Opaque<T> {
+    /// Creates a new opaque value.
+    pub fn new(value: T) -> Self {
+        Self(MaybeUninit::new(UnsafeCell::new(value)))
+    }
+
+    /// Creates an uninitialised value.
+    pub fn uninit() -> Self {
+        Self(MaybeUninit::uninit())
+    }
+
+    /// Returns a raw pointer to the opaque data.
+    pub fn get(&self) -> *mut T {
+        UnsafeCell::raw_get(self.0.as_ptr())
     }
 }
