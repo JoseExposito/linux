@@ -6,7 +6,7 @@
 //!
 //! See <https://www.kernel.org/doc/Documentation/locking/spinlocks.txt>.
 
-use super::{Guard, Lock, NeedsLockClass};
+use super::{GuardMut, Lock, NeedsLockClass};
 use crate::bindings;
 use crate::str::CStr;
 use core::{cell::UnsafeCell, marker::PhantomPinned, pin::Pin};
@@ -67,10 +67,10 @@ impl<T> SpinLock<T> {
 impl<T: ?Sized> SpinLock<T> {
     /// Locks the spinlock and gives the caller access to the data protected by it. Only one thread
     /// at a time is allowed to access the protected data.
-    pub fn lock(&self) -> Guard<'_, Self> {
+    pub fn lock(&self) -> GuardMut<'_, Self> {
         self.lock_noguard();
         // SAFETY: The spinlock was just acquired.
-        unsafe { Guard::new(self, ()) }
+        unsafe { GuardMut::new(self, ()) }
     }
 }
 

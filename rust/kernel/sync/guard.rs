@@ -10,23 +10,23 @@
 /// when a guard goes out of scope. It also provides a safe and convenient way to access the data
 /// protected by the lock.
 #[must_use = "the lock unlocks immediately when the guard is unused"]
-pub struct Guard<'a, L: Lock + ?Sized> {
+pub struct GuardMut<'a, L: Lock + ?Sized> {
     pub(crate) lock: &'a L,
     pub(crate) context: L::GuardContext,
 }
 
-// SAFETY: `Guard` is sync when the data protected by the lock is also sync. This is more
+// SAFETY: `GuardMut` is sync when the data protected by the lock is also sync. This is more
 // conservative than the default compiler implementation; more details can be found on
 // https://github.com/rust-lang/rust/issues/41622 -- it refers to `MutexGuard` from the standard
 // library.
-unsafe impl<L> Sync for Guard<'_, L>
+unsafe impl<L> Sync for GuardMut<'_, L>
 where
     L: Lock + ?Sized,
     L::Inner: Sync,
 {
 }
 
-impl<L: Lock + ?Sized> core::ops::Deref for Guard<'_, L> {
+impl<L: Lock + ?Sized> core::ops::Deref for GuardMut<'_, L> {
     type Target = L::Inner;
 
     fn deref(&self) -> &Self::Target {
@@ -35,21 +35,21 @@ impl<L: Lock + ?Sized> core::ops::Deref for Guard<'_, L> {
     }
 }
 
-impl<L: Lock + ?Sized> core::ops::DerefMut for Guard<'_, L> {
+impl<L: Lock + ?Sized> core::ops::DerefMut for GuardMut<'_, L> {
     fn deref_mut(&mut self) -> &mut L::Inner {
         // SAFETY: The caller owns the lock, so it is safe to deref the protected data.
         unsafe { &mut *self.lock.locked_data().get() }
     }
 }
 
-impl<L: Lock + ?Sized> Drop for Guard<'_, L> {
+impl<L: Lock + ?Sized> Drop for GuardMut<'_, L> {
     fn drop(&mut self) {
         // SAFETY: The caller owns the lock, so it is safe to unlock it.
         unsafe { self.lock.unlock(&mut self.context) };
     }
 }
 
-impl<'a, L: Lock + ?Sized> Guard<'a, L> {
+impl<'a, L: Lock + ?Sized> GuardMut<'a, L> {
     /// Constructs a new lock guard.
     ///
     /// # Safety
@@ -62,8 +62,8 @@ impl<'a, L: Lock + ?Sized> Guard<'a, L> {
 
 /// A generic mutual exclusion primitive.
 ///
-/// [`Guard`] is written such that any mutual exclusion primitive that can implement this trait can
-/// also benefit from having an automatic way to unlock itself.
+/// [`GuardMut`] is written such that any mutual exclusion primitive that can implement this trait
+/// can also benefit from having an automatic way to unlock itself.
 ///
 /// # Safety
 ///
