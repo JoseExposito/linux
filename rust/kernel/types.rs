@@ -9,7 +9,7 @@ use crate::{
     sync::{Ref, RefBorrow},
 };
 use alloc::boxed::Box;
-use core::{cell::UnsafeCell, mem::MaybeUninit, ops::Deref, pin::Pin, ptr::NonNull};
+use core::{cell::UnsafeCell, mem::MaybeUninit, ops, ops::Deref, pin::Pin, ptr::NonNull};
 
 /// Permissions.
 ///
@@ -247,4 +247,89 @@ impl<T> Opaque<T> {
     pub fn get(&self) -> *mut T {
         UnsafeCell::raw_get(self.0.as_ptr())
     }
+}
+
+/// Implemented by integer types that allow counting the number of trailing zeroes.
+pub trait TrailingZeros {
+    /// Returns the number of trailing zeroes in the binary representation of `self`.
+    fn trailing_zeros(&self) -> u32;
+}
+
+macro_rules! impl_trailing_zeros {
+    ($type_name:ty) => {
+        impl TrailingZeros for $type_name {
+            fn trailing_zeros(&self) -> u32 {
+                <$type_name>::trailing_zeros(*self)
+            }
+        }
+    };
+}
+
+impl_trailing_zeros!(u8);
+impl_trailing_zeros!(u16);
+impl_trailing_zeros!(u32);
+impl_trailing_zeros!(u64);
+impl_trailing_zeros!(usize);
+
+/// Returns an iterator over the set bits of `value`.
+///
+/// # Examples
+///
+/// ```
+/// # use kernel::prelude::*;
+/// use kernel::bits_iter;
+///
+/// let mut iter = bits_iter(5usize);
+/// assert_eq!(iter.next().unwrap(), 0);
+/// assert_eq!(iter.next().unwrap(), 2);
+/// assert!(iter.next().is_none());
+/// ```
+///
+/// ```
+/// # use kernel::prelude::*;
+/// use kernel::bits_iter;
+///
+/// fn print_bits(x: usize) {
+///     for bit in bits_iter(x) {
+///         println!("{}", bit);
+///     }
+/// }
+/// ```
+#[inline]
+pub fn bits_iter<T>(value: T) -> impl Iterator<Item = u32>
+where
+    T: core::cmp::PartialEq
+        + From<u8>
+        + ops::Shl<u32, Output = T>
+        + ops::Not<Output = T>
+        + ops::BitAndAssign
+        + TrailingZeros,
+{
+    struct BitIterator<U> {
+        value: U,
+    }
+
+    impl<U> Iterator for BitIterator<U>
+    where
+        U: core::cmp::PartialEq
+            + From<u8>
+            + ops::Shl<u32, Output = U>
+            + ops::Not<Output = U>
+            + ops::BitAndAssign
+            + TrailingZeros,
+    {
+        type Item = u32;
+
+        #[inline]
+        fn next(&mut self) -> Option<u32> {
+            if self.value == U::from(0u8) {
+                return None;
+            }
+            let ret = self.value.trailing_zeros();
+            self.value &= !(U::from(1u8) << ret);
+            Some(ret)
+        }
+    }
+
+    BitIterator { value }
 }
