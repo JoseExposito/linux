@@ -13,7 +13,8 @@ use kernel::{
     of::ConstOfMatchTable,
     platdev::PlatformDriver,
     prelude::*,
-    {c_str, platdev},
+    str::CStr,
+    ThisModule, {c_str, platdev},
 };
 
 module! {
@@ -69,15 +70,12 @@ struct RngModule {
 }
 
 impl KernelModule for RngModule {
-    fn init() -> Result<Self> {
+    fn init(name: &'static CStr, module: &'static ThisModule) -> Result<Self> {
         const OF_MATCH_TBL: ConstOfMatchTable<1> =
             ConstOfMatchTable::new_const([c_str!("brcm,bcm2835-rng")]);
 
-        let pdev = platdev::Registration::new_pinned::<RngDriver>(
-            c_str!("bcm2835-rng-rust"),
-            Some(&OF_MATCH_TBL),
-            &THIS_MODULE,
-        )?;
+        let pdev =
+            platdev::Registration::new_pinned::<RngDriver>(name, Some(&OF_MATCH_TBL), module)?;
 
         Ok(RngModule { _pdev: pdev })
     }

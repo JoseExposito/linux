@@ -8,7 +8,9 @@
 use kernel::prelude::*;
 use kernel::{
     condvar_init, mutex_init, spinlock_init,
+    str::CStr,
     sync::{CondVar, Mutex, SpinLock},
+    ThisModule,
 };
 
 module! {
@@ -22,7 +24,7 @@ module! {
 struct RustSync;
 
 impl KernelModule for RustSync {
-    fn init() -> Result<Self> {
+    fn init(_name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust synchronisation primitives sample (init)\n");
 
         // Test mutexes.

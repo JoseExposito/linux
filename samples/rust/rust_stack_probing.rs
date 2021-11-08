@@ -6,7 +6,7 @@
 #![feature(allocator_api, global_asm)]
 #![feature(bench_black_box)]
 
-use kernel::prelude::*;
+use kernel::{prelude::*, str::CStr, ThisModule};
 
 module! {
     type: RustStackProbing,
@@ -19,7 +19,7 @@ module! {
 struct RustStackProbing;
 
 impl KernelModule for RustStackProbing {
-    fn init() -> Result<Self> {
+    fn init(_name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust stack probing sample (init)\n");
 
         // Including this large variable on the stack will trigger

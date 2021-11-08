@@ -8,11 +8,11 @@
 #![feature(global_asm, try_reserve, allocator_api, concat_idents)]
 
 use kernel::{
-    c_str,
     io_buffer::IoBufferWriter,
     linked_list::{GetLinks, GetLinksWrapped, Links},
     miscdev::Registration,
     prelude::*,
+    str::CStr,
     sync::Ref,
     user_ptr::UserSlicePtrWriter,
 };
@@ -106,9 +106,9 @@ struct BinderModule {
 }
 
 impl KernelModule for BinderModule {
-    fn init() -> Result<Self> {
+    fn init(name: &'static CStr, _module: &'static kernel::ThisModule) -> Result<Self> {
         let ctx = Context::new()?;
-        let reg = Registration::new_pinned::<process::Process>(c_str!("rust_binder"), None, ctx)?;
+        let reg = Registration::new_pinned::<process::Process>(name, None, ctx)?;
         Ok(Self { _reg: reg })
     }
 }
