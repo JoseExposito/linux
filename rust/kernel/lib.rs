@@ -108,7 +108,7 @@ pub trait KernelModule: Sized + Sync {
     /// should do.
     ///
     /// Equivalent to the `module_init` macro in the C API.
-    fn init() -> Result<Self>;
+    fn init(name: &'static str::CStr, module: &'static ThisModule) -> Result<Self>;
 }
 
 /// Equivalent to `THIS_MODULE` in the C API.

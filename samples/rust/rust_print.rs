@@ -5,8 +5,8 @@
 #![no_std]
 #![feature(allocator_api, global_asm)]
 
-use kernel::pr_cont;
 use kernel::prelude::*;
+use kernel::{pr_cont, str::CStr, ThisModule};
 
 module! {
     type: RustPrint,
@@ -19,7 +19,7 @@ module! {
 struct RustPrint;
 
 impl KernelModule for RustPrint {
-    fn init() -> Result<Self> {
+    fn init(_name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust printing macros sample (init)\n");
 
         pr_emerg!("Emergency message (level 0) without args\n");

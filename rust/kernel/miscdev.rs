@@ -9,9 +9,9 @@
 use crate::bindings;
 use crate::error::{Error, Result};
 use crate::file_operations::{FileOpenAdapter, FileOpener, FileOperationsVtable};
-use crate::str::CStr;
+use crate::{str::CStr, KernelModule, ThisModule};
 use alloc::boxed::Box;
-use core::marker::PhantomPinned;
+use core::marker::{PhantomData, PhantomPinned};
 use core::pin::Pin;
 
 /// A registration of a miscellaneous device.
@@ -106,6 +106,61 @@ impl<T: Sync> Drop for Registration<T> {
     fn drop(&mut self) {
         if self.registered {
             unsafe { bindings::misc_deregister(&mut self.mdev) }
+        }
+    }
+}
+
+/// Kernel module that exposes a single miscdev device implemented by `F`.
+pub struct Module<F: FileOpener<()>> {
+    _dev: Pin<Box<Registration>>,
+    _p: PhantomData<F>,
+}
+
+impl<F: FileOpener<()>> KernelModule for Module<F> {
+    fn init(name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
+        Ok(Self {
+            _p: PhantomData,
+            _dev: Registration::new_pinned::<F>(name, None, ())?,
+        })
+    }
+}
+
+/// Declares a kernel module that exposes a single misc device.
+///
+/// The `type` argument should be a type which implements the [`FileOpener`] trait. Also accepts
+/// various forms of kernel metadata.
+///
+/// C header: [`include/linux/moduleparam.h`](../../../include/linux/moduleparam.h)
+///
+/// [`FileOpener`]: ../kernel/file_operations/trait.FileOpener.html
+///
+/// # Examples
+///
+/// ```ignore
+/// use kernel::prelude::*;
+///
+/// module_misc_device! {
+///     type: MyFile,
+///     name: b"my_miscdev_kernel_module",
+///     author: b"Rust for Linux Contributors",
+///     description: b"My very own misc device kernel module!",
+///     license: b"GPL v2",
+/// }
+///
+/// #[derive(Default)]
+/// struct MyFile;
+///
+/// impl kernel::file_operations::FileOperations for MyFile {
+///     kernel::declare_file_operations!();
+/// }
+/// ```
+#[macro_export]
+macro_rules! module_misc_device {
+    (type: $type:ty, $($f:tt)*) => {
+        type ModuleType = kernel::miscdev::Module<$type>;
+        module! {
+            type: ModuleType,
+            $($f)*
         }
     }
 }

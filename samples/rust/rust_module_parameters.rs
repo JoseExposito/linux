@@ -5,7 +5,7 @@
 #![no_std]
 #![feature(allocator_api, global_asm)]
 
-use kernel::prelude::*;
+use kernel::{prelude::*, str::CStr, ThisModule};
 
 module! {
     type: RustModuleParameters,
@@ -45,11 +45,11 @@ module! {
 struct RustModuleParameters;
 
 impl KernelModule for RustModuleParameters {
-    fn init() -> Result<Self> {
+    fn init(_name: &'static CStr, module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust module parameters sample (init)\n");
 
         {
-            let lock = THIS_MODULE.kernel_param_lock();
+            let lock = module.kernel_param_lock();
             pr_info!("Parameters:\n");
             pr_info!("  my_bool:    {}\n", my_bool.read());
             pr_info!("  my_i32:     {}\n", my_i32.read(&lock));

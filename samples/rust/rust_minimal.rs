@@ -5,7 +5,7 @@
 #![no_std]
 #![feature(allocator_api, global_asm)]
 
-use kernel::prelude::*;
+use kernel::{prelude::*, str::CStr, ThisModule};
 
 module! {
     type: RustMinimal,
@@ -20,7 +20,7 @@ struct RustMinimal {
 }
 
 impl KernelModule for RustMinimal {
-    fn init() -> Result<Self> {
+    fn init(_name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust minimal sample (init)\n");
         pr_info!("Am I built-in? {}\n", !cfg!(MODULE));
 

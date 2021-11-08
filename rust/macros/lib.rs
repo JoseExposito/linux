@@ -92,37 +92,3 @@ use proc_macro::TokenStream;
 pub fn module(ts: TokenStream) -> TokenStream {
     module::module(ts)
 }
-
-/// Declares a kernel module that exposes a single misc device.
-///
-/// The `type` argument should be a type which implements the [`FileOpener`] trait. Also accepts
-/// various forms of kernel metadata.
-///
-/// C header: [`include/linux/moduleparam.h`](../../../include/linux/moduleparam.h)
-///
-/// [`FileOpener`]: ../kernel/file_operations/trait.FileOpener.html
-///
-/// # Examples
-///
-/// ```ignore
-/// use kernel::prelude::*;
-///
-/// module_misc_device! {
-///     type: MyFile,
-///     name: b"my_miscdev_kernel_module",
-///     author: b"Rust for Linux Contributors",
-///     description: b"My very own misc device kernel module!",
-///     license: b"GPL v2",
-/// }
-///
-/// #[derive(Default)]
-/// struct MyFile;
-///
-/// impl kernel::file_operations::FileOperations for MyFile {
-///     kernel::declare_file_operations!();
-/// }
-/// ```
-#[proc_macro]
-pub fn module_misc_device(ts: TokenStream) -> TokenStream {
-    module::module_misc_device(ts)
-}

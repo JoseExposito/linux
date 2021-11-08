@@ -18,15 +18,17 @@
 
 use core::sync::atomic::{AtomicU64, Ordering};
 use kernel::{
-    c_str, condvar_init, declare_file_operations,
+    condvar_init, declare_file_operations,
     file::File,
     file_operations::{FileOpener, FileOperations, IoctlCommand, IoctlHandler},
     io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev::Registration,
     mutex_init,
     prelude::*,
+    str::CStr,
     sync::{CondVar, Mutex, Ref},
     user_ptr::{UserSlicePtrReader, UserSlicePtrWriter},
+    ThisModule,
 };
 
 module! {
@@ -110,7 +112,7 @@ struct RustSemaphore {
 }
 
 impl KernelModule for RustSemaphore {
-    fn init() -> Result<Self> {
+    fn init(name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust semaphore sample (init)\n");
 
         let sema = Ref::try_new_and_init(
@@ -138,7 +140,7 @@ impl KernelModule for RustSemaphore {
         )?;
 
         Ok(Self {
-            _dev: Registration::new_pinned::<FileState>(c_str!("rust_semaphore"), None, sema)?,
+            _dev: Registration::new_pinned::<FileState>(name, None, sema)?,
         })
     }
 }

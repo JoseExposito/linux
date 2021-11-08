@@ -7,12 +7,13 @@
 
 use kernel::prelude::*;
 use kernel::{
-    c_str,
     file::File,
     file_operations::{FileOpener, FileOperations},
     io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev,
+    str::CStr,
     sync::{CondVar, Mutex, Ref},
+    ThisModule,
 };
 
 module! {
@@ -132,13 +133,13 @@ struct RustMiscdev {
 }
 
 impl KernelModule for RustMiscdev {
-    fn init() -> Result<Self> {
+    fn init(name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust miscellaneous device sample (init)\n");
 
         let state = SharedState::try_new()?;
 
         Ok(RustMiscdev {
-            _dev: miscdev::Registration::new_pinned::<Token>(c_str!("rust_miscdev"), None, state)?,
+            _dev: miscdev::Registration::new_pinned::<Token>(name, None, state)?,
         })
     }
 }

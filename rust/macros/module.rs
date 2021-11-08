@@ -560,7 +560,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
             }}
 
             fn __init() -> kernel::c_types::c_int {{
-                match <{type_} as kernel::KernelModule>::init() {{
+                match <{type_} as kernel::KernelModule>::init(kernel::c_str!(\"{name}\"), &THIS_MODULE) {{
                     Ok(m) => {{
                         unsafe {{
                             __MOD = Some(m);
@@ -590,62 +590,6 @@ pub fn module(ts: TokenStream) -> TokenStream {
         generated_array_types = generated_array_types,
         initcall_section = ".initcall6.init"
     ).parse().expect("Error parsing formatted string into token stream.")
-}
-
-pub fn module_misc_device(ts: TokenStream) -> TokenStream {
-    let mut it = ts.into_iter();
-
-    let info = ModuleInfo::parse(&mut it);
-
-    let module = format!("__internal_ModuleFor{}", info.type_);
-
-    format!(
-        "
-            #[doc(hidden)]
-            struct {module} {{
-                _dev: core::pin::Pin<alloc::boxed::Box<kernel::miscdev::Registration>>,
-            }}
-
-            impl kernel::KernelModule for {module} {{
-                fn init() -> kernel::Result<Self> {{
-                    Ok(Self {{
-                        _dev: kernel::miscdev::Registration::new_pinned::<{type_}>(
-                            kernel::c_str!(\"{name}\"),
-                            None,
-                            (),
-                        )?,
-                    }})
-                }}
-            }}
-
-            kernel::prelude::module! {{
-                type: {module},
-                name: b\"{name}\",
-                {author}
-                {description}
-                license: b\"{license}\",
-                {alias}
-            }}
-        ",
-        module = module,
-        type_ = info.type_,
-        name = info.name,
-        author = info
-            .author
-            .map(|v| format!("author: b\"{}\",", v))
-            .unwrap_or_else(|| "".to_string()),
-        description = info
-            .description
-            .map(|v| format!("description: b\"{}\",", v))
-            .unwrap_or_else(|| "".to_string()),
-        alias = info
-            .alias
-            .map(|v| format!("alias: b\"{}\",", v))
-            .unwrap_or_else(|| "".to_string()),
-        license = info.license
-    )
-    .parse()
-    .expect("Error parsing formatted string into token stream.")
 }
 
 #[cfg(test)]
