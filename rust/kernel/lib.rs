@@ -44,6 +44,7 @@ pub mod bindings;
 pub mod buffer;
 pub mod c_types;
 pub mod chrdev;
+pub mod driver;
 mod error;
 pub mod file;
 pub mod file_operations;
