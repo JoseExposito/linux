@@ -47,6 +47,7 @@ pub mod chrdev;
 mod error;
 pub mod file;
 pub mod file_operations;
+pub mod irq;
 pub mod miscdev;
 pub mod pages;
 pub mod power;

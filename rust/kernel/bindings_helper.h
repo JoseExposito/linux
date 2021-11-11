@@ -19,6 +19,9 @@
 #include <linux/of_platform.h>
 #include <linux/security.h>
 #include <asm/io.h>
+#include <linux/irq.h>
+#include <linux/interrupt.h>
+#include <linux/irqdomain.h>
 
 // `bindgen` gets confused at certain things
 const gfp_t BINDINGS_GFP_KERNEL = GFP_KERNEL;
