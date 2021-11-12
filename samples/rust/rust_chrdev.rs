@@ -6,7 +6,7 @@
 #![feature(allocator_api, global_asm)]
 
 use kernel::prelude::*;
-use kernel::{chrdev, file_operations::FileOperations, str::CStr, ThisModule};
+use kernel::{chrdev, file_operations::FileOperations};
 
 module! {
     type: RustChrdev,

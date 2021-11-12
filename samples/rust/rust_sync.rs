@@ -8,9 +8,7 @@
 use kernel::prelude::*;
 use kernel::{
     condvar_init, mutex_init, spinlock_init,
-    str::CStr,
     sync::{CondVar, Mutex, SpinLock},
-    ThisModule,
 };
 
 module! {

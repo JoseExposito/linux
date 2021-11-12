@@ -11,9 +11,7 @@ use kernel::{
     file_operations::{FileOpener, FileOperations},
     io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev,
-    str::CStr,
     sync::{CondVar, Mutex, Ref},
-    ThisModule,
 };
 
 module! {

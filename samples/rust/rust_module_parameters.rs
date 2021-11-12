@@ -5,7 +5,7 @@
 #![no_std]
 #![feature(allocator_api, global_asm)]
 
-use kernel::{prelude::*, str::CStr, ThisModule};
+use kernel::prelude::*;
 
 module! {
     type: RustModuleParameters,
