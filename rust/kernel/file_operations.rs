@@ -5,7 +5,7 @@
 //! C header: [`include/linux/fs.h`](../../../../include/linux/fs.h)
 
 use core::convert::{TryFrom, TryInto};
-use core::{marker, mem, ops::Deref, ptr};
+use core::{marker, mem, ptr};
 
 use alloc::boxed::Box;
 
@@ -122,7 +122,7 @@ unsafe extern "C" fn read_callback<T: FileOperations>(
         let f = unsafe { T::Wrapper::borrow((*file).private_data) };
         // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
         // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
-        let read = T::read(&f, unsafe { &FileRef::from_ptr(file) }, &mut data, unsafe { *offset }.try_into()?)?;
+        let read = T::read(f, unsafe { &FileRef::from_ptr(file) }, &mut data, unsafe { *offset }.try_into()?)?;
         unsafe { (*offset) += bindings::loff_t::try_from(read).unwrap() };
         Ok(read as _)
     }
@@ -141,7 +141,7 @@ unsafe extern "C" fn read_iter_callback<T: FileOperations>(
         // callback, which the C API guarantees that will be called only when all references to
         // `file` have been released, so we know it can't be called while this function is running.
         let f = unsafe { T::Wrapper::borrow((*file).private_data) };
-        let read = T::read(&f, unsafe { &FileRef::from_ptr(file) }, &mut iter, offset.try_into()?)?;
+        let read = T::read(f, unsafe { &FileRef::from_ptr(file) }, &mut iter, offset.try_into()?)?;
         unsafe { (*iocb).ki_pos += bindings::loff_t::try_from(read).unwrap() };
         Ok(read as _)
     }
@@ -162,7 +162,7 @@ unsafe extern "C" fn write_callback<T: FileOperations>(
         let f = unsafe { T::Wrapper::borrow((*file).private_data) };
         // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
         // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
-        let written = T::write(&f, unsafe { &FileRef::from_ptr(file) }, &mut data, unsafe { *offset }.try_into()?)?;
+        let written = T::write(f, unsafe { &FileRef::from_ptr(file) }, &mut data, unsafe { *offset }.try_into()?)?;
         unsafe { (*offset) += bindings::loff_t::try_from(written).unwrap() };
         Ok(written as _)
     }
@@ -181,7 +181,7 @@ unsafe extern "C" fn write_iter_callback<T: FileOperations>(
         // callback, which the C API guarantees that will be called only when all references to
         // `file` have been released, so we know it can't be called while this function is running.
         let f = unsafe { T::Wrapper::borrow((*file).private_data) };
-        let written = T::write(&f, unsafe { &FileRef::from_ptr(file) }, &mut iter, offset.try_into()?)?;
+        let written = T::write(f, unsafe { &FileRef::from_ptr(file) }, &mut iter, offset.try_into()?)?;
         unsafe { (*iocb).ki_pos += bindings::loff_t::try_from(written).unwrap() };
         Ok(written as _)
     }
@@ -215,7 +215,7 @@ unsafe extern "C" fn llseek_callback<T: FileOperations>(
         // callback, which the C API guarantees that will be called only when all references to
         // `file` have been released, so we know it can't be called while this function is running.
         let f = unsafe { T::Wrapper::borrow((*file).private_data) };
-        let off = T::seek(&f, unsafe { &FileRef::from_ptr(file) }, off)?;
+        let off = T::seek(f, unsafe { &FileRef::from_ptr(file) }, off)?;
         Ok(off as bindings::loff_t)
     }
 }
@@ -232,7 +232,7 @@ unsafe extern "C" fn unlocked_ioctl_callback<T: FileOperations>(
         // `file` have been released, so we know it can't be called while this function is running.
         let f = unsafe { T::Wrapper::borrow((*file).private_data) };
         let mut cmd = IoctlCommand::new(cmd as _, arg as _);
-        let ret = T::ioctl(&f, unsafe { &FileRef::from_ptr(file) }, &mut cmd)?;
+        let ret = T::ioctl(f, unsafe { &FileRef::from_ptr(file) }, &mut cmd)?;
         Ok(ret as _)
     }
 }
@@ -249,7 +249,7 @@ unsafe extern "C" fn compat_ioctl_callback<T: FileOperations>(
         // `file` have been released, so we know it can't be called while this function is running.
         let f = unsafe { T::Wrapper::borrow((*file).private_data) };
         let mut cmd = IoctlCommand::new(cmd as _, arg as _);
-        let ret = T::compat_ioctl(&f, unsafe { &FileRef::from_ptr(file) }, &mut cmd)?;
+        let ret = T::compat_ioctl(f, unsafe { &FileRef::from_ptr(file) }, &mut cmd)?;
         Ok(ret as _)
     }
 }
@@ -264,7 +264,7 @@ unsafe extern "C" fn mmap_callback<T: FileOperations>(
         // callback, which the C API guarantees that will be called only when all references to
         // `file` have been released, so we know it can't be called while this function is running.
         let f = unsafe { T::Wrapper::borrow((*file).private_data) };
-        T::mmap(&f, unsafe { &FileRef::from_ptr(file) }, unsafe { &mut *vma })?;
+        T::mmap(f, unsafe { &FileRef::from_ptr(file) }, unsafe { &mut *vma })?;
         Ok(0)
     }
 }
@@ -284,7 +284,7 @@ unsafe extern "C" fn fsync_callback<T: FileOperations>(
         // callback, which the C API guarantees that will be called only when all references to
         // `file` have been released, so we know it can't be called while this function is running.
         let f = unsafe { T::Wrapper::borrow((*file).private_data) };
-        let res = T::fsync(&f, unsafe { &FileRef::from_ptr(file) }, start, end, datasync)?;
+        let res = T::fsync(f, unsafe { &FileRef::from_ptr(file) }, start, end, datasync)?;
         Ok(res.try_into().unwrap())
     }
 }
@@ -298,7 +298,7 @@ unsafe extern "C" fn poll_callback<T: FileOperations>(
     // callback, which the C API guarantees that will be called only when all references to `file`
     // have been released, so we know it can't be called while this function is running.
     let f = unsafe { T::Wrapper::borrow((*file).private_data) };
-    match T::poll(&f, unsafe { &FileRef::from_ptr(file) }, unsafe {
+    match T::poll(f, unsafe { &FileRef::from_ptr(file) }, unsafe {
         &PollTable::from_ptr(wait)
     }) {
         Ok(v) => v,
@@ -463,17 +463,17 @@ macro_rules! declare_file_operations {
 /// For each macro, there is a handler function that takes the appropriate types as arguments.
 pub trait IoctlHandler: Sync {
     /// The type of the first argument to each associated function.
-    type Target;
+    type Target<'a>;
 
     /// Handles ioctls defined with the `_IO` macro, that is, with no buffer as argument.
-    fn pure(_this: &Self::Target, _file: &File, _cmd: u32, _arg: usize) -> Result<i32> {
+    fn pure(_this: Self::Target<'_>, _file: &File, _cmd: u32, _arg: usize) -> Result<i32> {
         Err(Error::EINVAL)
     }
 
     /// Handles ioctls defined with the `_IOR` macro, that is, with an output buffer provided as
     /// argument.
     fn read(
-        _this: &Self::Target,
+        _this: Self::Target<'_>,
         _file: &File,
         _cmd: u32,
         _writer: &mut UserSlicePtrWriter,
@@ -484,7 +484,7 @@ pub trait IoctlHandler: Sync {
     /// Handles ioctls defined with the `_IOW` macro, that is, with an input buffer provided as
     /// argument.
     fn write(
-        _this: &Self::Target,
+        _this: Self::Target<'_>,
         _file: &File,
         _cmd: u32,
         _reader: &mut UserSlicePtrReader,
@@ -495,7 +495,7 @@ pub trait IoctlHandler: Sync {
     /// Handles ioctls defined with the `_IOWR` macro, that is, with a buffer for both input and
     /// output provided as argument.
     fn read_write(
-        _this: &Self::Target,
+        _this: Self::Target<'_>,
         _file: &File,
         _cmd: u32,
         _data: UserSlicePtr,
@@ -535,7 +535,11 @@ impl IoctlCommand {
     ///
     /// It is meant to be used in implementations of [`FileOperations::ioctl`] and
     /// [`FileOperations::compat_ioctl`].
-    pub fn dispatch<T: IoctlHandler>(&mut self, handler: &T::Target, file: &File) -> Result<i32> {
+    pub fn dispatch<T: IoctlHandler>(
+        &mut self,
+        handler: T::Target<'_>,
+        file: &File,
+    ) -> Result<i32> {
         let dir = (self.cmd >> bindings::_IOC_DIRSHIFT) & bindings::_IOC_DIRMASK;
         if dir == bindings::_IOC_NONE {
             return T::pure(handler, file, self.cmd, self.arg);
@@ -604,7 +608,7 @@ impl<T: FileOperations<Wrapper = Box<T>> + Default> FileOpener<()> for T {
 /// File descriptors may be used from multiple threads/processes concurrently, so your type must be
 /// [`Sync`]. It must also be [`Send`] because [`FileOperations::release`] will be called from the
 /// thread that decrements that associated file's refcount to zero.
-pub trait FileOperations: Send + Sync + Sized {
+pub trait FileOperations: Send + Sync + Sized + 'static {
     /// The methods to use to populate [`struct file_operations`].
     const TO_USE: ToUse;
 
@@ -623,7 +627,7 @@ pub trait FileOperations: Send + Sync + Sized {
     ///
     /// Corresponds to the `read` and `read_iter` function pointers in `struct file_operations`.
     fn read(
-        _this: &<<Self::Wrapper as PointerWrapper>::Borrowed as Deref>::Target,
+        _this: <Self::Wrapper as PointerWrapper>::Borrowed<'_>,
         _file: &File,
         _data: &mut impl IoBufferWriter,
         _offset: u64,
@@ -635,7 +639,7 @@ pub trait FileOperations: Send + Sync + Sized {
     ///
     /// Corresponds to the `write` and `write_iter` function pointers in `struct file_operations`.
     fn write(
-        _this: &<<Self::Wrapper as PointerWrapper>::Borrowed as Deref>::Target,
+        _this: <Self::Wrapper as PointerWrapper>::Borrowed<'_>,
         _file: &File,
         _data: &mut impl IoBufferReader,
         _offset: u64,
@@ -647,7 +651,7 @@ pub trait FileOperations: Send + Sync + Sized {
     ///
     /// Corresponds to the `llseek` function pointer in `struct file_operations`.
     fn seek(
-        _this: &<<Self::Wrapper as PointerWrapper>::Borrowed as Deref>::Target,
+        _this: <Self::Wrapper as PointerWrapper>::Borrowed<'_>,
         _file: &File,
         _offset: SeekFrom,
     ) -> Result<u64> {
@@ -658,7 +662,7 @@ pub trait FileOperations: Send + Sync + Sized {
     ///
     /// Corresponds to the `unlocked_ioctl` function pointer in `struct file_operations`.
     fn ioctl(
-        _this: &<<Self::Wrapper as PointerWrapper>::Borrowed as Deref>::Target,
+        _this: <Self::Wrapper as PointerWrapper>::Borrowed<'_>,
         _file: &File,
         _cmd: &mut IoctlCommand,
     ) -> Result<i32> {
@@ -669,7 +673,7 @@ pub trait FileOperations: Send + Sync + Sized {
     ///
     /// Corresponds to the `compat_ioctl` function pointer in `struct file_operations`.
     fn compat_ioctl(
-        _this: &<<Self::Wrapper as PointerWrapper>::Borrowed as Deref>::Target,
+        _this: <Self::Wrapper as PointerWrapper>::Borrowed<'_>,
         _file: &File,
         _cmd: &mut IoctlCommand,
     ) -> Result<i32> {
@@ -680,7 +684,7 @@ pub trait FileOperations: Send + Sync + Sized {
     ///
     /// Corresponds to the `fsync` function pointer in `struct file_operations`.
     fn fsync(
-        _this: &<<Self::Wrapper as PointerWrapper>::Borrowed as Deref>::Target,
+        _this: <Self::Wrapper as PointerWrapper>::Borrowed<'_>,
         _file: &File,
         _start: u64,
         _end: u64,
@@ -694,7 +698,7 @@ pub trait FileOperations: Send + Sync + Sized {
     /// Corresponds to the `mmap` function pointer in `struct file_operations`.
     /// TODO: wrap `vm_area_struct` so that we don't have to expose it.
     fn mmap(
-        _this: &<<Self::Wrapper as PointerWrapper>::Borrowed as Deref>::Target,
+        _this: <Self::Wrapper as PointerWrapper>::Borrowed<'_>,
         _file: &File,
         _vma: &mut bindings::vm_area_struct,
     ) -> Result {
@@ -706,7 +710,7 @@ pub trait FileOperations: Send + Sync + Sized {
     ///
     /// Corresponds to the `poll` function pointer in `struct file_operations`.
     fn poll(
-        _this: &<<Self::Wrapper as PointerWrapper>::Borrowed as Deref>::Target,
+        _this: <Self::Wrapper as PointerWrapper>::Borrowed<'_>,
         _file: &File,
         _table: &PollTable,
     ) -> Result<u32> {

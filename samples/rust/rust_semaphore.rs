@@ -14,7 +14,7 @@
 //! unblocking up to 3 blocked readers.
 
 #![no_std]
-#![feature(allocator_api, global_asm)]
+#![feature(allocator_api, global_asm, generic_associated_types)]
 
 use core::sync::atomic::{AtomicU64, Ordering};
 use kernel::{
@@ -150,7 +150,7 @@ const IOCTL_GET_READ_COUNT: u32 = 0x80086301;
 const IOCTL_SET_READ_COUNT: u32 = 0x40086301;
 
 impl IoctlHandler for FileState {
-    type Target = Self;
+    type Target<'a> = &'a Self;
 
     fn read(this: &Self, _: &File, cmd: u32, writer: &mut UserSlicePtrWriter) -> Result<i32> {
         match cmd {

@@ -11,7 +11,7 @@ use kernel::{
     file_operations::{FileOpener, FileOperations},
     io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev,
-    sync::{CondVar, Mutex, Ref, UniqueRef},
+    sync::{CondVar, Mutex, Ref, RefBorrow, UniqueRef},
 };
 
 module! {
@@ -68,7 +68,7 @@ impl FileOperations for Token {
     kernel::declare_file_operations!(read, write);
 
     fn read(
-        shared: &Ref<SharedState>,
+        shared: RefBorrow<'_, SharedState>,
         _: &File,
         data: &mut impl IoBufferWriter,
         offset: u64,
@@ -101,7 +101,7 @@ impl FileOperations for Token {
     }
 
     fn write(
-        shared: &Ref<SharedState>,
+        shared: RefBorrow<'_, SharedState>,
         _: &File,
         data: &mut impl IoBufferReader,
         _offset: u64,

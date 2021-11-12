@@ -10,7 +10,7 @@ use kernel::{
     pages::Pages,
     prelude::*,
     rbtree::RBTree,
-    sync::{GuardMut, Mutex, Ref, UniqueRef},
+    sync::{GuardMut, Mutex, Ref, RefBorrow, UniqueRef},
     task::Task,
     user_ptr::{UserSlicePtr, UserSlicePtrReader},
 };
@@ -307,7 +307,7 @@ impl Process {
         Either::Right(Registration::new(self, thread, &mut inner))
     }
 
-    fn get_thread(self: &Ref<Self>, id: i32) -> Result<Ref<Thread>> {
+    fn get_thread(self: RefBorrow<'_, Self>, id: i32) -> Result<Ref<Thread>> {
         // TODO: Consider using read/write locks here instead.
         {
             let inner = self.inner.lock();
@@ -317,7 +317,7 @@ impl Process {
         }
 
         // Allocate a new `Thread` without holding any locks.
-        let ta = Thread::new(id, self.clone())?;
+        let ta = Thread::new(id, self.into())?;
         let node = RBTree::try_allocate_node(id, ta.clone())?;
 
         let mut inner = self.inner.lock();
@@ -335,7 +335,11 @@ impl Process {
         self.inner.lock().push_work(work)
     }
 
-    fn set_as_manager(self: &Ref<Self>, info: Option<FlatBinderObject>, thread: &Thread) -> Result {
+    fn set_as_manager(
+        self: RefBorrow<'_, Self>,
+        info: Option<FlatBinderObject>,
+        thread: &Thread,
+    ) -> Result {
         let (ptr, cookie, flags) = if let Some(obj) = info {
             (
                 // SAFETY: The object type for this ioctl is implicitly `BINDER_TYPE_BINDER`, so it
@@ -359,7 +363,7 @@ impl Process {
     }
 
     pub(crate) fn get_node(
-        self: &Ref<Self>,
+        self: RefBorrow<'_, Self>,
         ptr: usize,
         cookie: usize,
         flags: u32,
@@ -375,7 +379,7 @@ impl Process {
         }
 
         // Allocate the node before reacquiring the lock.
-        let node = Ref::try_new(Node::new(ptr, cookie, flags, self.clone()))?;
+        let node = Ref::try_new(Node::new(ptr, cookie, flags, self.into()))?;
         let rbnode = RBTree::try_allocate_node(ptr, node.clone())?;
 
         let mut inner = self.inner.lock();
@@ -758,10 +762,10 @@ impl Process {
 }
 
 impl IoctlHandler for Process {
-    type Target = Ref<Process>;
+    type Target<'a> = RefBorrow<'a, Process>;
 
     fn write(
-        this: &Ref<Process>,
+        this: RefBorrow<'_, Process>,
         _file: &File,
         cmd: u32,
         reader: &mut UserSlicePtrReader,
@@ -779,7 +783,12 @@ impl IoctlHandler for Process {
         Ok(0)
     }
 
-    fn read_write(this: &Ref<Process>, file: &File, cmd: u32, data: UserSlicePtr) -> Result<i32> {
+    fn read_write(
+        this: RefBorrow<'_, Process>,
+        file: &File,
+        cmd: u32,
+        data: UserSlicePtr,
+    ) -> Result<i32> {
         let thread = this.get_thread(Task::current().pid())?;
         match cmd {
             bindings::BINDER_WRITE_READ => thread.write_read(data, file.is_blocking())?,
@@ -879,15 +888,23 @@ impl FileOperations for Process {
         }
     }
 
-    fn ioctl(this: &Ref<Process>, file: &File, cmd: &mut IoctlCommand) -> Result<i32> {
+    fn ioctl(this: RefBorrow<'_, Process>, file: &File, cmd: &mut IoctlCommand) -> Result<i32> {
         cmd.dispatch::<Self>(this, file)
     }
 
-    fn compat_ioctl(this: &Ref<Process>, file: &File, cmd: &mut IoctlCommand) -> Result<i32> {
+    fn compat_ioctl(
+        this: RefBorrow<'_, Process>,
+        file: &File,
+        cmd: &mut IoctlCommand,
+    ) -> Result<i32> {
         cmd.dispatch::<Self>(this, file)
     }
 
-    fn mmap(this: &Ref<Process>, _file: &File, vma: &mut bindings::vm_area_struct) -> Result {
+    fn mmap(
+        this: RefBorrow<'_, Process>,
+        _file: &File,
+        vma: &mut bindings::vm_area_struct,
+    ) -> Result {
         // We don't allow mmap to be used in a different process.
         if !Task::current().group_leader().eq(&this.task) {
             return Err(Error::EINVAL);
@@ -908,7 +925,7 @@ impl FileOperations for Process {
         this.create_mapping(vma)
     }
 
-    fn poll(this: &Ref<Process>, file: &File, table: &PollTable) -> Result<u32> {
+    fn poll(this: RefBorrow<'_, Process>, file: &File, table: &PollTable) -> Result<u32> {
         let thread = this.get_thread(Task::current().pid())?;
         let (from_proc, mut mask) = thread.poll(file, table);
         if mask == 0 && from_proc && !this.inner.lock().work.is_empty() {

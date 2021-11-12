@@ -53,6 +53,9 @@ struct RefInner<T: ?Sized> {
 // This is to allow [`Ref`] (and variants) to be used as the type of `self`.
 impl<T: ?Sized> core::ops::Receiver for Ref<T> {}
 
+// This is to allow [`RefBorrow`] (and variants) to be used as the type of `self`.
+impl<T: ?Sized> core::ops::Receiver for RefBorrow<'_, T> {}
+
 // This is to allow coercion from `Ref<T>` to `Ref<U>` if `T` can be converted to the
 // dynamically-sized type (DST) `U`.
 impl<T: ?Sized + Unsize<U>, U: ?Sized> core::ops::CoerceUnsized<Ref<U>> for Ref<T> {}
@@ -109,14 +112,14 @@ impl<T> Ref<T> {
     /// `encoded` must have been returned by a previous call to [`Ref::into_usize`]. Additionally,
     /// [`Ref::from_usize`] can only be called after *all* instances of [`RefBorrow`] have been
     /// dropped.
-    pub unsafe fn borrow_usize(encoded: usize) -> RefBorrow<T> {
+    pub unsafe fn borrow_usize<'a>(encoded: usize) -> RefBorrow<'a, T> {
         // SAFETY: By the safety requirement of this function, we know that `encoded` came from
         // a previous call to `Ref::into_usize`.
-        let obj = ManuallyDrop::new(unsafe { Ref::from_usize(encoded) });
+        let inner = NonNull::new(encoded as *mut RefInner<T>).unwrap();
 
-        // SAFEY: The safety requirements ensure that the object remains alive for the lifetime of
+        // SAFETY: The safety requirements ensure that the object remains alive for the lifetime of
         // the returned value. There is no way to create mutable references to the object.
-        unsafe { RefBorrow::new(obj) }
+        unsafe { RefBorrow::new(inner) }
     }
 
     /// Recreates a [`Ref`] instance previously deconstructed via [`Ref::into_usize`].
@@ -187,6 +190,17 @@ impl<T: ?Sized> Ref<T> {
         // reference count held then will be owned by the new `Ref` object.
         unsafe { Self::from_inner(NonNull::new(ptr).unwrap()) }
     }
+
+    /// Returns a [`RefBorrow`] from the given [`Ref`].
+    ///
+    /// This is useful when the argument of a function call is a [`RefBorrow`] (e.g., in a method
+    /// receiver), but we have a [`Ref`] instead. Getting a [`RefBorrow`] is free when optimised.
+    #[inline]
+    pub fn as_ref_borrow(&self) -> RefBorrow<'_, T> {
+        // SAFETY: The constraint that lifetime of the shared reference must outlive that of
+        // the returned `RefBorrow` ensures that the object remains alive.
+        unsafe { RefBorrow::new(self.ptr) }
+    }
 }
 
 impl<T: ?Sized> Deref for Ref<T> {
@@ -205,10 +219,9 @@ impl<T: ?Sized> Clone for Ref<T> {
         // SAFETY: By the type invariant, there is necessarily a reference to the object, so it is
         // safe to increment the refcount.
         unsafe { bindings::refcount_inc(self.ptr.as_ref().refcount.get()) };
-        Self {
-            ptr: self.ptr,
-            _p: PhantomData,
-        }
+
+        // SAFETY: We just incremented the refcount. This increment is now owned by the new `Ref`.
+        unsafe { Self::from_inner(self.ptr) }
     }
 }
 
@@ -312,11 +325,20 @@ impl<T: ?Sized> From<Pin<UniqueRef<T>>> for Ref<T> {
 ///
 /// There are no mutable references to the underlying [`Ref`], and it remains valid for the lifetime
 /// of the [`RefBorrow`] instance.
-pub struct RefBorrow<T: ?Sized> {
-    inner_ref: ManuallyDrop<Ref<T>>,
+pub struct RefBorrow<'a, T: ?Sized + 'a> {
+    inner: NonNull<RefInner<T>>,
+    _p: PhantomData<&'a ()>,
 }
 
-impl<T: ?Sized> RefBorrow<T> {
+impl<T: ?Sized> Clone for RefBorrow<'_, T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T: ?Sized> Copy for RefBorrow<'_, T> {}
+
+impl<T: ?Sized> RefBorrow<'_, T> {
     /// Creates a new [`RefBorrow`] instance.
     ///
     /// # Safety
@@ -324,17 +346,33 @@ impl<T: ?Sized> RefBorrow<T> {
     /// Callers must ensure the following for the lifetime of the returned [`RefBorrow`] instance:
     /// 1. That `obj` remains valid;
     /// 2. That no mutable references to `obj` are created.
-    unsafe fn new(obj: ManuallyDrop<Ref<T>>) -> Self {
+    unsafe fn new(inner: NonNull<RefInner<T>>) -> Self {
         // INVARIANT: The safety requirements guarantee the invariants.
-        Self { inner_ref: obj }
+        Self {
+            inner,
+            _p: PhantomData,
+        }
     }
 }
 
-impl<T: ?Sized> Deref for RefBorrow<T> {
-    type Target = Ref<T>;
+impl<T: ?Sized> From<RefBorrow<'_, T>> for Ref<T> {
+    fn from(b: RefBorrow<'_, T>) -> Self {
+        // SAFETY: The existence of `b` guarantees that the refcount is non-zero. `ManuallyDrop`
+        // guarantees that `drop` isn't called, so it's ok that the temporary `Ref` doesn't own the
+        // increment.
+        ManuallyDrop::new(unsafe { Ref::from_inner(b.inner) })
+            .deref()
+            .clone()
+    }
+}
+
+impl<T: ?Sized> Deref for RefBorrow<'_, T> {
+    type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        self.inner_ref.deref()
+        // SAFETY: By the type invariant, the underlying object is still alive with no mutable
+        // references to it, so it is safe to create a shared reference.
+        unsafe { &self.inner.as_ref().data }
     }
 }
 
