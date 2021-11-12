@@ -26,3 +26,5 @@ pub use super::module_misc_device;
 pub use super::static_assert;
 
 pub use super::{Error, KernelModule, Result};
+
+pub use super::{str::CStr, ThisModule};

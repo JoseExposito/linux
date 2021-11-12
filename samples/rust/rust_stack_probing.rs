@@ -6,7 +6,7 @@
 #![feature(allocator_api, global_asm)]
 #![feature(bench_black_box)]
 
-use kernel::{prelude::*, str::CStr, ThisModule};
+use kernel::prelude::*;
 
 module! {
     type: RustStackProbing,

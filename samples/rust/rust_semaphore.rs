@@ -25,10 +25,8 @@ use kernel::{
     miscdev::Registration,
     mutex_init,
     prelude::*,
-    str::CStr,
     sync::{CondVar, Mutex, Ref},
     user_ptr::{UserSlicePtrReader, UserSlicePtrWriter},
-    ThisModule,
 };
 
 module! {
