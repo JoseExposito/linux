@@ -128,6 +128,22 @@ impl<T: PointerWrapper + Deref> PointerWrapper for Pin<T> {
     }
 }
 
+impl<T> PointerWrapper for *mut T {
+    type Borrowed<'a> = *mut T;
+
+    fn into_pointer(self) -> *const c_types::c_void {
+        self as _
+    }
+
+    unsafe fn borrow<'a>(ptr: *const c_types::c_void) -> Self::Borrowed<'a> {
+        ptr as _
+    }
+
+    unsafe fn from_pointer(ptr: *const c_types::c_void) -> Self {
+        ptr as _
+    }
+}
+
 /// Runs a cleanup function/closure when dropped.
 ///
 /// The [`ScopeGuard::dismiss`] function prevents the cleanup function from running.
