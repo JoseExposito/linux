@@ -36,8 +36,8 @@ struct SharedState {
 }
 
 impl SharedState {
-    fn try_new() -> Result<Pin<Ref<Self>>> {
-        Ok(Ref::pinned(Ref::try_new_and_init(
+    fn try_new() -> Result<Ref<Self>> {
+        Ref::try_new_and_init(
             Self {
                 // SAFETY: `condvar_init!` is called below.
                 state_changed: unsafe { CondVar::new() },
@@ -52,20 +52,20 @@ impl SharedState {
                 let pinned = unsafe { state.as_mut().map_unchecked_mut(|s| &mut s.inner) };
                 kernel::mutex_init!(pinned, "SharedState::inner");
             },
-        )?))
+        )
     }
 }
 
 struct Token;
 
-impl FileOpener<Pin<Ref<SharedState>>> for Token {
-    fn open(shared: &Pin<Ref<SharedState>>) -> Result<Self::Wrapper> {
+impl FileOpener<Ref<SharedState>> for Token {
+    fn open(shared: &Ref<SharedState>) -> Result<Self::Wrapper> {
         Ok(shared.clone())
     }
 }
 
 impl FileOperations for Token {
-    type Wrapper = Pin<Ref<SharedState>>;
+    type Wrapper = Ref<SharedState>;
 
     kernel::declare_file_operations!(read, write);
 
@@ -129,7 +129,7 @@ impl FileOperations for Token {
 }
 
 struct RustMiscdev {
-    _dev: Pin<Box<miscdev::Registration<Pin<Ref<SharedState>>>>>,
+    _dev: Pin<Box<miscdev::Registration<Ref<SharedState>>>>,
 }
 
 impl KernelModule for RustMiscdev {
