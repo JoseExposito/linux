@@ -298,6 +298,21 @@ impl<T: ?Sized> From<UniqueRef<T>> for Ref<T> {
     }
 }
 
+impl<T: ?Sized> From<UniqueRef<T>> for Pin<UniqueRef<T>> {
+    fn from(obj: UniqueRef<T>) -> Self {
+        // SAFETY: It is not possible to move/replace `T` inside a `Pin<UniqueRef<T>>` (unless `T`
+        // is `Unpin`), so it is ok to convert it to `Pin<UniqueRef<T>>`.
+        unsafe { Pin::new_unchecked(obj) }
+    }
+}
+
+impl<T: ?Sized> From<Pin<UniqueRef<T>>> for Ref<T> {
+    fn from(item: Pin<UniqueRef<T>>) -> Self {
+        // SAFETY: The type invariants of `Ref` guarantee that the data is pinned.
+        unsafe { Pin::into_inner_unchecked(item).inner }
+    }
+}
+
 /// A borrowed [`Ref`] with manually-managed lifetime.
 ///
 /// # Invariants
