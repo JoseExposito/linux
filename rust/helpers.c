@@ -12,6 +12,7 @@
 #include <linux/platform_device.h>
 #include <linux/security.h>
 #include <asm/io.h>
+#include <linux/irq.h>
 
 __noreturn void rust_helper_BUG(void)
 {
@@ -322,6 +323,19 @@ void rust_helper_write_seqcount_end(seqcount_t *s)
 	do_write_seqcount_end(s);
 }
 EXPORT_SYMBOL_GPL(rust_helper_write_seqcount_end);
+
+void rust_helper_irq_set_handler_locked(struct irq_data *data,
+					irq_flow_handler_t handler)
+{
+	irq_set_handler_locked(data, handler);
+}
+EXPORT_SYMBOL_GPL(rust_helper_irq_set_handler_locked);
+
+void *rust_helper_irq_data_get_irq_chip_data(struct irq_data *d)
+{
+	return irq_data_get_irq_chip_data(d);
+}
+EXPORT_SYMBOL_GPL(rust_helper_irq_data_get_irq_chip_data);
 
 /* We use bindgen's --size_t-is-usize option to bind the C size_t type
  * as the Rust usize type, so we can use it in contexts where Rust
