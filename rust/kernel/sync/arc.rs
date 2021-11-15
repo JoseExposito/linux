@@ -159,12 +159,6 @@ impl<T: ?Sized> Ref<T> {
         ptr::eq(a.ptr.as_ptr(), b.ptr.as_ptr())
     }
 
-    /// Returns a pinned version of a given `Ref` instance.
-    pub fn pinned(obj: Self) -> Pin<Self> {
-        // SAFETY: The type invariants guarantee that the value is pinned.
-        unsafe { Pin::new_unchecked(obj) }
-    }
-
     /// Deconstructs a [`Ref`] object into a raw pointer.
     ///
     /// It can be reconstructed once via [`Ref::from_raw`].

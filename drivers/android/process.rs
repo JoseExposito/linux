@@ -260,8 +260,8 @@ unsafe impl Send for Process {}
 unsafe impl Sync for Process {}
 
 impl Process {
-    fn new(ctx: Ref<Context>) -> Result<Pin<Ref<Self>>> {
-        Ok(Ref::pinned(Ref::try_new_and_init(
+    fn new(ctx: Ref<Context>) -> Result<Ref<Self>> {
+        Ref::try_new_and_init(
             Self {
                 ctx,
                 task: Task::current().group_leader().clone(),
@@ -278,7 +278,7 @@ impl Process {
                 let pinned = unsafe { process.as_mut().map_unchecked_mut(|p| &mut p.node_refs) };
                 kernel::mutex_init!(pinned, "Process::node_refs");
             },
-        )?))
+        )
     }
 
     /// Attemps to fetch a work item from the process queue.
@@ -797,7 +797,7 @@ impl FileOpener<Ref<Context>> for Process {
 }
 
 impl FileOperations for Process {
-    type Wrapper = Pin<Ref<Self>>;
+    type Wrapper = Ref<Self>;
 
     kernel::declare_file_operations!(ioctl, compat_ioctl, mmap, poll);
 
