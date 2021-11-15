@@ -13,6 +13,7 @@
 #include <linux/security.h>
 #include <asm/io.h>
 #include <linux/irq.h>
+#include <linux/amba/bus.h>
 
 __noreturn void rust_helper_BUG(void)
 {
@@ -200,6 +201,18 @@ void rust_helper_mutex_lock(struct mutex *lock)
 	mutex_lock(lock);
 }
 EXPORT_SYMBOL_GPL(rust_helper_mutex_lock);
+
+void rust_helper_amba_set_drvdata(struct amba_device *dev, void *data)
+{
+	amba_set_drvdata(dev, data);
+}
+EXPORT_SYMBOL_GPL(rust_helper_amba_set_drvdata);
+
+void *rust_helper_amba_get_drvdata(struct amba_device *dev)
+{
+	return amba_get_drvdata(dev);
+}
+EXPORT_SYMBOL_GPL(rust_helper_amba_get_drvdata);
 
 void *
 rust_helper_platform_get_drvdata(const struct platform_device *pdev)

@@ -41,6 +41,8 @@ mod allocator;
 #[doc(hidden)]
 pub mod bindings;
 
+#[cfg(CONFIG_ARM_AMBA)]
+pub mod amba;
 pub mod buffer;
 pub mod c_types;
 pub mod chrdev;
@@ -87,7 +89,7 @@ pub mod user_ptr;
 #[doc(hidden)]
 pub use build_error::build_error;
 
-pub use crate::error::{Error, Result};
+pub use crate::error::{to_result, Error, Result};
 pub use crate::types::{bits_iter, Mode, Opaque, ScopeGuard};
 
 use core::marker::PhantomData;

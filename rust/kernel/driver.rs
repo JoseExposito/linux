@@ -37,7 +37,7 @@ pub trait DriverOps {
     /// `reg` must point to valid, initialised, and writable memory. It may be modified by this
     /// function to hold registration state.
     ///
-    /// `id_table` must point to a valid for read zero-terminated array of IDs.
+    /// `id_table` must point to a valid for read zero-terminated array of ids.
     ///
     /// On success, `reg` and `id_table` must remain pinned and valid until the matching call to
     /// [`DriverOps::unregister`].
