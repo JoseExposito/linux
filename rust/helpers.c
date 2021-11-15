@@ -300,6 +300,24 @@ int rust_helper_security_binder_transfer_file(const struct cred *from,
 }
 EXPORT_SYMBOL_GPL(rust_helper_security_binder_transfer_file);
 
+void rust_helper_rcu_read_lock(void)
+{
+	rcu_read_lock();
+}
+EXPORT_SYMBOL_GPL(rust_helper_rcu_read_lock);
+
+void rust_helper_rcu_read_unlock(void)
+{
+	rcu_read_unlock();
+}
+EXPORT_SYMBOL_GPL(rust_helper_rcu_read_unlock);
+
+void rust_helper_synchronize_rcu(void)
+{
+	synchronize_rcu();
+}
+EXPORT_SYMBOL_GPL(rust_helper_synchronize_rcu);
+
 void *rust_helper_dev_get_drvdata(struct device *dev)
 {
 	return dev_get_drvdata(dev);

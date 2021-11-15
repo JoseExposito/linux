@@ -54,6 +54,7 @@ pub mod irq;
 pub mod miscdev;
 pub mod pages;
 pub mod power;
+pub mod revocable;
 pub mod security;
 pub mod str;
 pub mod task;
