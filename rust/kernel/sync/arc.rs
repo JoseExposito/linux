@@ -95,13 +95,6 @@ impl<T> Ref<T> {
         Ok(unsafe { Self::from_inner(inner) })
     }
 
-    /// Constructs a new reference counted instance of `T` and calls the initialisation function.
-    ///
-    /// This is useful because it provides a mutable reference to `T` at its final location.
-    pub fn try_new_and_init<U: FnOnce(Pin<&mut T>)>(contents: T, init: U) -> Result<Self> {
-        Ok(UniqueRef::try_new(contents)?.pin_init_and_share(init))
-    }
-
     /// Deconstructs a [`Ref`] object into a `usize`.
     ///
     /// It can be reconstructed once via [`Ref::from_usize`].
@@ -410,9 +403,10 @@ impl<T: ?Sized> Deref for RefBorrow<T> {
 /// }
 ///
 /// fn test2() -> Result<Ref<Example>> {
-///     let mut x = UniqueRef::try_new(Example { a: 10, b: 20 })?;
+///     let mut pinned = Pin::from(UniqueRef::try_new(Example { a: 10, b: 20 })?);
 ///     // We can modify `pinned` because it is `Unpin`.
-///     Ok(x.pin_init_and_share(|mut pinned| pinned.a += 1))
+///     pinned.as_mut().a += 1;
+///     Ok(pinned.into())
 /// }
 /// ```
 pub struct UniqueRef<T: ?Sized> {
@@ -434,26 +428,6 @@ impl<T> UniqueRef<T> {
             // INVARIANT: The newly-created object has a ref-count of 1.
             inner: Ref::try_new(MaybeUninit::uninit())?,
         })
-    }
-}
-
-impl<T: ?Sized> UniqueRef<T> {
-    /// Converts a [`UniqueRef<T>`] into a [`Ref<T>`].
-    ///
-    /// It allows callers to get a `Pin<&mut T>` that they can use to initialise the inner object
-    /// just before it becomes shareable.
-    pub fn pin_init_and_share<U: FnOnce(Pin<&mut T>)>(mut self, init: U) -> Ref<T> {
-        let inner = self.deref_mut();
-
-        // SAFETY: By the `Ref` invariant, `RefInner` is pinned and `T` is also pinned.
-        let pinned = unsafe { Pin::new_unchecked(inner) };
-
-        // INVARIANT: The only places where `&mut T` is available are here (where it is explicitly
-        // pinned, i.e. implementations of `init` will see a Pin<&mut T>), and in `Ref::drop`. Both
-        // are compatible with the pin requirements of the invariants of `Ref`.
-        init(pinned);
-
-        self.into()
     }
 }
 

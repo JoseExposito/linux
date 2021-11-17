@@ -261,24 +261,24 @@ unsafe impl Sync for Process {}
 
 impl Process {
     fn new(ctx: Ref<Context>) -> Result<Ref<Self>> {
-        Ref::try_new_and_init(
-            Self {
-                ctx,
-                task: Task::current().group_leader().clone(),
-                // SAFETY: `inner` is initialised in the call to `mutex_init` below.
-                inner: unsafe { Mutex::new(ProcessInner::new()) },
-                // SAFETY: `node_refs` is initialised in the call to `mutex_init` below.
-                node_refs: unsafe { Mutex::new(ProcessNodeRefs::new()) },
-            },
-            |mut process| {
-                // SAFETY: `inner` is pinned when `Process` is.
-                let pinned = unsafe { process.as_mut().map_unchecked_mut(|p| &mut p.inner) };
-                kernel::mutex_init!(pinned, "Process::inner");
-                // SAFETY: `node_refs` is pinned when `Process` is.
-                let pinned = unsafe { process.as_mut().map_unchecked_mut(|p| &mut p.node_refs) };
-                kernel::mutex_init!(pinned, "Process::node_refs");
-            },
-        )
+        let mut process = Pin::from(UniqueRef::try_new(Self {
+            ctx,
+            task: Task::current().group_leader().clone(),
+            // SAFETY: `inner` is initialised in the call to `mutex_init` below.
+            inner: unsafe { Mutex::new(ProcessInner::new()) },
+            // SAFETY: `node_refs` is initialised in the call to `mutex_init` below.
+            node_refs: unsafe { Mutex::new(ProcessNodeRefs::new()) },
+        })?);
+
+        // SAFETY: `inner` is pinned when `Process` is.
+        let pinned = unsafe { process.as_mut().map_unchecked_mut(|p| &mut p.inner) };
+        kernel::mutex_init!(pinned, "Process::inner");
+
+        // SAFETY: `node_refs` is pinned when `Process` is.
+        let pinned = unsafe { process.as_mut().map_unchecked_mut(|p| &mut p.node_refs) };
+        kernel::mutex_init!(pinned, "Process::node_refs");
+
+        Ok(process.into())
     }
 
     /// Attemps to fetch a work item from the process queue.
@@ -704,12 +704,14 @@ impl Process {
             return Ok(());
         }
 
-        let death = death
-            .write(
+        let death = {
+            let mut pinned = Pin::from(death.write(
                 // SAFETY: `init` is called below.
                 unsafe { NodeDeath::new(info.node_ref.node.clone(), self.clone(), cookie) },
-            )
-            .pin_init_and_share(|pinned_death| pinned_death.init());
+            ));
+            pinned.as_mut().init();
+            Ref::<NodeDeath>::from(pinned)
+        };
 
         info.death = Some(death.clone());
 

@@ -8,7 +8,7 @@ use kernel::{
     linked_list::List,
     linked_list::{GetLinks, Links},
     prelude::*,
-    sync::{Ref, SpinLock},
+    sync::{Ref, SpinLock, UniqueRef},
     user_ptr::UserSlicePtrWriter,
     ScopeGuard,
 };
@@ -55,29 +55,27 @@ impl Transaction {
         let data_address = alloc.ptr;
         let file_list = alloc.take_file_list();
         alloc.keep_alive();
-        let tr = Ref::try_new_and_init(
-            Self {
-                // SAFETY: `spinlock_init` is called below.
-                inner: unsafe { SpinLock::new(TransactionInner { file_list }) },
-                node_ref: Some(node_ref),
-                stack_next,
-                from: from.clone(),
-                to,
-                code: tr.code,
-                flags: tr.flags,
-                data_size: tr.data_size as _,
-                data_address,
-                offsets_size: tr.offsets_size as _,
-                links: Links::new(),
-                free_allocation: AtomicBool::new(true),
-            },
-            |mut tr| {
-                // SAFETY: `inner` is pinned when `tr` is.
-                let pinned = unsafe { tr.as_mut().map_unchecked_mut(|t| &mut t.inner) };
-                kernel::spinlock_init!(pinned, "Transaction::inner");
-            },
-        )?;
-        Ok(tr)
+        let mut tr = Pin::from(UniqueRef::try_new(Self {
+            // SAFETY: `spinlock_init` is called below.
+            inner: unsafe { SpinLock::new(TransactionInner { file_list }) },
+            node_ref: Some(node_ref),
+            stack_next,
+            from: from.clone(),
+            to,
+            code: tr.code,
+            flags: tr.flags,
+            data_size: tr.data_size as _,
+            data_address,
+            offsets_size: tr.offsets_size as _,
+            links: Links::new(),
+            free_allocation: AtomicBool::new(true),
+        })?);
+
+        // SAFETY: `inner` is pinned when `tr` is.
+        let pinned = unsafe { tr.as_mut().map_unchecked_mut(|t| &mut t.inner) };
+        kernel::spinlock_init!(pinned, "Transaction::inner");
+
+        Ok(tr.into())
     }
 
     pub(crate) fn new_reply(
@@ -90,29 +88,27 @@ impl Transaction {
         let data_address = alloc.ptr;
         let file_list = alloc.take_file_list();
         alloc.keep_alive();
-        let tr = Ref::try_new_and_init(
-            Self {
-                // SAFETY: `spinlock_init` is called below.
-                inner: unsafe { SpinLock::new(TransactionInner { file_list }) },
-                node_ref: None,
-                stack_next: None,
-                from: from.clone(),
-                to,
-                code: tr.code,
-                flags: tr.flags,
-                data_size: tr.data_size as _,
-                data_address,
-                offsets_size: tr.offsets_size as _,
-                links: Links::new(),
-                free_allocation: AtomicBool::new(true),
-            },
-            |mut tr| {
-                // SAFETY: `inner` is pinned when `tr` is.
-                let pinned = unsafe { tr.as_mut().map_unchecked_mut(|t| &mut t.inner) };
-                kernel::spinlock_init!(pinned, "Transaction::inner");
-            },
-        )?;
-        Ok(tr)
+        let mut tr = Pin::from(UniqueRef::try_new(Self {
+            // SAFETY: `spinlock_init` is called below.
+            inner: unsafe { SpinLock::new(TransactionInner { file_list }) },
+            node_ref: None,
+            stack_next: None,
+            from: from.clone(),
+            to,
+            code: tr.code,
+            flags: tr.flags,
+            data_size: tr.data_size as _,
+            data_address,
+            offsets_size: tr.offsets_size as _,
+            links: Links::new(),
+            free_allocation: AtomicBool::new(true),
+        })?);
+
+        // SAFETY: `inner` is pinned when `tr` is.
+        let pinned = unsafe { tr.as_mut().map_unchecked_mut(|t| &mut t.inner) };
+        kernel::spinlock_init!(pinned, "Transaction::inner");
+
+        Ok(tr.into())
     }
 
     /// Determines if the transaction is stacked on top of the given transaction.

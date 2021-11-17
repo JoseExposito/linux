@@ -4,7 +4,7 @@ use kernel::{
     bindings,
     prelude::*,
     security,
-    sync::{Mutex, Ref},
+    sync::{Mutex, Ref, UniqueRef},
 };
 
 use crate::{
@@ -26,22 +26,21 @@ unsafe impl Sync for Context {}
 
 impl Context {
     pub(crate) fn new() -> Result<Ref<Self>> {
-        Ref::try_new_and_init(
-            Self {
-                // SAFETY: Init is called below.
-                manager: unsafe {
-                    Mutex::new(Manager {
-                        node: None,
-                        uid: None,
-                    })
-                },
+        let mut ctx = Pin::from(UniqueRef::try_new(Self {
+            // SAFETY: Init is called below.
+            manager: unsafe {
+                Mutex::new(Manager {
+                    node: None,
+                    uid: None,
+                })
             },
-            |mut ctx| {
-                // SAFETY: `manager` is also pinned when `ctx` is.
-                let manager = unsafe { ctx.as_mut().map_unchecked_mut(|c| &mut c.manager) };
-                kernel::mutex_init!(manager, "Context::manager");
-            },
-        )
+        })?);
+
+        // SAFETY: `manager` is also pinned when `ctx` is.
+        let manager = unsafe { ctx.as_mut().map_unchecked_mut(|c| &mut c.manager) };
+        kernel::mutex_init!(manager, "Context::manager");
+
+        Ok(ctx.into())
     }
 
     pub(crate) fn set_manager_node(&self, node_ref: NodeRef) -> Result {

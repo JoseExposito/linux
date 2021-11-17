@@ -11,7 +11,7 @@ use kernel::{
     file_operations::{FileOpener, FileOperations},
     io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev,
-    sync::{CondVar, Mutex, Ref},
+    sync::{CondVar, Mutex, Ref, UniqueRef},
 };
 
 module! {
@@ -35,22 +35,22 @@ struct SharedState {
 
 impl SharedState {
     fn try_new() -> Result<Ref<Self>> {
-        Ref::try_new_and_init(
-            Self {
-                // SAFETY: `condvar_init!` is called below.
-                state_changed: unsafe { CondVar::new() },
-                // SAFETY: `mutex_init!` is called below.
-                inner: unsafe { Mutex::new(SharedStateInner { token_count: 0 }) },
-            },
-            |mut state| {
-                // SAFETY: `state_changed` is pinned when `state` is.
-                let pinned = unsafe { state.as_mut().map_unchecked_mut(|s| &mut s.state_changed) };
-                kernel::condvar_init!(pinned, "SharedState::state_changed");
-                // SAFETY: `inner` is pinned when `state` is.
-                let pinned = unsafe { state.as_mut().map_unchecked_mut(|s| &mut s.inner) };
-                kernel::mutex_init!(pinned, "SharedState::inner");
-            },
-        )
+        let mut state = Pin::from(UniqueRef::try_new(Self {
+            // SAFETY: `condvar_init!` is called below.
+            state_changed: unsafe { CondVar::new() },
+            // SAFETY: `mutex_init!` is called below.
+            inner: unsafe { Mutex::new(SharedStateInner { token_count: 0 }) },
+        })?);
+
+        // SAFETY: `state_changed` is pinned when `state` is.
+        let pinned = unsafe { state.as_mut().map_unchecked_mut(|s| &mut s.state_changed) };
+        kernel::condvar_init!(pinned, "SharedState::state_changed");
+
+        // SAFETY: `inner` is pinned when `state` is.
+        let pinned = unsafe { state.as_mut().map_unchecked_mut(|s| &mut s.inner) };
+        kernel::mutex_init!(pinned, "SharedState::inner");
+
+        Ok(state.into())
     }
 }
 

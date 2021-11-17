@@ -13,7 +13,7 @@ use kernel::{
     linked_list::{GetLinks, Links, List},
     prelude::*,
     security,
-    sync::{CondVar, Ref, SpinLock},
+    sync::{CondVar, Ref, SpinLock, UniqueRef},
     user_ptr::{UserSlicePtr, UserSlicePtrWriter},
 };
 
@@ -241,31 +241,31 @@ impl Thread {
     pub(crate) fn new(id: i32, process: Ref<Process>) -> Result<Ref<Self>> {
         let return_work = Ref::try_new(ThreadError::new(InnerThread::set_return_work))?;
         let reply_work = Ref::try_new(ThreadError::new(InnerThread::set_reply_work))?;
-        Ref::try_new_and_init(
-            Self {
-                id,
-                process,
-                // SAFETY: `inner` is initialised in the call to `spinlock_init` below.
-                inner: unsafe { SpinLock::new(InnerThread::new()) },
-                // SAFETY: `work_condvar` is initalised in the call to `condvar_init` below.
-                work_condvar: unsafe { CondVar::new() },
-                links: Links::new(),
-            },
-            |mut thread| {
-                // SAFETY: `inner` is pinned when `thread` is.
-                let inner = unsafe { thread.as_mut().map_unchecked_mut(|t| &mut t.inner) };
-                kernel::spinlock_init!(inner, "Thread::inner");
+        let mut thread = Pin::from(UniqueRef::try_new(Self {
+            id,
+            process,
+            // SAFETY: `inner` is initialised in the call to `spinlock_init` below.
+            inner: unsafe { SpinLock::new(InnerThread::new()) },
+            // SAFETY: `work_condvar` is initalised in the call to `condvar_init` below.
+            work_condvar: unsafe { CondVar::new() },
+            links: Links::new(),
+        })?);
 
-                // SAFETY: `work_condvar` is pinned when `thread` is.
-                let condvar = unsafe { thread.as_mut().map_unchecked_mut(|t| &mut t.work_condvar) };
-                kernel::condvar_init!(condvar, "Thread::work_condvar");
-                {
-                    let mut inner = thread.inner.lock();
-                    inner.set_reply_work(reply_work);
-                    inner.set_return_work(return_work);
-                }
-            },
-        )
+        // SAFETY: `inner` is pinned when `thread` is.
+        let inner = unsafe { thread.as_mut().map_unchecked_mut(|t| &mut t.inner) };
+        kernel::spinlock_init!(inner, "Thread::inner");
+
+        // SAFETY: `work_condvar` is pinned when `thread` is.
+        let condvar = unsafe { thread.as_mut().map_unchecked_mut(|t| &mut t.work_condvar) };
+        kernel::condvar_init!(condvar, "Thread::work_condvar");
+
+        {
+            let mut inner = thread.inner.lock();
+            inner.set_reply_work(reply_work);
+            inner.set_return_work(return_work);
+        }
+
+        Ok(thread.into())
     }
 
     pub(crate) fn set_current_transaction(&self, transaction: Ref<Transaction>) {
