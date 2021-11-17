@@ -14,7 +14,6 @@ use core::{
     mem::MaybeUninit,
     ops::{self, Deref, DerefMut},
     pin::Pin,
-    ptr::NonNull,
 };
 
 /// Permissions.
@@ -44,7 +43,7 @@ impl Mode {
 pub trait PointerWrapper {
     /// Type of values borrowed between calls to [`PointerWrapper::into_pointer`] and
     /// [`PointerWrapper::from_pointer`].
-    type Borrowed: Deref;
+    type Borrowed<'a>;
 
     /// Returns the raw pointer.
     fn into_pointer(self) -> *const c_types::c_void;
@@ -56,7 +55,7 @@ pub trait PointerWrapper {
     /// `ptr` must have been returned by a previous call to [`PointerWrapper::into_pointer`].
     /// Additionally, [`PointerWrapper::from_pointer`] can only be called after *all* values
     /// returned by [`PointerWrapper::borrow`] have been dropped.
-    unsafe fn borrow(ptr: *const c_types::c_void) -> Self::Borrowed;
+    unsafe fn borrow<'a>(ptr: *const c_types::c_void) -> Self::Borrowed<'a>;
 
     /// Returns the instance back from the raw pointer.
     ///
@@ -66,19 +65,19 @@ pub trait PointerWrapper {
     unsafe fn from_pointer(ptr: *const c_types::c_void) -> Self;
 }
 
-impl<T> PointerWrapper for Box<T> {
-    type Borrowed = UnsafeReference<T>;
+impl<T: 'static> PointerWrapper for Box<T> {
+    type Borrowed<'a> = &'a T;
 
     fn into_pointer(self) -> *const c_types::c_void {
         Box::into_raw(self) as _
     }
 
-    unsafe fn borrow(ptr: *const c_types::c_void) -> Self::Borrowed {
+    unsafe fn borrow<'a>(ptr: *const c_types::c_void) -> &'a T {
         // SAFETY: The safety requirements for this function ensure that the object is still alive,
         // so it is safe to dereference the raw pointer.
         // The safety requirements also ensure that the object remains alive for the lifetime of
         // the returned value.
-        unsafe { UnsafeReference::new(&*ptr.cast()) }
+        unsafe { &*ptr.cast() }
     }
 
     unsafe fn from_pointer(ptr: *const c_types::c_void) -> Self {
@@ -87,14 +86,14 @@ impl<T> PointerWrapper for Box<T> {
     }
 }
 
-impl<T> PointerWrapper for Ref<T> {
-    type Borrowed = RefBorrow<T>;
+impl<T: 'static> PointerWrapper for Ref<T> {
+    type Borrowed<'a> = RefBorrow<'a, T>;
 
     fn into_pointer(self) -> *const c_types::c_void {
         Ref::into_usize(self) as _
     }
 
-    unsafe fn borrow(ptr: *const c_types::c_void) -> Self::Borrowed {
+    unsafe fn borrow<'a>(ptr: *const c_types::c_void) -> RefBorrow<'a, T> {
         // SAFETY: The safety requirements for this function ensure that the underlying object
         // remains valid for the lifetime of the returned value.
         unsafe { Ref::borrow_usize(ptr as _) }
@@ -106,45 +105,8 @@ impl<T> PointerWrapper for Ref<T> {
     }
 }
 
-/// A reference with manually-managed lifetime.
-///
-/// # Invariants
-///
-/// There are no mutable references to the underlying object, and it remains valid for the lifetime
-/// of the [`UnsafeReference`] instance.
-pub struct UnsafeReference<T: ?Sized> {
-    ptr: NonNull<T>,
-}
-
-impl<T: ?Sized> UnsafeReference<T> {
-    /// Creates a new [`UnsafeReference`] instance.
-    ///
-    /// # Safety
-    ///
-    /// Callers must ensure the following for the lifetime of the returned [`UnsafeReference`]
-    /// instance:
-    /// 1. That `obj` remains valid;
-    /// 2. That no mutable references to `obj` are created.
-    unsafe fn new(obj: &T) -> Self {
-        // INVARIANT: The safety requirements of this function ensure that the invariants hold.
-        Self {
-            ptr: NonNull::from(obj),
-        }
-    }
-}
-
-impl<T: ?Sized> Deref for UnsafeReference<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        // SAFETY: By the type invariant, the object is still valid and alive, and there are no
-        // mutable references to it.
-        unsafe { self.ptr.as_ref() }
-    }
-}
-
 impl<T: PointerWrapper + Deref> PointerWrapper for Pin<T> {
-    type Borrowed = T::Borrowed;
+    type Borrowed<'a> = T::Borrowed<'a>;
 
     fn into_pointer(self) -> *const c_types::c_void {
         // SAFETY: We continue to treat the pointer as pinned by returning just a pointer to it to
@@ -153,7 +115,7 @@ impl<T: PointerWrapper + Deref> PointerWrapper for Pin<T> {
         inner.into_pointer()
     }
 
-    unsafe fn borrow(ptr: *const c_types::c_void) -> Self::Borrowed {
+    unsafe fn borrow<'a>(ptr: *const c_types::c_void) -> Self::Borrowed<'a> {
         // SAFETY: The safety requirements for this function are the same as the ones for
         // `T::borrow`.
         unsafe { T::borrow(ptr) }

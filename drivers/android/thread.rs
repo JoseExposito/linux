@@ -395,9 +395,13 @@ impl Thread {
                     let ptr = unsafe { obj.__bindgen_anon_1.binder } as _;
                     let cookie = obj.cookie as _;
                     let flags = obj.flags as _;
-                    let node = self
-                        .process
-                        .get_node(ptr, cookie, flags, strong, Some(self))?;
+                    let node = self.process.as_ref_borrow().get_node(
+                        ptr,
+                        cookie,
+                        flags,
+                        strong,
+                        Some(self),
+                    )?;
                     security::binder_transfer_binder(&self.process.task, &view.alloc.process.task)?;
                     Ok(node)
                 })?;

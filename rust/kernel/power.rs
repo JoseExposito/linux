@@ -6,33 +6,33 @@
 
 #![allow(dead_code)]
 
-use crate::{bindings, c_types, from_kernel_result, sync::Ref, types::PointerWrapper, Result};
-use core::{marker::PhantomData, ops::Deref};
+use crate::{bindings, c_types, from_kernel_result, types::PointerWrapper, Result};
+use core::marker::PhantomData;
 
 /// Corresponds to the kernel's `struct dev_pm_ops`.
 ///
 /// It is meant to be implemented by drivers that support power-management operations.
-pub trait Operations: Sync + Send + Sized {
+pub trait Operations {
     /// The type of the context data stored by the driver on each device.
-    type Data: PointerWrapper + Sync + Send = Ref<Self>;
+    type Data: PointerWrapper + Sync + Send;
 
     /// Called before the system goes into a sleep state.
-    fn suspend(_data: &<<Self::Data as PointerWrapper>::Borrowed as Deref>::Target) -> Result {
+    fn suspend(_data: <Self::Data as PointerWrapper>::Borrowed<'_>) -> Result {
         Ok(())
     }
 
     /// Called after the system comes back from a sleep state.
-    fn resume(_data: &<<Self::Data as PointerWrapper>::Borrowed as Deref>::Target) -> Result {
+    fn resume(_data: <Self::Data as PointerWrapper>::Borrowed<'_>) -> Result {
         Ok(())
     }
 
     /// Called before creating a hibernation image.
-    fn freeze(_data: &<<Self::Data as PointerWrapper>::Borrowed as Deref>::Target) -> Result {
+    fn freeze(_data: <Self::Data as PointerWrapper>::Borrowed<'_>) -> Result {
         Ok(())
     }
 
     /// Called after the system is restored from a hibernation image.
-    fn restore(_data: &<<Self::Data as PointerWrapper>::Borrowed as Deref>::Target) -> Result {
+    fn restore(_data: <Self::Data as PointerWrapper>::Borrowed<'_>) -> Result {
         Ok(())
     }
 }
@@ -48,7 +48,7 @@ macro_rules! pm_callback {
                 // SAFETY: By the safety requirements of `OpsTable::build`, we know that `ptr` came
                 // from a previous call to `T::Data::into_pointer`.
                 let data = unsafe { T::Data::borrow(ptr) };
-                T::$method(data.deref())?;
+                T::$method(data)?;
                 Ok(0)
             }
         }

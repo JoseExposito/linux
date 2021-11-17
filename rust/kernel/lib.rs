@@ -21,6 +21,7 @@
     const_panic,
     const_unreachable_unchecked,
     doc_cfg,
+    generic_associated_types,
     ptr_metadata,
     receiver_trait,
     coerce_unsized,

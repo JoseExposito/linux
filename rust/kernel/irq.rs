@@ -103,22 +103,19 @@ pub trait Chip: Sized {
     const TO_USE: ToUse;
 
     /// Called at the start of a new interrupt.
-    fn ack(data: &<<Self::Data as PointerWrapper>::Borrowed as Deref>::Target, irq_data: &IrqData);
+    fn ack(data: <Self::Data as PointerWrapper>::Borrowed<'_>, irq_data: &IrqData);
 
     /// Masks an interrupt source.
-    fn mask(data: &<<Self::Data as PointerWrapper>::Borrowed as Deref>::Target, irq_data: &IrqData);
+    fn mask(data: <Self::Data as PointerWrapper>::Borrowed<'_>, irq_data: &IrqData);
 
     /// Unmasks an interrupt source.
-    fn unmask(
-        data: &<<Self::Data as PointerWrapper>::Borrowed as Deref>::Target,
-        irq_data: &IrqData,
-    );
+    fn unmask(_data: <Self::Data as PointerWrapper>::Borrowed<'_>, irq_data: &IrqData);
 
     /// Sets the flow type of an interrupt.
     ///
     /// The flow type is a combination of the constants in [`Type`].
     fn set_type(
-        _data: &<<Self::Data as PointerWrapper>::Borrowed as Deref>::Target,
+        _data: <Self::Data as PointerWrapper>::Borrowed<'_>,
         _irq_data: &mut LockedIrqData,
         _flow_type: u32,
     ) -> Result<ExtraResult> {
@@ -127,7 +124,7 @@ pub trait Chip: Sized {
 
     /// Enables or disables power-management wake-on of an interrupt.
     fn set_wake(
-        _data: &<<Self::Data as PointerWrapper>::Borrowed as Deref>::Target,
+        _data: <Self::Data as PointerWrapper>::Borrowed<'_>,
         _irq_data: &IrqData,
         _on: bool,
     ) -> Result {
@@ -207,7 +204,7 @@ unsafe extern "C" fn irq_ack_callback<T: Chip>(irq_data: *mut bindings::irq_data
 
     // SAFETY: The value returned by `IrqData` is only valid until the end of this function, and
     // `irq_data` is guaranteed to be valid until then (by the contract with C code).
-    T::ack(&data, unsafe { &IrqData::from_ptr(irq_data) })
+    T::ack(data, unsafe { &IrqData::from_ptr(irq_data) })
 }
 
 unsafe extern "C" fn irq_mask_callback<T: Chip>(irq_data: *mut bindings::irq_data) {
@@ -218,7 +215,7 @@ unsafe extern "C" fn irq_mask_callback<T: Chip>(irq_data: *mut bindings::irq_dat
 
     // SAFETY: The value returned by `IrqData` is only valid until the end of this function, and
     // `irq_data` is guaranteed to be valid until then (by the contract with C code).
-    T::mask(&data, unsafe { &IrqData::from_ptr(irq_data) })
+    T::mask(data, unsafe { &IrqData::from_ptr(irq_data) })
 }
 
 unsafe extern "C" fn irq_unmask_callback<T: Chip>(irq_data: *mut bindings::irq_data) {
@@ -229,7 +226,7 @@ unsafe extern "C" fn irq_unmask_callback<T: Chip>(irq_data: *mut bindings::irq_d
 
     // SAFETY: The value returned by `IrqData` is only valid until the end of this function, and
     // `irq_data` is guaranteed to be valid until then (by the contract with C code).
-    T::unmask(&data, unsafe { &IrqData::from_ptr(irq_data) })
+    T::unmask(data, unsafe { &IrqData::from_ptr(irq_data) })
 }
 
 unsafe extern "C" fn irq_set_type_callback<T: Chip>(
@@ -244,7 +241,7 @@ unsafe extern "C" fn irq_set_type_callback<T: Chip>(
 
         // SAFETY: The value returned by `IrqData` is only valid until the end of this function, and
         // `irq_data` is guaranteed to be valid until then (by the contract with C code).
-        let ret = T::set_type(&data, &mut LockedIrqData(unsafe { IrqData::from_ptr(irq_data) }), flow_type)?;
+        let ret = T::set_type(data, &mut LockedIrqData(unsafe { IrqData::from_ptr(irq_data) }), flow_type)?;
         Ok(ret as _)
     }
 }
@@ -261,7 +258,7 @@ unsafe extern "C" fn irq_set_wake_callback<T: Chip>(
 
         // SAFETY: The value returned by `IrqData` is only valid until the end of this function, and
         // `irq_data` is guaranteed to be valid until then (by the contract with C code).
-        T::set_wake(&data, unsafe { &IrqData::from_ptr(irq_data) }, on != 0)?;
+        T::set_wake(data, unsafe { &IrqData::from_ptr(irq_data) }, on != 0)?;
         Ok(0)
     }
 }
