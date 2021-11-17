@@ -2,6 +2,7 @@
 
 //! String representations.
 
+use core::fmt::{self, Write};
 use core::ops::{self, Deref, Index};
 
 use crate::bindings;
@@ -206,6 +207,58 @@ impl CStr {
     #[inline]
     pub unsafe fn as_str_unchecked(&self) -> &str {
         unsafe { core::str::from_utf8_unchecked(self.as_bytes()) }
+    }
+}
+
+impl fmt::Display for CStr {
+    /// Formats printable ASCII characters, escaping the rest.
+    ///
+    /// ```
+    /// # use kernel::c_str;
+    /// # use kernel::str::CStr;
+    /// let penguin = c_str!("🐧");
+    /// assert_eq!(format!("{}", penguin), "\\xf0\\x9f\\x90\\xa7");
+    ///
+    /// let ascii = c_str!("so \"cool\"");
+    /// assert_eq!(format!("{}", ascii), "so \"cool\"");
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for &c in self.as_bytes() {
+            if (0x20..0x7f).contains(&c) {
+                // Printable character
+                f.write_char(c as char)?;
+            } else {
+                write!(f, "\\x{:02x}", c)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for CStr {
+    /// Formats printable ASCII characters with a double quote on either end, escaping the rest.
+    ///
+    /// ```
+    /// # use kernel::c_str;
+    /// # use kernel::str::CStr;
+    /// let penguin = c_str!("🐧");
+    /// assert_eq!(format!("{:?}", penguin), "\"\\xf0\\x9f\\x90\\xa7\"");
+    ///
+    /// // embedded double quotes are escaped
+    /// let ascii = c_str!("so \"cool\"");
+    /// assert_eq!(format!("{:?}", ascii), "\"so \\\"cool\\\"\"");
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("\"")?;
+        for &c in self.as_bytes() {
+            match c {
+                // Printable characters
+                b'\"' => f.write_str("\\\"")?,
+                0x20..=0x7e => f.write_char(c as char)?,
+                _ => write!(f, "\\x{:02x}", c)?,
+            }
+        }
+        f.write_str("\"")
     }
 }
 
