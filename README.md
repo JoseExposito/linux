@@ -14,6 +14,7 @@ Here I work on my patches. I'm a newbie, so don't expect great changes, just hum
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-hid-apple-usb-battery-v1](https://github.com/JoseExposito/linux/tree/patch-hid-apple-usb-battery-v1) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Fetch Magic Keyboard battery when connected over USB | ⏳ |
 | [patch-uperfect-y-sticky-fingers-v1](https://github.com/JoseExposito/linux/tree/patch-uperfect-y-sticky-fingers-v1) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Disable sticky fingers for UPERFECT Y | 🔀 |
 | [patch-intel-hid-deny-list-v1](https://github.com/JoseExposito/linux/tree/patch-intel-hid-deny-list-v1) | [upstream-pdx86-for-next](https://github.com/JoseExposito/linux/tree/upstream-pdx86-for-next) | libinput [issue 662](https://gitlab.freedesktop.org/libinput/libinput/-/issues/662) | 🔀 |
 | [patch-magic-mouse-cleanup-v1](https://github.com/JoseExposito/linux/tree/patch-magic-mouse-cleanup-v1) | [upstream-hid-for-next](https://github.com/JoseExposito/linux/tree/upstream-hid-for-next) | Magic Mouse/Trackpad driver cleanup | ⏳ |
