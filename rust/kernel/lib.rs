@@ -47,6 +47,7 @@ pub mod amba;
 pub mod buffer;
 pub mod c_types;
 pub mod chrdev;
+pub mod device;
 pub mod driver;
 mod error;
 pub mod file;
