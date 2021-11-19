@@ -5,8 +5,8 @@
 //! C header: [`include/linux/amba/bus.h`](../../../../include/linux/amba/bus.h)
 
 use crate::{
-    bindings, c_types, driver, from_kernel_result, io_mem::Resource, power, str::CStr, to_result,
-    types::PointerWrapper, Error, Result,
+    bindings, c_types, device, driver, from_kernel_result, io_mem::Resource, power, str::CStr,
+    to_result, types::PointerWrapper, Error, Result,
 };
 use core::{marker::PhantomData, ops::Deref};
 
@@ -189,6 +189,14 @@ impl Device {
         } else {
             Some(dev.irq[index])
         }
+    }
+}
+
+// SAFETY: The device returned by `raw_device` is the raw Amba device.
+unsafe impl device::RawDevice for Device {
+    fn raw_device(&self) -> *mut bindings::device {
+        // SAFETY: By the type invariants, we know that `self.ptr` is non-null and valid.
+        unsafe { &mut (*self.ptr).dev }
     }
 }
 
