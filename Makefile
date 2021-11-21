@@ -796,18 +796,6 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, address-of-packed-member)
 
-ifdef CONFIG_RUST_DEBUG_ASSERTIONS
-KBUILD_RUSTFLAGS += -Cdebug-assertions=y
-else
-KBUILD_RUSTFLAGS += -Cdebug-assertions=n
-endif
-
-ifdef CONFIG_RUST_OVERFLOW_CHECKS
-KBUILD_RUSTFLAGS += -Coverflow-checks=y
-else
-KBUILD_RUSTFLAGS += -Coverflow-checks=n
-endif
-
 ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
 KBUILD_CFLAGS += -O2
 KBUILD_RUSTFLAGS_OPT_LEVEL_MAP := 2
@@ -819,21 +807,18 @@ KBUILD_CFLAGS += -Os
 KBUILD_RUSTFLAGS_OPT_LEVEL_MAP := z
 endif
 
-ifdef CONFIG_RUST_OPT_LEVEL_SIMILAR_AS_CHOSEN_FOR_C
-KBUILD_RUSTFLAGS += -Copt-level=$(KBUILD_RUSTFLAGS_OPT_LEVEL_MAP)
-else ifdef CONFIG_RUST_OPT_LEVEL_0
-KBUILD_RUSTFLAGS += -Copt-level=0
-else ifdef CONFIG_RUST_OPT_LEVEL_1
-KBUILD_RUSTFLAGS += -Copt-level=1
-else ifdef CONFIG_RUST_OPT_LEVEL_2
-KBUILD_RUSTFLAGS += -Copt-level=2
-else ifdef CONFIG_RUST_OPT_LEVEL_3
-KBUILD_RUSTFLAGS += -Copt-level=3
-else ifdef CONFIG_RUST_OPT_LEVEL_S
-KBUILD_RUSTFLAGS += -Copt-level=s
-else ifdef CONFIG_RUST_OPT_LEVEL_Z
-KBUILD_RUSTFLAGS += -Copt-level=z
-endif
+# Always set `debug-assertions` and `overflow-checks` because their default
+# depends on `opt-level` and `debug-assertions`, respectively.
+KBUILD_RUSTFLAGS += -Cdebug-assertions=$(if $(CONFIG_RUST_DEBUG_ASSERTIONS),y,n)
+KBUILD_RUSTFLAGS += -Coverflow-checks=$(if $(CONFIG_RUST_OVERFLOW_CHECKS),y,n)
+KBUILD_RUSTFLAGS += -Copt-level=$\
+	$(if $(CONFIG_RUST_OPT_LEVEL_SIMILAR_AS_CHOSEN_FOR_C),$(KBUILD_RUSTFLAGS_OPT_LEVEL_MAP))$\
+	$(if $(CONFIG_RUST_OPT_LEVEL_0),0)$\
+	$(if $(CONFIG_RUST_OPT_LEVEL_1),1)$\
+	$(if $(CONFIG_RUST_OPT_LEVEL_2),2)$\
+	$(if $(CONFIG_RUST_OPT_LEVEL_3),3)$\
+	$(if $(CONFIG_RUST_OPT_LEVEL_S),s)$\
+	$(if $(CONFIG_RUST_OPT_LEVEL_Z),z)
 
 # Tell gcc to never replace conditional load with a non-conditional one
 ifdef CONFIG_CC_IS_GCC
@@ -1172,10 +1157,7 @@ export MODULES_NSDEPS := $(extmod_prefix)modules.nsdeps
 ifeq ($(KBUILD_EXTMOD),)
 core-y			+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/
 core-$(CONFIG_BLOCK)	+= block/
-
-ifdef CONFIG_RUST
-core-y		+= rust/
-endif
+core-$(CONFIG_RUST)	+= rust/
 
 vmlinux-dirs	:= $(patsubst %/,%,$(filter %/, \
 		     $(core-y) $(core-m) $(drivers-y) $(drivers-m) \
