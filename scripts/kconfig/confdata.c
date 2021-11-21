@@ -763,6 +763,9 @@ static void print_symbol_for_c(FILE *fp, struct symbol *sym)
 static void print_symbol_for_rustccfg(FILE *fp, struct symbol *sym)
 {
 	const char *val;
+	const char *val_prefix = "";
+	char *val_prefixed = NULL;
+	size_t val_prefixed_len;
 	char *escaped = NULL;
 
 	if (sym->type == S_UNKNOWN)
@@ -771,12 +774,10 @@ static void print_symbol_for_rustccfg(FILE *fp, struct symbol *sym)
 	val = sym_get_string_value(sym);
 
 	switch (sym->type) {
-	case S_INT:
-	case S_HEX:
 	case S_BOOLEAN:
 	case S_TRISTATE:
 		/*
-		 * We don't care about disabled ones, i.e. no need for
+		 * We do not care about disabled ones, i.e. no need for
 		 * what otherwise are "comments" in other printers.
 		 */
 		if (*val == 'n')
@@ -791,23 +792,31 @@ static void print_symbol_for_rustccfg(FILE *fp, struct symbol *sym)
 		 * a `--cfg CONFIG_X="y"` or `--cfg CONFIG_X="m"`, which can
 		 * be used as the equivalent of `IS_BUILTIN()`/`IS_MODULE()`.
 		 */
-		if (*val == 'y' || *val == 'm')
-			fprintf(fp, "--cfg=%s%s\n", CONFIG_, sym->name);
-
-		escaped = escape_string_value(val);
-		val = escaped;
+		fprintf(fp, "--cfg=%s%s\n", CONFIG_, sym->name);
 		break;
-	case S_STRING:
-		escaped = escape_string_value(val);
-		val = escaped;
+	case S_HEX:
+		if (val[0] != '0' || (val[1] != 'x' && val[1] != 'X'))
+			val_prefix = "0x";
 		break;
 	default:
 		break;
 	}
 
+	if (strlen(val_prefix) > 0) {
+		val_prefixed_len = strlen(val) + strlen(val_prefix) + 1;
+		val_prefixed = xmalloc(val_prefixed_len);
+		snprintf(val_prefixed, val_prefixed_len, "%s%s", val_prefix, val);
+		val = val_prefixed;
+	}
+
+	/* All values get escaped: the `--cfg` option only takes strings */
+	escaped = escape_string_value(val);
+	val = escaped;
+
 	fprintf(fp, "--cfg=%s%s=%s\n", CONFIG_, sym->name, val);
 
 	free(escaped);
+	free(val_prefixed);
 }
 
 /*
