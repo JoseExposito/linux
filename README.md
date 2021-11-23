@@ -40,6 +40,7 @@ Upstream code is saved in `upstream-*` branches to easily rebase and generate pa
 | [upstream-hid-for-next](https://github.com/JoseExposito/linux/tree/upstream-hid-for-next) | git remote add hid git://git.kernel.org/pub/scm/linux/kernel/git/hid/hid.git | git pull --rebase hid for-next |
 | [upstream-pdx86-master](https://github.com/JoseExposito/linux/tree/upstream-pdx86-master) | git remote add pdx86 git://git.kernel.org/pub/scm/linux/kernel/git/pdx86/platform-drivers-x86.git | git pull --rebase pdx86 master |
 | [upstream-pdx86-for-next](https://github.com/JoseExposito/linux/tree/upstream-pdx86-for-next) | git remote add pdx86 git://git.kernel.org/pub/scm/linux/kernel/git/pdx86/platform-drivers-x86.git | git pull --rebase pdx86 for-next |
+| [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | git remote add drm git://anongit.freedesktop.org/drm/drm | git pull --rebase drm drm-fixes |
 
 Depending on the subsystem, the maintainer could have its own tree. For example, to modify the Magic
 Mouse/Trackpad driver:
