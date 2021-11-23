@@ -316,6 +316,8 @@ impl Error {
 
     declare_err!(ERESTARTSYS, "Restart the system call.");
 
+    declare_err!(ENOTSUPP, "Operation is not supported.");
+
     /// Creates an [`Error`] from a kernel error code.
     ///
     /// It is a bug to pass an out-of-range `errno`. `EINVAL` would

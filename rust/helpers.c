@@ -324,6 +324,12 @@ void *rust_helper_dev_get_drvdata(struct device *dev)
 }
 EXPORT_SYMBOL_GPL(rust_helper_dev_get_drvdata);
 
+const char *rust_helper_dev_name(const struct device *dev)
+{
+	return dev_name(dev);
+}
+EXPORT_SYMBOL_GPL(rust_helper_dev_name);
+
 void rust_helper___seqcount_init(seqcount_t *s, const char *name,
 				 struct lock_class_key *key)
 {

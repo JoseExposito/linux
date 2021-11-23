@@ -4,7 +4,7 @@
 //!
 //! C header: [`include/linux/device.h`](../../../../include/linux/device.h)
 
-use crate::bindings;
+use crate::{bindings, str::CStr};
 
 /// A raw device.
 ///
@@ -13,9 +13,26 @@ use crate::bindings;
 /// Implementers must ensure that the `*mut device` returned by [`RawDevice::raw_device`] is
 /// related to `self`, that is, actions on it will affect `self`. For example, if one calls
 /// `get_device`, then the refcount on the device represented by `self` will be incremented.
+///
+/// Additionally, implementers must ensure that the device is never renamed. Commit a5462516aa994
+/// has details on why `device_rename` should not be used.
 pub unsafe trait RawDevice {
     /// Returns the raw `struct device` related to `self`.
     fn raw_device(&self) -> *mut bindings::device;
+
+    /// Returns the name of the device.
+    fn name(&self) -> &CStr {
+        let ptr = self.raw_device();
+
+        // SAFETY: `ptr` is valid because `self` keeps it alive.
+        let name = unsafe { bindings::dev_name(ptr) };
+
+        // SAFETY: The name of the device remains valid while it is alive (because the device is
+        // never renamed, per the safety requirement of this trait). This is guaranteed to be the
+        // case because the reference to `self` outlives the one of the returned `CStr` (enforced
+        // by the compiler because of their lifetimes).
+        unsafe { CStr::from_char_ptr(name) }
+    }
 }
 
 /// A ref-counted device.
