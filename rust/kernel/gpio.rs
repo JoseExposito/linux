@@ -11,6 +11,9 @@ use core::{
     pin::Pin,
 };
 
+#[cfg(CONFIG_GPIOLIB_IRQCHIP)]
+pub use irqchip::{ChipWithIrqChip, RegistrationWithIrqChip};
+
 /// The direction of a gpio line.
 pub enum LineDirection {
     /// Direction is input.
@@ -141,14 +144,13 @@ impl<T: Chip> Registration<T> {
         parent: &dyn device::RawDevice,
         data: T::Data,
     ) -> Result {
-        // SAFETY: We never move out of `this`.
-        let this = unsafe { self.get_unchecked_mut() };
-
-        if this.parent.is_some() {
+        if self.parent.is_some() {
             // Already registered.
             return Err(Error::EINVAL);
         }
 
+        // SAFETY: We never move out of `this`.
+        let this = unsafe { self.get_unchecked_mut() };
         {
             let gc = this.gc.get_mut();
 
@@ -296,4 +298,175 @@ unsafe extern "C" fn set_callback<T: Chip>(
     // SAFETY: The value stored as chip data was returned by `into_pointer` during registration.
     let data = unsafe { T::Data::borrow(bindings::gpiochip_get_data(gc)) };
     T::set(data, offset, value != 0);
+}
+
+#[cfg(CONFIG_GPIOLIB_IRQCHIP)]
+mod irqchip {
+    use super::*;
+    use crate::irq;
+
+    /// A gpio chip that includes an irq chip.
+    pub trait ChipWithIrqChip: Chip {
+        /// Implements the irq flow for the gpio chip.
+        fn handle_irq_flow(
+            _data: <Self::Data as PointerWrapper>::Borrowed<'_>,
+            _desc: &irq::Descriptor,
+            _domain: &irq::Domain,
+        );
+    }
+
+    /// A registration of a gpio chip that includes an irq chip.
+    pub struct RegistrationWithIrqChip<T: ChipWithIrqChip> {
+        reg: Registration<T>,
+        irq_chip: UnsafeCell<bindings::irq_chip>,
+        parent_irq: u32,
+    }
+
+    impl<T: ChipWithIrqChip> RegistrationWithIrqChip<T> {
+        /// Creates a new [`RegistrationWithIrqChip`] but does not register it yet.
+        ///
+        /// It is allowed to move.
+        pub fn new() -> Self {
+            Self {
+                reg: Registration::new(),
+                irq_chip: UnsafeCell::new(bindings::irq_chip::default()),
+                parent_irq: 0,
+            }
+        }
+
+        /// Registers a gpio chip and its irq chip with the rest of the kernel.
+        pub fn register<U: irq::Chip<Data = T::Data>>(
+            mut self: Pin<&mut Self>,
+            gpio_count: u16,
+            base: Option<i32>,
+            parent: &dyn device::RawDevice,
+            data: T::Data,
+            parent_irq: u32,
+        ) -> Result {
+            if self.reg.parent.is_some() {
+                // Already registered.
+                return Err(Error::EINVAL);
+            }
+
+            // SAFETY: We never move out of `this`.
+            let this = unsafe { self.as_mut().get_unchecked_mut() };
+
+            // Initialise the irq_chip.
+            {
+                let irq_chip = this.irq_chip.get_mut();
+                irq_chip.name = parent.name().as_char_ptr();
+
+                // SAFETY: The gpio subsystem configures a pointer to `gpio_chip` as the irq chip
+                // data, so we use `IrqChipAdapter` to convert to the `T::Data`, which is the same
+                // as `irq::Chip::Data` per the bound above.
+                unsafe { irq::init_chip::<IrqChipAdapter<U>>(irq_chip) };
+            }
+
+            // Initialise gc irq state.
+            {
+                let girq = &mut this.reg.gc.get_mut().irq;
+                girq.chip = this.irq_chip.get();
+                // SAFETY: By leaving `parent_handler_data` set to `null`, the gpio subsystem
+                // initialises it to a pointer to the gpio chip, which is what `FlowHandler<T>`
+                // expects.
+                girq.parent_handler = unsafe { irq::new_flow_handler::<FlowHandler<T>>() };
+                girq.num_parents = 1;
+                girq.parents = &mut this.parent_irq;
+                this.parent_irq = parent_irq;
+                girq.default_type = bindings::IRQ_TYPE_NONE;
+                girq.handler = Some(bindings::handle_bad_irq);
+            }
+
+            // SAFETY: `reg` is pinned when `self` is.
+            let pinned = unsafe { self.map_unchecked_mut(|r| &mut r.reg) };
+            pinned.register(gpio_count, base, parent, data)
+        }
+    }
+
+    impl<T: ChipWithIrqChip> Default for RegistrationWithIrqChip<T> {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
+    // SAFETY: `RegistrationWithIrqChip` doesn't offer any methods or access to fields when shared
+    // between threads or CPUs, so it is safe to share it.
+    unsafe impl<T: ChipWithIrqChip> Sync for RegistrationWithIrqChip<T> {}
+
+    // SAFETY: Registration with and unregistration from the gpio subsystem (including irq chips for
+    // them) can happen from any thread. Additionally, `T::Data` (which is dropped during
+    // unregistration) is `Send`, so it is ok to move `Registration` to different threads.
+    unsafe impl<T: ChipWithIrqChip> Send for RegistrationWithIrqChip<T> where T::Data: Send {}
+
+    struct FlowHandler<T: ChipWithIrqChip>(PhantomData<T>);
+
+    impl<T: ChipWithIrqChip> irq::FlowHandler for FlowHandler<T> {
+        type Data = *mut bindings::gpio_chip;
+
+        fn handle_irq_flow(gc: *mut bindings::gpio_chip, desc: &irq::Descriptor) {
+            // SAFETY: `FlowHandler` is only used in gpio chips, and it is removed when the gpio is
+            // unregistered, so we know that `gc` must still be valid. We also know that the value
+            // stored as gpio data was returned by `T::Data::into_pointer` again because
+            // `FlowHandler` is a private structure only used in this way.
+            let data = unsafe { T::Data::borrow(bindings::gpiochip_get_data(gc)) };
+
+            // SAFETY: `gc` is valid (see comment above), so we can dereference it.
+            let domain = unsafe { irq::Domain::from_ptr((*gc).irq.domain) };
+
+            T::handle_irq_flow(data, desc, &domain);
+        }
+    }
+
+    /// Adapter from an irq chip with `gpio_chip` pointer as context to one where the gpio chip
+    /// data is passed as context.
+    struct IrqChipAdapter<T: irq::Chip>(PhantomData<T>);
+
+    impl<T: irq::Chip> irq::Chip for IrqChipAdapter<T> {
+        type Data = *mut bindings::gpio_chip;
+        const TO_USE: irq::ToUse = T::TO_USE;
+
+        fn ack(gc: *mut bindings::gpio_chip, irq_data: &irq::IrqData) {
+            // SAFETY: `IrqChipAdapter` is a private struct, only used when the data stored in the
+            // gpio chip is known to come from `T::Data`, and only valid while the gpio chip is
+            // registered, so `gc` is valid.
+            let data = unsafe { T::Data::borrow(bindings::gpiochip_get_data(gc as _)) };
+            T::ack(data, irq_data);
+        }
+
+        fn mask(gc: *mut bindings::gpio_chip, irq_data: &irq::IrqData) {
+            // SAFETY: `IrqChipAdapter` is a private struct, only used when the data stored in the
+            // gpio chip is known to come from `T::Data`, and only valid while the gpio chip is
+            // registered, so `gc` is valid.
+            let data = unsafe { T::Data::borrow(bindings::gpiochip_get_data(gc as _)) };
+            T::mask(data, irq_data);
+        }
+
+        fn unmask(gc: *mut bindings::gpio_chip, irq_data: &irq::IrqData) {
+            // SAFETY: `IrqChipAdapter` is a private struct, only used when the data stored in the
+            // gpio chip is known to come from `T::Data`, and only valid while the gpio chip is
+            // registered, so `gc` is valid.
+            let data = unsafe { T::Data::borrow(bindings::gpiochip_get_data(gc as _)) };
+            T::unmask(data, irq_data);
+        }
+
+        fn set_type(
+            gc: *mut bindings::gpio_chip,
+            irq_data: &mut irq::LockedIrqData,
+            flow_type: u32,
+        ) -> Result<irq::ExtraResult> {
+            // SAFETY: `IrqChipAdapter` is a private struct, only used when the data stored in the
+            // gpio chip is known to come from `T::Data`, and only valid while the gpio chip is
+            // registered, so `gc` is valid.
+            let data = unsafe { T::Data::borrow(bindings::gpiochip_get_data(gc as _)) };
+            T::set_type(data, irq_data, flow_type)
+        }
+
+        fn set_wake(gc: *mut bindings::gpio_chip, irq_data: &irq::IrqData, on: bool) -> Result {
+            // SAFETY: `IrqChipAdapter` is a private struct, only used when the data stored in the
+            // gpio chip is known to come from `T::Data`, and only valid while the gpio chip is
+            // registered, so `gc` is valid.
+            let data = unsafe { T::Data::borrow(bindings::gpiochip_get_data(gc as _)) };
+            T::set_wake(data, irq_data, on)
+        }
+    }
 }

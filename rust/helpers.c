@@ -13,6 +13,8 @@
 #include <linux/security.h>
 #include <asm/io.h>
 #include <linux/irq.h>
+#include <linux/irqchip/chained_irq.h>
+#include <linux/irqdomain.h>
 #include <linux/amba/bus.h>
 
 __noreturn void rust_helper_BUG(void)
@@ -373,6 +375,32 @@ void *rust_helper_irq_data_get_irq_chip_data(struct irq_data *d)
 	return irq_data_get_irq_chip_data(d);
 }
 EXPORT_SYMBOL_GPL(rust_helper_irq_data_get_irq_chip_data);
+
+struct irq_chip *rust_helper_irq_desc_get_chip(struct irq_desc *desc)
+{
+	return irq_desc_get_chip(desc);
+}
+EXPORT_SYMBOL_GPL(rust_helper_irq_desc_get_chip);
+
+void *rust_helper_irq_desc_get_handler_data(struct irq_desc *desc)
+{
+	return irq_desc_get_handler_data(desc);
+}
+EXPORT_SYMBOL_GPL(rust_helper_irq_desc_get_handler_data);
+
+void rust_helper_chained_irq_enter(struct irq_chip *chip,
+				   struct irq_desc *desc)
+{
+	chained_irq_enter(chip, desc);
+}
+EXPORT_SYMBOL_GPL(rust_helper_chained_irq_enter);
+
+void rust_helper_chained_irq_exit(struct irq_chip *chip,
+				   struct irq_desc *desc)
+{
+	chained_irq_exit(chip, desc);
+}
+EXPORT_SYMBOL_GPL(rust_helper_chained_irq_exit);
 
 /* We use bindgen's --size_t-is-usize option to bind the C size_t type
  * as the Rust usize type, so we can use it in contexts where Rust
