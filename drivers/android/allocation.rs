@@ -156,14 +156,14 @@ impl<'a, 'b> AllocationView<'a, 'b> {
         AllocationView { alloc, limit }
     }
 
-    pub fn read<T>(&self, offset: usize) -> Result<T> {
+    pub(crate) fn read<T>(&self, offset: usize) -> Result<T> {
         if offset.checked_add(size_of::<T>()).ok_or(Error::EINVAL)? > self.limit {
             return Err(Error::EINVAL);
         }
         self.alloc.read(offset)
     }
 
-    pub fn write<T>(&self, offset: usize, obj: &T) -> Result {
+    pub(crate) fn write<T>(&self, offset: usize, obj: &T) -> Result {
         if offset.checked_add(size_of::<T>()).ok_or(Error::EINVAL)? > self.limit {
             return Err(Error::EINVAL);
         }
