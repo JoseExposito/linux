@@ -540,7 +540,8 @@ KBUILD_RUSTFLAGS := --emit=dep-info,obj,metadata --edition=2021 \
 		     -Dunsafe_op_in_unsafe_fn -Drust_2018_idioms \
 		     -Dunreachable_pub -Wmissing_docs
 KBUILD_CLIPPYFLAGS := -Dclippy::correctness -Dclippy::style \
-		      -Dclippy::complexity -Dclippy::perf -Dclippy::float_arithmetic
+		      -Dclippy::complexity -Dclippy::perf -Dclippy::float_arithmetic \
+		      -Dclippy::let_unit_value
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_RUSTFLAGS_KERNEL :=
