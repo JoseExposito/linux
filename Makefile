@@ -538,10 +538,13 @@ KBUILD_RUSTFLAGS := --emit=dep-info,obj,metadata --edition=2021 \
 		     -Cforce-unwind-tables=n -Ccodegen-units=1 \
 		     -Zbinary_dep_depinfo=y -Zsymbol-mangling-version=v0 \
 		     -Dunsafe_op_in_unsafe_fn -Drust_2018_idioms \
-		     -Dunreachable_pub -Wmissing_docs
-KBUILD_CLIPPYFLAGS := -Dclippy::correctness -Dclippy::style \
+		     -Dunreachable_pub -Dnon_ascii_idents \
+		     -Drustdoc::missing_crate_level_docs -Wmissing_docs
+KBUILD_CLIPPYFLAGS := -Dclippy::correctness -Dclippy::style -Dclippy::suspicious \
 		      -Dclippy::complexity -Dclippy::perf -Dclippy::float_arithmetic \
-		      -Dclippy::let_unit_value
+		      -Dclippy::let_unit_value -Dclippy::mut_mut \
+		      -Dclippy::needless_bitwise_bool -Dclippy::needless_continue \
+		      -Wclippy::dbg_macro
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_RUSTFLAGS_KERNEL :=
