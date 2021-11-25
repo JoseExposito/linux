@@ -8,8 +8,7 @@
 
 use crate::{
     bindings, c_types,
-    error::{Error, Result},
-    from_kernel_result,
+    error::{from_kernel_result, Error, Result},
     of::OfMatchTable,
     str::CStr,
     types::PointerWrapper,

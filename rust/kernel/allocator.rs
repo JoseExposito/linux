@@ -8,7 +8,7 @@ use core::ptr;
 use crate::bindings;
 use crate::c_types;
 
-pub struct KernelAllocator;
+struct KernelAllocator;
 
 unsafe impl GlobalAlloc for KernelAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
@@ -30,18 +30,20 @@ static ALLOCATOR: KernelAllocator = KernelAllocator;
 // `rustc` only generates these for some crate types. Even then, we would need
 // to extract the object file that has them from the archive. For the moment,
 // let's generate them ourselves instead.
+//
+// Note that `#[no_mangle]` implies exported too, nowadays.
 #[no_mangle]
-pub fn __rust_alloc(size: usize, _align: usize) -> *mut u8 {
+fn __rust_alloc(size: usize, _align: usize) -> *mut u8 {
     unsafe { bindings::krealloc(core::ptr::null(), size, bindings::GFP_KERNEL) as *mut u8 }
 }
 
 #[no_mangle]
-pub fn __rust_dealloc(ptr: *mut u8, _size: usize, _align: usize) {
+fn __rust_dealloc(ptr: *mut u8, _size: usize, _align: usize) {
     unsafe { bindings::kfree(ptr as *const c_types::c_void) };
 }
 
 #[no_mangle]
-pub fn __rust_realloc(ptr: *mut u8, _old_size: usize, _align: usize, new_size: usize) -> *mut u8 {
+fn __rust_realloc(ptr: *mut u8, _old_size: usize, _align: usize, new_size: usize) -> *mut u8 {
     unsafe {
         bindings::krealloc(
             ptr as *const c_types::c_void,
@@ -52,7 +54,7 @@ pub fn __rust_realloc(ptr: *mut u8, _old_size: usize, _align: usize, new_size: u
 }
 
 #[no_mangle]
-pub fn __rust_alloc_zeroed(size: usize, _align: usize) -> *mut u8 {
+fn __rust_alloc_zeroed(size: usize, _align: usize) -> *mut u8 {
     unsafe {
         bindings::krealloc(
             core::ptr::null(),

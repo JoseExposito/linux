@@ -427,8 +427,7 @@ impl From<AllocError> for Error {
 // # Invariant: `-bindings::MAX_ERRNO` fits in an `i16`.
 crate::static_assert!(bindings::MAX_ERRNO <= -(i16::MIN as i32) as u32);
 
-#[doc(hidden)]
-pub fn from_kernel_result_helper<T>(r: Result<T>) -> T
+pub(crate) fn from_kernel_result_helper<T>(r: Result<T>) -> T
 where
     T: From<i16>,
 {
@@ -465,7 +464,6 @@ where
 ///     }
 /// }
 /// ```
-#[macro_export]
 macro_rules! from_kernel_result {
     ($($tt:tt)*) => {{
         $crate::error::from_kernel_result_helper((|| {
@@ -473,6 +471,8 @@ macro_rules! from_kernel_result {
         })())
     }};
 }
+
+pub(crate) use from_kernel_result;
 
 /// Transform a kernel "error pointer" to a normal pointer.
 ///

@@ -9,7 +9,7 @@
 
 #![allow(dead_code)]
 
-use crate::{bindings, c_types, from_kernel_result, types::PointerWrapper, Error, Result};
+use crate::{bindings, c_types, error::from_kernel_result, types::PointerWrapper, Error, Result};
 use core::ops::Deref;
 
 type IrqHwNumber = bindings::irq_hw_number_t;
