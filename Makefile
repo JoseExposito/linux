@@ -538,7 +538,7 @@ KBUILD_RUSTFLAGS := --emit=dep-info,obj,metadata --edition=2021 \
 		     -Cforce-unwind-tables=n -Ccodegen-units=1 \
 		     -Zbinary_dep_depinfo=y -Zsymbol-mangling-version=v0 \
 		     -Dunsafe_op_in_unsafe_fn -Drust_2018_idioms \
-		     -Wmissing_docs
+		     -Dunreachable_pub -Wmissing_docs
 KBUILD_CLIPPYFLAGS := -Dclippy::correctness -Dclippy::style \
 		      -Dclippy::complexity -Dclippy::perf -Dclippy::float_arithmetic
 KBUILD_AFLAGS_KERNEL :=
