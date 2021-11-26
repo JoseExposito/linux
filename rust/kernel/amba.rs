@@ -5,8 +5,8 @@
 //! C header: [`include/linux/amba/bus.h`](../../../../include/linux/amba/bus.h)
 
 use crate::{
-    bindings, c_types, device, driver, from_kernel_result, io_mem::Resource, power, str::CStr,
-    to_result, types::PointerWrapper, Error, Result,
+    bindings, c_types, device, driver, error::from_kernel_result, io_mem::Resource, power,
+    str::CStr, to_result, types::PointerWrapper, Error, Result,
 };
 use core::{marker::PhantomData, ops::Deref};
 

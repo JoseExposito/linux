@@ -86,17 +86,20 @@ impl<T> CreatableLock for Mutex<T> {
     }
 }
 
+pub struct EmptyGuardContext;
+
 // SAFETY: The underlying kernel `struct mutex` object ensures mutual exclusion.
 unsafe impl<T: ?Sized> Lock for Mutex<T> {
     type Inner = T;
-    type GuardContext = ();
+    type GuardContext = EmptyGuardContext;
 
-    fn lock_noguard(&self) {
+    fn lock_noguard(&self) -> EmptyGuardContext {
         // SAFETY: `mutex` points to valid memory.
         unsafe { bindings::mutex_lock(self.mutex.get()) };
+        EmptyGuardContext
     }
 
-    unsafe fn unlock(&self, _: &mut ()) {
+    unsafe fn unlock(&self, _: &mut EmptyGuardContext) {
         // SAFETY: The safety requirements of the function ensure that the mutex is owned by the
         // caller.
         unsafe { bindings::mutex_unlock(self.mutex.get()) };

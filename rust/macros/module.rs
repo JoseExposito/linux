@@ -303,7 +303,7 @@ impl ModuleInfo {
     }
 }
 
-pub fn module(ts: TokenStream) -> TokenStream {
+pub(crate) fn module(ts: TokenStream) -> TokenStream {
     let mut it = ts.into_iter();
 
     let info = ModuleInfo::parse(&mut it);

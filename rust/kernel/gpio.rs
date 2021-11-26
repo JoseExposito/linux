@@ -4,7 +4,9 @@
 //!
 //! C header: [`include/linux/gpio/driver.h`](../../../../include/linux/gpio/driver.h)
 
-use crate::{bindings, c_types, device, from_kernel_result, types::PointerWrapper, Error, Result};
+use crate::{
+    bindings, c_types, device, error::from_kernel_result, types::PointerWrapper, Error, Result,
+};
 use core::{
     cell::UnsafeCell,
     marker::{PhantomData, PhantomPinned},

@@ -303,7 +303,7 @@ quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L 
       cmd_rustc_library = \
 	OBJTREE=$(abspath $(objtree)) \
 	$(if $(skip_clippy),$(RUSTC),$(RUSTC_OR_CLIPPY)) \
-		$(rust_flags) $(rust_cross_flags) $(rustc_target_flags) \
+		$(filter-out $(skip_flags),$(rust_flags) $(rust_cross_flags) $(rustc_target_flags)) \
 		--crate-type rlib --out-dir $(objtree)/rust/ -L $(objtree)/rust/ \
 		--crate-name $(patsubst %.o,%,$(notdir $@)) $<; \
 	mv $(objtree)/rust/$(patsubst %.o,%,$(notdir $@)).d $(depfile); \
@@ -324,6 +324,7 @@ $(objtree)/rust/compiler_builtins.o: $(srctree)/rust/compiler_builtins.rs \
 	$(call if_changed_dep,rustc_library)
 
 $(objtree)/rust/alloc.o: private skip_clippy = 1
+$(objtree)/rust/alloc.o: private skip_flags = -Dunreachable_pub
 $(objtree)/rust/alloc.o: private rustc_target_flags = $(alloc-cfgs)
 $(objtree)/rust/alloc.o: $(srctree)/rust/alloc/lib.rs \
     $(objtree)/rust/compiler_builtins.o FORCE
@@ -346,6 +347,7 @@ $(objtree)/rust/kernel.o: $(srctree)/rust/kernel/lib.rs $(objtree)/rust/alloc.o 
 # Targets that need to expand twice
 .SECONDEXPANSION:
 $(objtree)/rust/core.o: private skip_clippy = 1
+$(objtree)/rust/core.o: private skip_flags = -Dunreachable_pub
 $(objtree)/rust/core.o: private rustc_target_flags = $(core-cfgs)
 $(objtree)/rust/core.o: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
 	$(call if_changed_dep,rustc_library)

@@ -6,7 +6,7 @@
 
 #![allow(dead_code)]
 
-use crate::{bindings, c_types, from_kernel_result, types::PointerWrapper, Result};
+use crate::{bindings, c_types, error::from_kernel_result, types::PointerWrapper, Result};
 use core::marker::PhantomData;
 
 /// Corresponds to the kernel's `struct dev_pm_ops`.

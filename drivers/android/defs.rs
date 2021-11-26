@@ -9,7 +9,7 @@ use kernel::{
 
 macro_rules! pub_no_prefix {
     ($prefix:ident, $($newname:ident),+) => {
-        $(pub const $newname: u32 = concat_idents!($prefix, $newname);)+
+        $(pub(crate) const $newname: u32 = concat_idents!($prefix, $newname);)+
     };
 }
 

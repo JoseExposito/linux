@@ -395,7 +395,7 @@ impl DeliverToRead for Node {
     }
 }
 
-pub struct NodeRef {
+pub(crate) struct NodeRef {
     pub(crate) node: Ref<Node>,
     strong_count: usize,
     weak_count: usize,

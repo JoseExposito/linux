@@ -11,9 +11,8 @@ use alloc::boxed::Box;
 
 use crate::{
     bindings, c_types,
-    error::{Error, Result},
+    error::{from_kernel_result, Error, Result},
     file::{File, FileRef},
-    from_kernel_result,
     io_buffer::{IoBufferReader, IoBufferWriter},
     iov_iter::IovIter,
     sync::CondVar,
