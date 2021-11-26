@@ -211,8 +211,11 @@ bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-Wno-packed-not-aligned -Wno-format-truncation -Wno-format-overflow \
 	-Wno-stringop-truncation -Wno-unused-but-set-variable \
 	-Wno-stringop-overflow -Wno-restrict -Wno-maybe-uninitialized \
-	-Werror=designated-init -Wno-zero-length-bounds -Wimplicit-fallthrough=% \
-	--param=% --param asan-%
+	-Werror=designated-init -Wno-zero-length-bounds \
+	-Wno-alloc-size-larger-than --param=% --param asan-%
+
+# We need to keep the quotes for this one -- it comes from a `Kconfig`
+bindgen_skip_c_flags += "-Wimplicit-fallthrough=%"
 
 # PowerPC
 bindgen_skip_c_flags += -mtraceback=no -mno-pointers-to-nested-functions \
@@ -226,7 +229,9 @@ BINDGEN_TARGET_riscv	:= riscv64-linux-gnu
 BINDGEN_TARGET_x86	:= x86_64-linux-gnu
 BINDGEN_TARGET		:= $(BINDGEN_TARGET_$(SRCARCH))
 
-bindgen_extra_c_flags = --target=$(BINDGEN_TARGET) -Wno-address-of-packed-member
+bindgen_extra_c_flags = --target=$(BINDGEN_TARGET) \
+	-Wno-address-of-packed-member \
+	-Wno-gnu-variable-sized-type-not-at-end
 bindgen_c_flags = $(filter-out $(bindgen_skip_c_flags), $(c_flags)) \
 	$(bindgen_extra_c_flags)
 endif
