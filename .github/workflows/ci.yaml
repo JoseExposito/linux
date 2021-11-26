@@ -313,6 +313,9 @@ jobs:
 
       - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_LLVM_IAS }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3
 
+      # Make sure `CONFIG_WERROR` was enabled
+      - run: grep -F 'CONFIG_WERROR=y' ${{ env.BUILD_DIR }}.config
+
       # Run
       - run: ${{ env.BUILD_DIR }}usr/gen_init_cpio .github/workflows/qemu-initramfs.desc > qemu-initramfs.img
 
