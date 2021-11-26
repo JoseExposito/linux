@@ -229,7 +229,9 @@ BINDGEN_TARGET_riscv	:= riscv64-linux-gnu
 BINDGEN_TARGET_x86	:= x86_64-linux-gnu
 BINDGEN_TARGET		:= $(BINDGEN_TARGET_$(SRCARCH))
 
-bindgen_extra_c_flags = --target=$(BINDGEN_TARGET) -Wno-address-of-packed-member
+bindgen_extra_c_flags = --target=$(BINDGEN_TARGET) \
+	-Wno-address-of-packed-member \
+	-Wno-gnu-variable-sized-type-not-at-end
 bindgen_c_flags = $(filter-out $(bindgen_skip_c_flags), $(c_flags)) \
 	$(bindgen_extra_c_flags)
 endif
