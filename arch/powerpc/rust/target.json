@@ -1,6 +1,6 @@
 {
   "arch": "powerpc64",
-  "code-mode": "kernel",
+  "code-model": "large",
   "cpu": "ppc64le",
   "data-layout": "e-m:e-i64:64-n32:64",
   "env": "gnu",
