@@ -84,7 +84,7 @@ pub mod io_buffer;
 pub mod io_mem;
 pub mod iov_iter;
 pub mod of;
-pub mod platdev;
+pub mod platform;
 mod types;
 pub mod user_ptr;
 
