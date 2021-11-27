@@ -289,3 +289,119 @@ impl Type {
     /// The interrupt is triggered while the signal is held low.
     pub const LEVEL_LOW: u32 = bindings::IRQ_TYPE_LEVEL_LOW;
 }
+
+/// Wraps the kernel's `struct irq_desc`.
+///
+/// # Invariants
+///
+/// The pointer `Descriptor::ptr` is non-null and valid.
+pub struct Descriptor {
+    pub(crate) ptr: *mut bindings::irq_desc,
+}
+
+impl Descriptor {
+    /// Constructs a new `struct irq_desc` wrapper.
+    ///
+    /// # Safety
+    ///
+    /// The pointer `ptr` must be non-null and valid for the lifetime of the returned object.
+    unsafe fn from_ptr(ptr: *mut bindings::irq_desc) -> Self {
+        // INVARIANT: The safety requirements ensure the invariant.
+        Self { ptr }
+    }
+
+    /// Calls `chained_irq_enter` and returns a guard that calls `chained_irq_exit` once dropped.
+    ///
+    /// It is meant to be used by chained irq handlers to dispatch irqs to the next handlers.
+    pub fn enter_chained(&self) -> ChainedGuard<'_> {
+        // SAFETY: By the type invariants, `ptr` is always non-null and valid.
+        let irq_chip = unsafe { bindings::irq_desc_get_chip(self.ptr) };
+
+        // SAFETY: By the type invariants, `ptr` is always non-null and valid. `irq_chip` was just
+        // returned from `ptr`, so it is still valid too.
+        unsafe { bindings::chained_irq_enter(irq_chip, self.ptr) };
+        ChainedGuard {
+            desc: self,
+            irq_chip,
+        }
+    }
+}
+
+/// A guard to call `chained_irq_exit` after `chained_irq_enter` was called.
+///
+/// It is also used as evidence that a previous `chained_irq_enter` was called. So there are no
+/// public constructors and it is only created after indeed calling `chained_irq_enter`.
+pub struct ChainedGuard<'a> {
+    desc: &'a Descriptor,
+    irq_chip: *mut bindings::irq_chip,
+}
+
+impl Drop for ChainedGuard<'_> {
+    fn drop(&mut self) {
+        // SAFETY: The lifetime of `ChainedGuard` guarantees that `self.desc` remains valid, so it
+        // also guarantess `irq_chip` (which was returned from it) and `self.desc.ptr` (guaranteed
+        // by the type invariants).
+        unsafe { bindings::chained_irq_exit(self.irq_chip, self.desc.ptr) };
+    }
+}
+
+/// Wraps the kernel's `struct irq_domain`.
+///
+/// # Invariants
+///
+/// The pointer `Domain::ptr` is non-null and valid.
+pub struct Domain {
+    ptr: *mut bindings::irq_domain,
+}
+
+impl Domain {
+    /// Constructs a new `struct irq_domain` wrapper.
+    ///
+    /// # Safety
+    ///
+    /// The pointer `ptr` must be non-null and valid for the lifetime of the returned object.
+    pub(crate) unsafe fn from_ptr(ptr: *mut bindings::irq_domain) -> Self {
+        // INVARIANT: The safety requirements ensure the invariant.
+        Self { ptr }
+    }
+
+    /// Invokes the chained handler of the given hw irq of the given domain.
+    ///
+    /// It requires evidence that `chained_irq_enter` was called, which is done by passing a
+    /// `ChainedGuard` instance.
+    pub fn generic_handle_chained(&self, hwirq: u32, _guard: &ChainedGuard<'_>) {
+        // SAFETY: `ptr` is valid by the type invariants.
+        unsafe { bindings::generic_handle_domain_irq(self.ptr, hwirq) };
+    }
+}
+
+/// A high-level irq flow handler.
+pub trait FlowHandler {
+    /// The data associated with the handler.
+    type Data: PointerWrapper;
+
+    /// Implements the irq flow for the given descriptor.
+    fn handle_irq_flow(data: <Self::Data as PointerWrapper>::Borrowed<'_>, desc: &Descriptor);
+}
+
+/// Returns the raw irq flow handler corresponding to the (high-level) one defined in `T`.
+///
+/// # Safety
+///
+/// The caller must ensure that the value stored in the irq handler data (as returned by
+/// `irq_desc_get_handler_data`) is the result of calling [`PointerWrapper::into_pointer] for the
+/// [`T::Data`] type.
+pub(crate) unsafe fn new_flow_handler<T: FlowHandler>() -> bindings::irq_flow_handler_t {
+    Some(irq_flow_handler::<T>)
+}
+
+unsafe extern "C" fn irq_flow_handler<T: FlowHandler>(desc: *mut bindings::irq_desc) {
+    // SAFETY: By the safety requirements of `new_flow_handler`, we know that the value returned by
+    // `irq_desc_get_handler_data` comes from calling `T::Data::into_pointer`. `desc` is valid by
+    // the C API contract.
+    let data = unsafe { T::Data::borrow(bindings::irq_desc_get_handler_data(desc)) };
+
+    // SAFETY: The C API guarantees that `desc` is valid for the duration of this call, which
+    // outlives the lifetime returned by `from_desc`.
+    T::handle_irq_flow(data, &unsafe { Descriptor::from_ptr(desc) });
+}
