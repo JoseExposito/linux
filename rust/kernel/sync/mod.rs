@@ -28,6 +28,7 @@ mod condvar;
 mod guard;
 mod locked_by;
 mod mutex;
+mod revocable_mutex;
 mod seqlock;
 mod spinlock;
 
@@ -36,6 +37,7 @@ pub use condvar::CondVar;
 pub use guard::{CreatableLock, Guard, GuardMut, Lock};
 pub use locked_by::LockedBy;
 pub use mutex::Mutex;
+pub use revocable_mutex::{RevocableMutex, RevocableMutexGuard};
 pub use seqlock::{SeqLock, SeqLockReadGuard};
 pub use spinlock::SpinLock;
 
