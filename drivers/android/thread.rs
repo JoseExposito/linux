@@ -402,7 +402,7 @@ impl Thread {
                         strong,
                         Some(self),
                     )?;
-                    security::binder_transfer_binder(&self.process.task, &view.alloc.process.task)?;
+                    security::binder_transfer_binder(&self.process.cred, &view.alloc.process.cred)?;
                     Ok(node)
                 })?;
             }
@@ -412,7 +412,7 @@ impl Thread {
                     // SAFETY: `handle` is a `u32`; any bit pattern is a valid representation.
                     let handle = unsafe { obj.__bindgen_anon_1.handle } as _;
                     let node = self.process.get_node_from_handle(handle, strong)?;
-                    security::binder_transfer_binder(&self.process.task, &view.alloc.process.task)?;
+                    security::binder_transfer_binder(&self.process.cred, &view.alloc.process.cred)?;
                     Ok(node)
                 })?;
             }
@@ -426,8 +426,8 @@ impl Thread {
                 let fd = unsafe { obj.__bindgen_anon_1.fd };
                 let file = File::from_fd(fd)?;
                 security::binder_transfer_file(
-                    &self.process.task,
-                    &view.alloc.process.task,
+                    &self.process.cred,
+                    &view.alloc.process.cred,
                     &file,
                 )?;
                 let field_offset =
@@ -618,7 +618,7 @@ impl Thread {
     fn oneway_transaction_inner(self: &Ref<Self>, tr: &BinderTransactionData) -> BinderResult {
         let handle = unsafe { tr.target.handle };
         let node_ref = self.process.get_transaction_node(handle)?;
-        security::binder_transaction(&self.process.task, &node_ref.node.owner.task)?;
+        security::binder_transaction(&self.process.cred, &node_ref.node.owner.cred)?;
         let completion = Ref::try_new(DeliverCode::new(BR_TRANSACTION_COMPLETE))?;
         let transaction = Transaction::new(node_ref, None, self, tr)?;
         self.inner.lock().push_work(completion);
@@ -630,7 +630,7 @@ impl Thread {
     fn transaction_inner(self: &Ref<Self>, tr: &BinderTransactionData) -> BinderResult {
         let handle = unsafe { tr.target.handle };
         let node_ref = self.process.get_transaction_node(handle)?;
-        security::binder_transaction(&self.process.task, &node_ref.node.owner.task)?;
+        security::binder_transaction(&self.process.cred, &node_ref.node.owner.cred)?;
         // TODO: We need to ensure that there isn't a pending transaction in the work queue. How
         // could this happen?
         let top = self.top_of_transaction_stack()?;
