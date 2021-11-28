@@ -5,7 +5,7 @@
 //! C headers: [`include/linux/fs.h`](../../../../include/linux/fs.h) and
 //! [`include/linux/file.h`](../../../../include/linux/file.h)
 
-use crate::{bindings, error::Error, Result};
+use crate::{bindings, cred::CredentialRef, error::Error, Result};
 use core::{mem::ManuallyDrop, ops::Deref};
 
 /// Wraps the kernel's `struct file`.
@@ -43,6 +43,16 @@ impl File {
     pub fn is_blocking(&self) -> bool {
         // SAFETY: `File::ptr` is guaranteed to be valid by the type invariants.
         unsafe { (*self.ptr).f_flags & bindings::O_NONBLOCK == 0 }
+    }
+
+    /// Returns the credentials of the task that originally opened the file.
+    pub fn cred(&self) -> CredentialRef<'_> {
+        // SAFETY: `File::ptr` is guaranteed to be valid by the type invariants.
+        let ptr = unsafe { (*self.ptr).f_cred };
+        // SAFETY: The lifetimes of `self` and `CredentialRef` are tied, so it is guaranteed that
+        // the credential pointer remains valid (because the file is still alive, and it doesn't
+        // change over the lifetime of a file).
+        unsafe { CredentialRef::from_ptr(ptr) }
     }
 }
 
