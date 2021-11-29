@@ -6,15 +6,8 @@
 #![feature(allocator_api, global_asm)]
 
 use kernel::{
-    file::File,
-    file_operations::{FileOpener, FileOperations},
-    io_buffer::IoBufferWriter,
-    miscdev,
-    of::ConstOfMatchTable,
-    platdev::PlatformDriver,
-    prelude::*,
-    str::CStr,
-    ThisModule, {c_str, platdev},
+    c_str, file::File, file_operations::FileOperations, io_buffer::IoBufferWriter, miscdev,
+    of::ConstOfMatchTable, platdev, platdev::PlatformDriver, prelude::*,
 };
 
 module! {
@@ -25,13 +18,8 @@ module! {
     license: b"GPL v2",
 }
 
+#[derive(Default)]
 struct RngDevice;
-
-impl FileOpener<()> for RngDevice {
-    fn open(_state: &()) -> Result<Self::Wrapper> {
-        Ok(Box::try_new(RngDevice)?)
-    }
-}
 
 impl FileOperations for RngDevice {
     kernel::declare_file_operations!(read);

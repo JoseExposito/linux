@@ -95,12 +95,17 @@ unsafe extern "C" fn open_callback<A: FileOpenAdapter, T: FileOpener<A::Arg>>(
         // should point to data in the inode or file that lives longer
         // than the following use of `T::open`.
         let arg = unsafe { A::convert(inode, file) };
+        // SAFETY: The C contract guarantees that `file` is valid. Additionally,
+        // `fileref` never outlives this function, so it is guaranteed to be
+        // valid.
+        let fileref = unsafe { FileRef::from_ptr(file) };
         // SAFETY: `arg` was previously returned by `A::convert` and must
         // be a valid non-null pointer.
-        let ptr = T::open(unsafe { &*arg })?.into_pointer();
-        // SAFETY: `ptr` was previously returned by `T::open`. The returned
-        // value should be a boxed value and should live the length of the
-        // given file.
+        let ptr = T::open(unsafe { &*arg }, &fileref)?.into_pointer();
+        // SAFETY: The C contract guarantees that `private_data` is available
+        // for implementers of the file operations (no other C code accesses
+        // it), so we know that there are no concurrent threads/CPUs accessing
+        // it (it's not visible to any other Rust code).
         unsafe { (*file).private_data = ptr as *mut c_types::c_void };
         Ok(0)
     }
@@ -591,11 +596,11 @@ pub trait FileOpener<T: ?Sized>: FileOperations {
     /// Creates a new instance of this file.
     ///
     /// Corresponds to the `open` function pointer in `struct file_operations`.
-    fn open(context: &T) -> Result<Self::Wrapper>;
+    fn open(context: &T, file: &File) -> Result<Self::Wrapper>;
 }
 
 impl<T: FileOperations<Wrapper = Box<T>> + Default> FileOpener<()> for T {
-    fn open(_: &()) -> Result<Self::Wrapper> {
+    fn open(_: &(), _file: &File) -> Result<Self::Wrapper> {
         Ok(Box::try_new(T::default())?)
     }
 }
