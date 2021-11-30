@@ -3,6 +3,7 @@
 use core::{convert::TryFrom, mem::take, ops::Range};
 use kernel::{
     bindings, c_types,
+    cred::Credential,
     file::File,
     file_operations::{FileOpener, FileOperations, IoctlCommand, IoctlHandler, PollTable},
     io_buffer::{IoBufferReader, IoBufferWriter},
@@ -245,6 +246,9 @@ pub(crate) struct Process {
     // The task leader (process).
     pub(crate) task: Task,
 
+    // Credential associated with file when `Process` is created.
+    pub(crate) cred: Credential,
+
     // TODO: For now this a mutex because we have allocations in RangeAllocator while holding the
     // lock. We may want to split up the process state at some point to use a spin lock for the
     // other fields.
@@ -260,9 +264,10 @@ unsafe impl Send for Process {}
 unsafe impl Sync for Process {}
 
 impl Process {
-    fn new(ctx: Ref<Context>) -> Result<Ref<Self>> {
+    fn new(ctx: Ref<Context>, cred: Credential) -> Result<Ref<Self>> {
         let mut process = Pin::from(UniqueRef::try_new(Self {
             ctx,
+            cred,
             task: Task::current().group_leader().clone(),
             // SAFETY: `inner` is initialised in the call to `mutex_init` below.
             inner: unsafe { Mutex::new(ProcessInner::new()) },
@@ -802,8 +807,8 @@ impl IoctlHandler for Process {
 }
 
 impl FileOpener<Ref<Context>> for Process {
-    fn open(ctx: &Ref<Context>, _file: &File) -> Result<Self::Wrapper> {
-        Self::new(ctx.clone())
+    fn open(ctx: &Ref<Context>, file: &File) -> Result<Self::Wrapper> {
+        Self::new(ctx.clone(), file.cred().clone())
     }
 }
 

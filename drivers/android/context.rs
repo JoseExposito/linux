@@ -48,7 +48,7 @@ impl Context {
         if manager.node.is_some() {
             return Err(Error::EBUSY);
         }
-        security::binder_set_context_mgr(&node_ref.node.owner.task)?;
+        security::binder_set_context_mgr(&node_ref.node.owner.cred)?;
 
         // TODO: Get the actual caller id.
         let caller_uid = bindings::kuid_t::default();
