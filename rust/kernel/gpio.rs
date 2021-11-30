@@ -109,6 +109,7 @@ macro_rules! declare_gpio_chip_operations {
         const TO_USE: $crate::gpio::ToUse = $crate::gpio::USE_NONE;
     };
     ($($i:ident),+) => {
+        #[allow(clippy::needless_update)]
         const TO_USE: $crate::gpio::ToUse =
             $crate::gpio::ToUse {
                 $($i: true),+ ,

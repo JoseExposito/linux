@@ -177,6 +177,7 @@ macro_rules! declare_irq_chip_operations {
         const TO_USE: $crate::irq::ToUse = $crate::irq::USE_NONE;
     };
     ($($i:ident),+) => {
+        #[allow(clippy::needless_update)]
         const TO_USE: $crate::irq::ToUse =
             $crate::irq::ToUse {
                 $($i: true),+ ,
