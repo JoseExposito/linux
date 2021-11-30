@@ -4,9 +4,9 @@ Arch Support
 ============
 
 Currently, the Rust compiler (``rustc``) uses LLVM for code generation,
-which limits the supported architectures we can target. In addition, support
-for building the kernel with LLVM/Clang varies (see :ref:`kbuild_llvm`),
-which ``bindgen`` relies on through ``libclang``.
+which limits the supported architectures that can be targeted. In addition,
+support for building the kernel with LLVM/Clang varies (see :ref:`kbuild_llvm`).
+This support is needed for ``bindgen`` which uses ``libclang``.
 
 Below is a general summary of architectures that currently work. Level of
 support corresponds to ``S`` values in the ``MAINTAINERS`` file.

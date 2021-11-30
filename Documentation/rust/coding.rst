@@ -9,31 +9,29 @@ This document describes how to write Rust code in the kernel.
 Coding style
 ------------
 
-The code is automatically formatted using the ``rustfmt`` tool. This is very
-good news!
-
-- If you contribute from time to time to the kernel, you do not need to learn
-  and remember one more style guide. You will also need less patch roundtrips
-  to land a change.
-
-- If you are a reviewer or a maintainer, you will not need to spend time on
-  pointing out style issues anymore.
+The code should be formatted using ``rustfmt``. In this way, a person
+contributing from time to time to the kernel does not need to learn and
+remember one more style guide. More importantly, reviewers and maintainers
+do not need to spend time pointing out style issues anymore, and thus
+less patch roundtrips may be needed to land a change.
 
 .. note:: Conventions on comments and documentation are not checked by
-  ``rustfmt``. Thus we still need to take care of those: please see
+  ``rustfmt``. Thus those are still needed to be taken care of: please see
   :ref:`Documentation/rust/docs.rst <rust_docs>`.
 
-We use the tool's default settings. This means we are following the idiomatic
-Rust style. For instance, we use 4 spaces for indentation rather than tabs.
+The default settings of ``rustfmt`` are used. This means the idiomatic Rust
+style is followed. For instance, 4 spaces are used for indentation rather
+than tabs.
 
-Typically, you will want to instruct your editor/IDE to format while you type,
-when you save or at commit time. However, if for some reason you want
-to reformat the entire kernel Rust sources at some point, you may run::
+It is convenient to instruct editors/IDEs to format while typing,
+when saving or at commit time. However, if for some reason reformatting
+the entire kernel Rust sources is needed at some point, the following can be
+run::
 
 	make LLVM=1 rustfmt
 
-To check if everything is formatted (printing a diff otherwise), e.g. if you
-have configured a CI for a tree as a maintainer, you may run::
+It is also possible to check if everything is formatted (printing a diff
+otherwise), for instance for a CI, with::
 
 	make LLVM=1 rustfmtcheck
 
@@ -45,31 +43,32 @@ even work with broken code.
 Extra lints
 -----------
 
-While ``rustc`` is a very helpful compiler, some extra lints and analysis are
+While ``rustc`` is a very helpful compiler, some extra lints and analyses are
 available via ``clippy``, a Rust linter. To enable it, pass ``CLIPPY=1`` to
-the same invocation you use for compilation, e.g.::
+the same invocation used for compilation, e.g.::
 
 	make LLVM=1 CLIPPY=1
 
-At the moment, we do not enforce a "clippy-free" compilation, so you can treat
-the output the same way as the extra warning levels for C, e.g. like ``W=2``.
-Still, we use the default configuration, which is relatively conservative, so
-it is a good idea to read any output it may produce from time to time and fix
-the pointed out issues. The list of enabled lists will be likely tweaked over
-time, and extra levels may end up being introduced, e.g. ``CLIPPY=2``.
+Please note that Clippy may change code generation, thus it should not be
+enabled while building a production kernel.
 
 
 Abstractions vs. bindings
 -------------------------
 
-We don't have abstractions for all the kernel internal APIs and concepts,
-but we would like to expand coverage as time goes on. Unless there is
-a good reason not to, always use the abstractions instead of calling
-the C bindings directly.
+Abstractions are Rust code wrapping kernel functionality from the C side.
 
-If you are writing some code that requires a call to an internal kernel API
-or concept that isn't abstracted yet, consider providing an (ideally safe)
-abstraction for everyone to use.
+In order to use functions and types from the C side, bindings are created.
+Bindings are the declarations for Rust of those functions and types from
+the C side.
+
+For instance, one may write a ``Mutex`` abstraction in Rust which wraps
+a ``struct mutex`` from the C side and calls its functions through the bindings.
+
+Abstractions are not available for all the kernel internal APIs and concepts,
+but it is intended that coverage is expanded as time goes on. "Leaf" modules
+(e.g. drivers) should not use the C bindings directly. Instead, subsystems
+should provide as-safe-as-possible abstractions as needed.
 
 
 Conditional compilation
@@ -80,10 +79,10 @@ configuration:
 
 .. code-block:: rust
 
-	#[cfg(CONFIG_X)]      // `CONFIG_X` is enabled (`y` or `m`)
-	#[cfg(CONFIG_X="y")]  // `CONFIG_X` is enabled as a built-in (`y`)
-	#[cfg(CONFIG_X="m")]  // `CONFIG_X` is enabled as a module   (`m`)
-	#[cfg(not(CONFIG_X))] // `CONFIG_X` is disabled
+	#[cfg(CONFIG_X)]       // Enabled               (`y` or `m`)
+	#[cfg(CONFIG_X="y")]   // Enabled as a built-in (`y`)
+	#[cfg(CONFIG_X="m")]   // Enabled as a module   (`m`)
+	#[cfg(not(CONFIG_X))]  // Disabled
 
 
 Documentation
