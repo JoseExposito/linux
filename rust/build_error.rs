@@ -13,7 +13,7 @@
 //! functions could still be called in the runtime).
 
 #![no_std]
-#![feature(const_panic, core_panic)]
+#![feature(core_panic)]
 
 /// Panics if executed in const context, or triggers a build error if not.
 #[inline(never)]
