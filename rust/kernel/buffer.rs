@@ -14,9 +14,22 @@ pub struct Buffer<'a> {
 }
 
 impl<'a> Buffer<'a> {
-    /// Create a new buffer from an existing array.
+    /// Creates a new buffer from an existing array.
     pub fn new(slice: &'a mut [u8]) -> Self {
         Buffer { slice, pos: 0 }
+    }
+
+    /// Creates a new buffer from a raw pointer.
+    ///
+    /// # Safety
+    ///
+    /// `ptr` must be valid for read and writes, have at least `len` bytes in
+    /// size, and remain valid and not be used by other threads for the lifetime
+    /// of the returned instance.
+    pub unsafe fn from_raw(ptr: *mut u8, len: usize) -> Self {
+        // SAFETY: The safety requirements of the function satisfy those of
+        // `from_raw_parts_mut`.
+        Self::new(unsafe { core::slice::from_raw_parts_mut(ptr, len) })
     }
 
     /// Number of bytes that have already been written to the buffer.
@@ -26,7 +39,7 @@ impl<'a> Buffer<'a> {
     }
 }
 
-impl<'a> fmt::Write for Buffer<'a> {
+impl fmt::Write for Buffer<'_> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         if s.len() > self.slice.len() - self.pos {
             Err(fmt::Error)
