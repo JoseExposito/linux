@@ -15,7 +15,7 @@ Here I work on my patches. I'm a newbie, so don't expect great changes, just hum
 | Branch | Target | Details | Status |
 | - | - | - | - |
 | [patch-coverity-1494120](https://github.com/JoseExposito/linux/tree/patch-coverity-1494120) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1494120  | ⏳ |
-| [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/patch-flex-array-prestera-v1) | [upstream-linux-next](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | [KSPP #78](https://github.com/KSPP/linux/issues/78)  | ⏳ |
+| [patch-flex-array-prestera-v1](https://github.com/JoseExposito/linux/tree/patch-flex-array-prestera-v1) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | [KSPP #78](https://github.com/KSPP/linux/issues/78)  | ⏳ |
 | [patch-buttonpad-single-button-v1](https://github.com/JoseExposito/linux/tree/patch-buttonpad-single-button-v1) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Clear extra button on buttonpads  | ⏳ |
 | [patch-drm-docs-ttm-acronym](https://github.com/JoseExposito/linux/tree/patch-drm-docs-ttm-acronym) | [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | Translation Table ~~Maps~~ Manager | ⏳ |
 | [patch-hid-magicmouse-usb-battery-v1](https://github.com/JoseExposito/linux/tree/patch-hid-magicmouse-usb-battery-v1) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Fetch Magic Mouse/Trackpad 2 battery when connected over USB | 🔀 |
