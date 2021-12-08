@@ -14,6 +14,7 @@ Here I work on my patches. I'm a newbie, so don't expect great changes, just hum
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-coverity-1493352](https://github.com/JoseExposito/linux/tree/patch-coverity-1493352) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1493352  | ⏳ |
 | [patch-coverity-1493934](https://github.com/JoseExposito/linux/tree/patch-coverity-1493934) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1493934  | ⏳ |
 | [patch-coverity-1494000](https://github.com/JoseExposito/linux/tree/coverity-1494000) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1494000  | ⏳ |
 | [patch-flex-array-prestera-v1](https://github.com/JoseExposito/linux/tree/patch-flex-array-prestera-v1) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | [KSPP #78](https://github.com/KSPP/linux/issues/78)  | ⏳ |
