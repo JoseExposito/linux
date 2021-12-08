@@ -1,7 +1,8 @@
 on:
   pull_request: {}
+  schedule:
+    - cron:  '30 5,17 * * *'
   push:
-    branches: [rust]
 
 jobs:
   ci:
