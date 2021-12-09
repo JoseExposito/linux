@@ -14,6 +14,7 @@ Here I work on my patches. I'm a newbie, so don't expect great changes, just hum
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-coverity-1443943](https://github.com/JoseExposito/linux/tree/patch-coverity-1443943) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1443943  | ⏳ |
 | [patch-coverity-1475685](https://github.com/JoseExposito/linux/tree/patch-coverity-1475685) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1475685  | ⏳ |
 | [patch-coverity-1484720](https://github.com/JoseExposito/linux/tree/patch-coverity-1484720) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1484720  | ⏳ |
 | [patch-clk-mt8192-leaks](https://github.com/JoseExposito/linux/tree/patch-clk-mt8192-leaks) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1491825  | ⏳ |
