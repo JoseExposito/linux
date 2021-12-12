@@ -16,6 +16,7 @@ Here I work on my patches. I'm a newbie, so don't expect great changes, just hum
 | - | - | - | - |
 | [patch-support-magic-trackpad-2021-v1](https://github.com/JoseExposito/linux/tree/patch-support-magic-trackpad-2021-v1) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Magic Trackpad 2021 (v3) support | ⏳ |
 | [patch-vkms-multiple-overlay-planes-v1](https://github.com/JoseExposito/linux/tree/patch-vkms-multiple-overlay-planes-v1) | [upstream-drm-misc-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-fixes) | Add support for multiple overlay planes in VKMS | 🔨 |
+| [patch-coverity-1474582](https://github.com/JoseExposito/linux/tree/patch-coverity-1474582) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1474582  | ⏳ |
 | [patch-coverity-1474639](https://github.com/JoseExposito/linux/tree/patch-coverity-1474639) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1474639  | ⏳ |
 | [patch-coverity-1443943](https://github.com/JoseExposito/linux/tree/patch-coverity-1443943) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1443943  | ⏳ |
 | [patch-coverity-1475685](https://github.com/JoseExposito/linux/tree/patch-coverity-1475685) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1475685  | ⏳ |
