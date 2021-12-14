@@ -14,8 +14,9 @@ Here I work on my patches. I'm a newbie, so don't expect great changes, just hum
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-vkms-add-linear-mod-v1](https://github.com/JoseExposito/linux/tree/patch-vkms-add-linear-mod-v1) | [upstream-drm-misc-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-fixes) | VKMS: Set IN_FORMATS | 🔨 |
 | [patch-support-magic-trackpad-2021-v1](https://github.com/JoseExposito/linux/tree/patch-support-magic-trackpad-2021-v1) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Magic Trackpad 2021 (v3) support | ⏳ |
-| [patch-vkms-multiple-overlay-planes-v1](https://github.com/JoseExposito/linux/tree/patch-vkms-multiple-overlay-planes-v1) | [upstream-drm-misc-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-fixes) | Add support for multiple overlay planes in VKMS | ⏳ |
+| [patch-vkms-multiple-overlay-planes-v1](https://github.com/JoseExposito/linux/tree/patch-vkms-multiple-overlay-planes-v1) | [upstream-drm-misc-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-fixes) | VKMS: Add support for multiple overlay planes | ⏳ |
 | [patch-flex-array-prestera-v1](https://github.com/JoseExposito/linux/tree/patch-flex-array-prestera-v1) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | [KSPP #78](https://github.com/KSPP/linux/issues/78)  | ⏳ |
 | [patch-buttonpad-single-button-v1](https://github.com/JoseExposito/linux/tree/patch-buttonpad-single-button-v1) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Clear extra button on buttonpads  | ⏳ |
 | [patch-drm-docs-ttm-acronym](https://github.com/JoseExposito/linux/tree/patch-drm-docs-ttm-acronym) | [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | Translation Table ~~Maps~~ Manager | ⏳ |
