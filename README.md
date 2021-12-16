@@ -14,7 +14,8 @@ Here I work on my patches. I'm a newbie, so don't expect great changes, just hum
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
-| [patch-vkms-add-linear-mod-v1](https://github.com/JoseExposito/linux/tree/patch-vkms-add-linear-mod-v1) | [upstream-drm-misc-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-fixes) | VKMS: Set IN_FORMATS | 🔨 |
+| [patch-vkms-alpha-plane-prop](https://github.com/JoseExposito/linux/tree/patch-vkms-alpha-plane-prop) | [upstream-drm-misc-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-fixes) | VKMS: Set alpha plane property | 🔨 |
+| [patch-vkms-add-linear-mod-v1](https://github.com/JoseExposito/linux/tree/patch-vkms-add-linear-mod-v1) | [upstream-drm-misc-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-fixes) | VKMS: Set IN_FORMATS | ⏳ |
 | [patch-support-magic-trackpad-2021-v1](https://github.com/JoseExposito/linux/tree/patch-support-magic-trackpad-2021-v1) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Magic Trackpad 2021 (v3) support | ⏳ |
 | [patch-vkms-multiple-overlay-planes-v1](https://github.com/JoseExposito/linux/tree/patch-vkms-multiple-overlay-planes-v1) | [upstream-drm-misc-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-fixes) | VKMS: Add support for multiple overlay planes | ⏳ |
 | [patch-flex-array-prestera-v1](https://github.com/JoseExposito/linux/tree/patch-flex-array-prestera-v1) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | [KSPP #78](https://github.com/KSPP/linux/issues/78)  | ⏳ |
