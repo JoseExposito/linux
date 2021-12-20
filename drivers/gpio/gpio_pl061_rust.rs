@@ -223,7 +223,7 @@ impl irq::Chip for PL061Device {
     }
 
     fn mask(data: RefBorrow<'_, DeviceData>, irq_data: &IrqData) {
-        let mask = bit(irq_data.hwirq() % u64::from(PL061_GPIO_NR));
+        let mask = bit(irq_data.hwirq() % irq::HwNumber::from(PL061_GPIO_NR));
         let _guard = data.lock();
         if let Some(pl061) = data.resources() {
             let gpioie = pl061.base.readb(GPIOIE) & !mask;
@@ -232,7 +232,7 @@ impl irq::Chip for PL061Device {
     }
 
     fn unmask(data: RefBorrow<'_, DeviceData>, irq_data: &IrqData) {
-        let mask = bit(irq_data.hwirq() % u64::from(PL061_GPIO_NR));
+        let mask = bit(irq_data.hwirq() % irq::HwNumber::from(PL061_GPIO_NR));
         let _guard = data.lock();
         if let Some(pl061) = data.resources() {
             let gpioie = pl061.base.readb(GPIOIE) | mask;
@@ -244,7 +244,7 @@ impl irq::Chip for PL061Device {
     // (interrupt-clear) register. For level IRQs this is not needed: these go away when the level
     // signal goes away.
     fn ack(data: RefBorrow<'_, DeviceData>, irq_data: &IrqData) {
-        let mask = bit(irq_data.hwirq() % u64::from(PL061_GPIO_NR));
+        let mask = bit(irq_data.hwirq() % irq::HwNumber::from(PL061_GPIO_NR));
         let _guard = data.lock();
         if let Some(pl061) = data.resources() {
             pl061.base.writeb(mask.into(), GPIOIC);

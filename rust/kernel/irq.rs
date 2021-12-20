@@ -12,7 +12,8 @@
 use crate::{bindings, c_types, error::from_kernel_result, types::PointerWrapper, Error, Result};
 use core::ops::Deref;
 
-type IrqHwNumber = bindings::irq_hw_number_t;
+/// The type of irq hardware numbers.
+pub type HwNumber = bindings::irq_hw_number_t;
 
 /// Wraps the kernel's `struct irq_data`.
 ///
@@ -37,7 +38,7 @@ impl IrqData {
     }
 
     /// Returns the hardware irq number.
-    pub fn hwirq(&self) -> IrqHwNumber {
+    pub fn hwirq(&self) -> HwNumber {
         // SAFETY: By the type invariants, it's ok to dereference `ptr`.
         unsafe { (*self.ptr).hwirq }
     }
