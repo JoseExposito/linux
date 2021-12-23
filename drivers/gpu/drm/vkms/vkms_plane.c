@@ -158,6 +158,16 @@ static const struct drm_plane_helper_funcs vkms_primary_helper_funcs = {
 	DRM_GEM_SHADOW_PLANE_HELPER_FUNCS,
 };
 
+static int vkms_plane_create_alpha_property(struct vkms_plane *plane)
+{
+	int ret = 0;
+
+	if (plane->base.type != DRM_PLANE_TYPE_PRIMARY)
+		ret = drm_plane_create_alpha_property(&plane->base);
+
+	return ret;
+}
+
 struct vkms_plane *vkms_plane_init(struct vkms_device *vkmsdev,
 				   enum drm_plane_type type, int index)
 {
@@ -166,6 +176,7 @@ struct vkms_plane *vkms_plane_init(struct vkms_device *vkmsdev,
 	struct vkms_plane *plane;
 	const u32 *formats;
 	int nformats;
+	int ret;
 
 	switch (type) {
 	case DRM_PLANE_TYPE_PRIMARY:
@@ -194,6 +205,10 @@ struct vkms_plane *vkms_plane_init(struct vkms_device *vkmsdev,
 		return plane;
 
 	drm_plane_helper_add(&plane->base, funcs);
+
+	ret = vkms_plane_create_alpha_property(plane);
+	if (ret)
+		return ERR_PTR(ret);
 
 	return plane;
 }

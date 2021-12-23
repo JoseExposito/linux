@@ -68,20 +68,22 @@ static u8 blend_channel(u8 src, u8 dst, u8 alpha)
  * alpha_blend - alpha blending equation
  * @argb_src: src pixel on premultiplied alpha mode
  * @argb_dst: dst pixel completely opaque
+ * @plane_alpha: plane alpha property in the 0..255 range
  *
  * blend pixels using premultiplied blend formula. The current DRM assumption
  * is that pixel color values have been already pre-multiplied with the alpha
  * channel values. See more drm_plane_create_blend_mode_property(). Also, this
  * formula assumes a completely opaque background.
  */
-static void alpha_blend(const u8 *argb_src, u8 *argb_dst)
+static void alpha_blend(const u8 *argb_src, u8 *argb_dst, u8 plane_alpha)
 {
 	u8 alpha;
 
-	alpha = argb_src[3];
+	alpha = (argb_src[3] * plane_alpha) / 255;
 	argb_dst[0] = blend_channel(argb_src[0], argb_dst[0], alpha);
 	argb_dst[1] = blend_channel(argb_src[1], argb_dst[1], alpha);
 	argb_dst[2] = blend_channel(argb_src[2], argb_dst[2], alpha);
+	argb_dst[3] = alpha;
 }
 
 /**
@@ -89,9 +91,13 @@ static void alpha_blend(const u8 *argb_src, u8 *argb_dst)
  *
  * overwrites RGB color value from src pixel to dst pixel.
  */
-static void x_blend(const u8 *xrgb_src, u8 *xrgb_dst)
+static void x_blend(const u8 *xrgb_src, u8 *xrgb_dst, u8 plane_alpha)
 {
-	memcpy(xrgb_dst, xrgb_src, sizeof(u8) * 3);
+	// memcpy(xrgb_dst, xrgb_src, sizeof(u8) * 3);
+	xrgb_dst[0] = blend_channel(xrgb_src[0], xrgb_dst[0], plane_alpha);
+	xrgb_dst[1] = blend_channel(xrgb_src[1], xrgb_dst[1], plane_alpha);
+	xrgb_dst[2] = blend_channel(xrgb_src[2], xrgb_dst[2], plane_alpha);
+	xrgb_dst[3] = 0xff;
 }
 
 /**
@@ -101,6 +107,7 @@ static void x_blend(const u8 *xrgb_src, u8 *xrgb_dst)
  * @dst_composer: destination framebuffer's metadata
  * @src_composer: source framebuffer's metadata
  * @pixel_blend: blending equation based on plane format
+ * @plane_alpha: plane alpha property in the 0..255 range
  *
  * Blend the vaddr_src value with the vaddr_dst value using a pixel blend
  * equation according to the supported plane formats DRM_FORMAT_(A/XRGB8888)
@@ -113,7 +120,8 @@ static void x_blend(const u8 *xrgb_src, u8 *xrgb_dst)
 static void blend(void *vaddr_dst, void *vaddr_src,
 		  struct vkms_composer *dst_composer,
 		  struct vkms_composer *src_composer,
-		  void (*pixel_blend)(const u8 *, u8 *))
+		  void (*pixel_blend)(const u8 *, u8 *, u8),
+		  u8 plane_alpha)
 {
 	int i, j, j_dst, i_dst;
 	int offset_src, offset_dst;
@@ -141,9 +149,9 @@ static void blend(void *vaddr_dst, void *vaddr_src,
 
 			pixel_src = (u8 *)(vaddr_src + offset_src);
 			pixel_dst = (u8 *)(vaddr_dst + offset_dst);
-			pixel_blend(pixel_src, pixel_dst);
+			pixel_blend(pixel_src, pixel_dst, plane_alpha);
 			/* clearing alpha channel (0xff)*/
-			pixel_dst[3] = 0xff;
+			// pixel_dst[3] = 0xff; ??
 		}
 		i_dst++;
 	}
@@ -151,11 +159,12 @@ static void blend(void *vaddr_dst, void *vaddr_src,
 
 static void compose_plane(struct vkms_composer *primary_composer,
 			  struct vkms_composer *plane_composer,
+			  u8 plane_alpha,
 			  void *vaddr_out)
 {
 	struct drm_framebuffer *fb = &plane_composer->fb;
 	void *vaddr;
-	void (*pixel_blend)(const u8 *p_src, u8 *p_dst);
+	void (*pixel_blend)(const u8 *p_src, u8 *p_dst, u8 plane_alpha);
 
 	if (WARN_ON(dma_buf_map_is_null(&primary_composer->map[0])))
 		return;
@@ -167,7 +176,19 @@ static void compose_plane(struct vkms_composer *primary_composer,
 	else
 		pixel_blend = &x_blend;
 
-	blend(vaddr_out, vaddr, primary_composer, plane_composer, pixel_blend);
+	blend(vaddr_out, vaddr, primary_composer, plane_composer, pixel_blend,
+	      plane_alpha);
+}
+
+/**
+ * Return the plane alpha property value in the 0...255 range.
+ * @plane_state: VKMS plane state.
+ */
+static u8 vkms_plane_state_alpha(struct vkms_plane_state *plane_state)
+{
+	u16 plane_alpha = plane_state->base.base.alpha;
+	u8 alpha = (plane_alpha * 255) / DRM_BLEND_ALPHA_OPAQUE;
+	return alpha;
 }
 
 static int compose_active_planes(void **vaddr_out,
@@ -177,6 +198,8 @@ static int compose_active_planes(void **vaddr_out,
 	struct drm_framebuffer *fb = &primary_composer->fb;
 	struct drm_gem_object *gem_obj = drm_gem_fb_get_obj(fb, 0);
 	const void *vaddr;
+	struct vkms_plane_state *plane_state;
+	u8 plane_alpha;
 	int i;
 
 	if (!*vaddr_out) {
@@ -198,10 +221,15 @@ static int compose_active_planes(void **vaddr_out,
 	 * planes should be in z-order and compose them associatively:
 	 * ((primary <- overlay) <- cursor)
 	 */
-	for (i = 1; i < crtc_state->num_active_planes; i++)
+	for (i = 1; i < crtc_state->num_active_planes; i++) {
+		plane_state = crtc_state->active_planes[i];
+		plane_alpha = vkms_plane_state_alpha(plane_state);
+
 		compose_plane(primary_composer,
-			      crtc_state->active_planes[i]->composer,
+			      plane_state->composer,
+			      plane_alpha,
 			      *vaddr_out);
+	}
 
 	return 0;
 }
