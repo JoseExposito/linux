@@ -40,6 +40,7 @@ struct PL061DataInner {
 }
 
 struct PL061Data {
+    dev: device::Device,
     inner: SpinLock<PL061DataInner>,
 }
 
@@ -148,7 +149,8 @@ impl irq::Chip for PL061Device {
         if trigger & (irq::Type::LEVEL_HIGH | irq::Type::LEVEL_LOW) != 0
             && trigger & (irq::Type::EDGE_RISING | irq::Type::EDGE_FALLING) != 0
         {
-            pr_err!(
+            dev_err!(
+                data.dev,
                 "trying to configure line {} for both level and edge detection, choose one!\n",
                 offset
             );
@@ -176,7 +178,8 @@ impl irq::Chip for PL061Device {
                 gpioiev &= !bit;
             }
             irq_data.set_level_handler();
-            pr_debug!(
+            dev_dbg!(
+                data.dev,
                 "line {}: IRQ on {} level\n",
                 offset,
                 if polarity { "HIGH" } else { "LOW" }
@@ -187,7 +190,7 @@ impl irq::Chip for PL061Device {
             // Select both edges, settings this makes GPIOEV be ignored.
             gpioibe |= bit;
             irq_data.set_edge_handler();
-            pr_debug!("line {}: IRQ on both edges\n", offset);
+            dev_dbg!(data.dev, "line {}: IRQ on both edges\n", offset);
         } else if trigger & (irq::Type::EDGE_RISING | irq::Type::EDGE_FALLING) != 0 {
             let rising = trigger & irq::Type::EDGE_RISING != 0;
 
@@ -202,7 +205,8 @@ impl irq::Chip for PL061Device {
                 gpioiev &= !bit;
             }
             irq_data.set_edge_handler();
-            pr_debug!(
+            dev_dbg!(
+                data.dev,
                 "line {}: IRQ on {} edge\n",
                 offset,
                 if rising { "RISING" } else { "FALLING}" }
@@ -213,7 +217,7 @@ impl irq::Chip for PL061Device {
             gpioibe &= !bit;
             gpioiev &= !bit;
             irq_data.set_bad_handler();
-            pr_warn!("no trigger selected for line {}\n", offset);
+            dev_warn!(data.dev, "no trigger selected for line {}\n", offset);
         }
 
         pl061.base.writeb(gpiois, GPIOIS);
@@ -278,6 +282,7 @@ impl amba::Driver for PL061Device {
                 parent_irq: irq,
             },
             PL061Data {
+                dev: device::Device::from_dev(dev),
                 // SAFETY: We call `spinlock_init` below.
                 inner: unsafe { SpinLock::new(PL061DataInner::default()) },
             },
@@ -297,7 +302,7 @@ impl amba::Driver for PL061Device {
             .as_pinned_mut()
             .register::<Self>(PL061_GPIO_NR, None, dev, data.clone(), irq)?;
 
-        pr_info!("PL061 GPIO chip registered\n");
+        dev_info!(data.dev, "PL061 GPIO chip registered\n");
 
         Ok(data)
     }
