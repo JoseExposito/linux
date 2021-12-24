@@ -26,7 +26,7 @@ Rust features.
 If ``rustup`` is being used, enter the checked out source code directory
 and run::
 
-	rustup override set 1.58.0
+	rustup override set $(scripts/min-tool-version.sh rustc)
 
 Otherwise, fetch a standalone installer or install ``rustup`` from:
 
@@ -79,7 +79,7 @@ the ``bindgen`` tool. A particular version is required.
 
 Install it via (note that this will download and build the tool from source)::
 
-	cargo install --locked --version 0.56.0 bindgen
+	cargo install --locked --version $(scripts/min-tool-version.sh bindgen) bindgen
 
 
 Requirements: Developing
