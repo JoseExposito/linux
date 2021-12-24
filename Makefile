@@ -274,7 +274,7 @@ no-dot-config-targets := $(clean-targets) \
 			 cscope gtags TAGS tags help% %docs check% coccicheck \
 			 $(version_h) headers headers_% archheaders archscripts \
 			 %asm-generic kernelversion %src-pkg dt_binding_check \
-			 outputmakefile rustfmt rustfmtcheck
+			 outputmakefile rustavailable rustfmt rustfmtcheck
 # Installation targets should not require compiler. Unfortunately, vdso_install
 # is an exception where build artifacts may be updated. This must be fixed.
 no-compiler-targets := $(no-dot-config-targets) install dtbs_install \
@@ -1696,6 +1696,8 @@ help:
 	@echo  '		      kselftest to existing .config.'
 	@echo  ''
 	@echo  'Rust targets:'
+	@echo  '  rustavailable   - Checks whether the Rust toolchain is'
+	@echo  '		    available and, if not, explains why.'
 	@echo  '  rustfmt	  - Reformat all the Rust code in the kernel'
 	@echo  '  rustfmtcheck	  - Checks if all the Rust code in the kernel'
 	@echo  '		    is formatted, printing a diff otherwise.'
@@ -1780,6 +1782,11 @@ $(DOC_TARGETS):
 
 # Rust targets
 # ---------------------------------------------------------------------------
+
+# "Is Rust available?" target
+PHONY += rustavailable
+rustavailable:
+	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/rust-is-available.sh -v
 
 # Documentation target
 #

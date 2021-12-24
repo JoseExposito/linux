@@ -13,7 +13,17 @@ This section explains how to fetch the tools needed for building.
 
 Some of these requirements might be available from Linux distributions
 under names like ``rustc``, ``rust-src``, ``rust-bindgen``, etc. However,
-at the time of writing, they are likely not to be recent enough.
+at the time of writing, they are likely not to be recent enough unless
+the distribution tracks the latest releases.
+
+To easily check whether the requirements are met, the following target
+can be used::
+
+	make LLVM=1 rustavailable
+
+This triggers the same logic used by Kconfig to determine whether
+``RUST_IS_AVAILABLE`` should be enabled; but it also explains why not
+if that is the case.
 
 
 rustc
@@ -176,8 +186,8 @@ Configuration
 -------------
 
 ``Rust support`` (``CONFIG_RUST``) needs to be enabled in the ``General setup``
-menu. The option is only shown if the build system can locate ``rustc``.
-In turn, this will make visible the rest of options that depend on Rust.
+menu. The option is only shown if a suitable Rust toolchain is found (see
+above). In turn, this will make visible the rest of options that depend on Rust.
 
 Afterwards, go to::
 
