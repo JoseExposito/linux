@@ -35,6 +35,9 @@ target with the same invocation used for compilation, e.g.::
 
 	make LLVM=1 rustdoc
 
+To read the docs locally in your web browser, run e.g.::
+
+	xdg-open rust/doc/kernel/index.html
 
 Writing the docs
 ----------------
