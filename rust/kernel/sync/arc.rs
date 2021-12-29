@@ -127,7 +127,7 @@ impl<T> Ref<T> {
     /// # Safety
     ///
     /// `encoded` must have been returned by a previous call to [`Ref::into_usize`]. Additionally,
-    /// it can only be called once for each previous call to [``Ref::into_usize`].
+    /// it can only be called once for each previous call to [`Ref::into_usize`].
     pub unsafe fn from_usize(encoded: usize) -> Self {
         // SAFETY: By the safety invariants we know that `encoded` came from `Ref::into_usize`, so
         // the reference count held then will be owned by the new `Ref` object.
