@@ -172,7 +172,7 @@ impl<T: ?Sized> Ref<T> {
     /// # Safety
     ///
     /// `ptr` must have been returned by a previous call to [`Ref::into_raw`]. Additionally, it
-    /// can only be called once for each previous call to [``Ref::into_raw`].
+    /// can only be called once for each previous call to [`Ref::into_raw`].
     pub unsafe fn from_raw(ptr: *const T) -> Self {
         // SAFETY: The safety requirement ensures that the pointer is valid.
         let align = core::mem::align_of_val(unsafe { &*ptr });
