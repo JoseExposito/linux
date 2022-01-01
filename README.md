@@ -104,3 +104,5 @@ My personal working configs are save in `config-*` branches:
 | - | - | - |
 | [config-5.13.0-elementaryOS6](https://github.com/JoseExposito/linux/tree/config-5.13.0-elementaryOS6) | 5.13.0 | elementary OS 6 |
 | [config-5.14.0-elementaryOS6](https://github.com/JoseExposito/linux/tree/config-5.14.0-elementaryOS6) | 5.14.0 | elementary OS 6 |
+| [config-5.16.0-elementaryOS6](https://github.com/JoseExposito/linux/tree/config-5.16.0-elementaryOS6) | 5.16.0 | elementary OS 6 |
+
