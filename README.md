@@ -14,7 +14,6 @@ Here I work on my patches. I'm a newbie, so don't expect great changes, just hum
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
-
 | [patch-magic-keyboard-2021-fingerprint-fn-key-mapping](https://github.com/JoseExposito/linux/tree/patch-magic-keyboard-2021-fingerprint-fn-key-mapping) | [upstream-hid-for-next](https://github.com/JoseExposito/linux/tree/upstream-hid-for-next) | Add funtion key mapping for the Magic Keyboard 2021 with fingerprint reader and/or numpad | ⏳ |
 | [patch-magic-keyboard-2021-fingerprint-usb-batery](https://github.com/JoseExposito/linux/tree/patch-magic-keyboard-2021-fingerprint-usb-baterty) | [upstream-hid-for-next](https://github.com/JoseExposito/linux/tree/upstream-hid-for-next) | Fetch Magic Keyboard 2021 with fingerprint reader battery when connected over USB | ⏳ |
 | [patch-magic-keyboard-2021-usb-batery](https://github.com/JoseExposito/linux/tree/patch-magic-keyboard-2021-usb-baterty) | [upstream-hid-for-next](https://github.com/JoseExposito/linux/tree/upstream-hid-for-next) | Fetch Magic Keyboard 2021 battery when connected over USB | ⏳ |
