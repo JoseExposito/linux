@@ -14,6 +14,7 @@ Here I work on my patches. I'm a newbie, so don't expect great changes, just hum
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-magic-keyboard-2021-fingerprint-usb-batery](https://github.com/JoseExposito/linux/tree/patch-magic-keyboard-2021-fingerprint-usb-baterty) | [upstream-hid-for-next](https://github.com/JoseExposito/linux/tree/upstream-hid-for-next) | Fetch Magic Keyboard 2021 with fingerprint reader battery when connected over USB | ⏳ |
 | [patch-magic-keyboard-2021-usb-batery](https://github.com/JoseExposito/linux/tree/patch-magic-keyboard-2021-usb-baterty) | [upstream-hid-for-next](https://github.com/JoseExposito/linux/tree/upstream-hid-for-next) | Fetch Magic Keyboard 2021 battery when connected over USB | ⏳ |
 | [patch-vkms-alpha-plane-prop](https://github.com/JoseExposito/linux/tree/patch-vkms-alpha-plane-prop) | [upstream-drm-misc-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-fixes) | VKMS: Set alpha plane property | 🔨 |
 | [patch-vkms-zpos-plane-prop](https://github.com/JoseExposito/linux/tree/patch-vkms-zpos-plane-prop) | [patch-vkms-multiple-overlay-planes-v1](https://github.com/JoseExposito/linux/tree/patch-vkms-multiple-overlay-planes-v1) | VKMS: Set zpos plane property | ⏳ |
