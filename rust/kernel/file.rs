@@ -54,6 +54,12 @@ impl File {
         // change over the lifetime of a file).
         unsafe { CredentialRef::from_ptr(ptr) }
     }
+
+    /// Returns the flags associated with the file.
+    pub fn flags(&self) -> u32 {
+        // SAFETY: `File::ptr` is guaranteed to be valid by the type invariants.
+        unsafe { (*self.ptr).f_flags }
+    }
 }
 
 impl Drop for File {
