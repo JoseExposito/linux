@@ -7,7 +7,7 @@
 
 use kernel::{
     c_str, file::File, file_operations::FileOperations, io_buffer::IoBufferWriter, miscdev,
-    of::ConstOfMatchTable, platdev, platdev::PlatformDriver, prelude::*,
+    of::ConstOfMatchTable, platform, platform::PlatformDriver, prelude::*,
 };
 
 module! {
@@ -54,7 +54,7 @@ impl PlatformDriver for RngDriver {
 }
 
 struct RngModule {
-    _pdev: Pin<Box<platdev::Registration>>,
+    _pdev: Pin<Box<platform::Registration>>,
 }
 
 impl KernelModule for RngModule {
@@ -63,7 +63,7 @@ impl KernelModule for RngModule {
             ConstOfMatchTable::new_const([c_str!("brcm,bcm2835-rng")]);
 
         let pdev =
-            platdev::Registration::new_pinned::<RngDriver>(name, Some(&OF_MATCH_TBL), module)?;
+            platform::Registration::new_pinned::<RngDriver>(name, Some(&OF_MATCH_TBL), module)?;
 
         Ok(RngModule { _pdev: pdev })
     }
