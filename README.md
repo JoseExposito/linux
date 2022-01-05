@@ -34,6 +34,7 @@ Here I work on my patches. I'm a newbie, so don't expect great changes, just hum
 | [patch-magic-mouse-cleanup-v1](https://github.com/JoseExposito/linux/tree/patch-magic-mouse-cleanup-v1) | [upstream-hid-for-next](https://github.com/JoseExposito/linux/tree/upstream-hid-for-next) | Magic Mouse/Trackpad driver cleanup | ⏳ |
 | [patch-magic-mouse-high-resolution-scroll-v1](https://github.com/JoseExposito/linux/tree/patch-magic-mouse-high-resolution-scroll-v1) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Emulate high-resolution scroll on the Magic Mouse for a smoother scrolling experience | 🔀 |
 | [patch-magic-trackpad-crash-disconnecting-usb](https://github.com/JoseExposito/linux/tree/patch-magic-trackpad-crash-disconnecting-usb) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Fix NULL pointer reference when disconnecting the Magic Trackpad 2 from the USB port | 🔀 |
+| [patch-coverity-1443831-1443827-1443804-1443763](https://github.com/JoseExposito/linux/tree/patch-coverity-1443831-1443827-1443804-1443804) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Coverity #1443831, #1443827, #1443804 and 1443763  | ⏳ |
 | [patch-coverity-1493892](https://github.com/JoseExposito/linux/tree/patch-coverity-1493892) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1493892  | 🔀 |
 | [patch-coverity-1474582](https://github.com/JoseExposito/linux/tree/patch-coverity-1474582) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1474582  | 🔀 |
 | [patch-coverity-1474639](https://github.com/JoseExposito/linux/tree/patch-coverity-1474639) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1474639  | ⏳ |
@@ -45,7 +46,6 @@ Here I work on my patches. I'm a newbie, so don't expect great changes, just hum
 | [patch-coverity-1493352](https://github.com/JoseExposito/linux/tree/patch-coverity-1493352) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1493352  | 🔀 |
 | [patch-coverity-1493934](https://github.com/JoseExposito/linux/tree/patch-coverity-1493934) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1493934  | 🔀 |
 | [patch-coverity-1494000](https://github.com/JoseExposito/linux/tree/coverity-1494000) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1494000  | ⏳ |
-| [patch-coverity-1443831-1443827-1443804-1443763](https://github.com/JoseExposito/linux/tree/patch-coverity-1443831-1443827-1443804-1443804) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Coverity #1443831, #1443827, #1443804 and 1443763  | ⏳ |
 
 🔨 Under development &nbsp;|&nbsp; ⏳ Waiting for review &nbsp;|&nbsp; 🔀 Merged upstream
 
