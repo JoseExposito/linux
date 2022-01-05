@@ -45,6 +45,7 @@ Here I work on my patches. I'm a newbie, so don't expect great changes, just hum
 | [patch-coverity-1493352](https://github.com/JoseExposito/linux/tree/patch-coverity-1493352) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1493352  | 🔀 |
 | [patch-coverity-1493934](https://github.com/JoseExposito/linux/tree/patch-coverity-1493934) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1493934  | 🔀 |
 | [patch-coverity-1494000](https://github.com/JoseExposito/linux/tree/coverity-1494000) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1494000  | ⏳ |
+| [patch-coverity-1443831-1443827-1443804-1443763](https://github.com/JoseExposito/linux/tree/patch-coverity-1443831-1443827-1443804-1443804) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Coverity #1443831, #1443827, #1443804 and 1443763  | ⏳ |
 
 🔨 Under development &nbsp;|&nbsp; ⏳ Waiting for review &nbsp;|&nbsp; 🔀 Merged upstream
 
