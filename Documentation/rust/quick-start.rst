@@ -67,8 +67,8 @@ Otherwise, building LLVM takes quite a while, but it is not a complex process:
 
 	https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm
 
-See Documentation/kbuild/llvm.rst for more information and further ways
-to fetch pre-built releases and distribution packages.
+See :ref:`Documentation/kbuild/llvm.rst <kbuild_llvm>` for more information and
+further ways to fetch pre-built releases and distribution packages.
 
 
 bindgen
