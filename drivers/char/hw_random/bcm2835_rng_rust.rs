@@ -6,12 +6,12 @@
 #![feature(allocator_api, global_asm)]
 
 use kernel::{
-    c_str, file::File, file_operations::FileOperations, io_buffer::IoBufferWriter, miscdev,
-    of::ConstOfMatchTable, platform, platform::PlatformDriver, prelude::*,
+    c_str, device, file::File, file_operations::FileOperations, io_buffer::IoBufferWriter, miscdev,
+    module_platform_driver, of, platform, prelude::*, sync::Ref,
 };
 
-module! {
-    type: RngModule,
+module_platform_driver! {
+    type: RngDriver,
     name: b"bcm2835_rng_rust",
     author: b"Rust for Linux Contributors",
     description: b"BCM2835 Random Number Generator (RNG) driver",
@@ -38,35 +38,29 @@ impl FileOperations for RngDevice {
     }
 }
 
+type DeviceData = device::Data<miscdev::Registration<RngDevice>, (), ()>;
+
 struct RngDriver;
+impl platform::Driver for RngDriver {
+    type Data = Ref<DeviceData>;
 
-impl PlatformDriver for RngDriver {
-    type DrvData = Pin<Box<miscdev::Registration<RngDevice>>>;
+    kernel::define_of_id_table! {(), [
+        (of::DeviceId::Compatible(b"brcm,bcm2835-rng"), None),
+    ]}
 
-    fn probe(device_id: i32) -> Result<Self::DrvData> {
-        pr_info!("probing discovered hwrng with id {}\n", device_id);
-        let drv_data = miscdev::Registration::new_pinned(c_str!("rust_hwrng"), None, ())?;
-        Ok(drv_data)
-    }
+    fn probe(dev: &mut platform::Device, _id_info: Option<&Self::IdInfo>) -> Result<Self::Data> {
+        pr_info!("probing discovered hwrng with id {}\n", dev.id());
+        let data = kernel::new_device_data!(
+            miscdev::Registration::new(),
+            (),
+            (),
+            "BCM2835::Registrations"
+        )?;
 
-    fn remove(device_id: i32, _drv_data: Self::DrvData) -> Result {
-        pr_info!("removing hwrng with id {}\n", device_id);
-        Ok(())
-    }
-}
-
-struct RngModule {
-    _pdev: Pin<Box<platform::Registration>>,
-}
-
-impl KernelModule for RngModule {
-    fn init(name: &'static CStr, module: &'static ThisModule) -> Result<Self> {
-        const OF_MATCH_TBL: ConstOfMatchTable<1> =
-            ConstOfMatchTable::new_const([c_str!("brcm,bcm2835-rng")]);
-
-        let pdev =
-            platform::Registration::new_pinned::<RngDriver>(name, Some(&OF_MATCH_TBL), module)?;
-
-        Ok(RngModule { _pdev: pdev })
+        data.registrations()
+            .ok_or(Error::ENXIO)?
+            .as_pinned_mut()
+            .register(c_str!("rust_hwrng"), None, ())?;
+        Ok(data.into())
     }
 }

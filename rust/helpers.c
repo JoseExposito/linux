@@ -17,6 +17,7 @@
 #include <linux/irqchip/chained_irq.h>
 #include <linux/irqdomain.h>
 #include <linux/amba/bus.h>
+#include <linux/of_device.h>
 
 __noreturn void rust_helper_BUG(void)
 {
@@ -476,6 +477,13 @@ void rust_helper_put_cred(const struct cred *cred) {
 	put_cred(cred);
 }
 EXPORT_SYMBOL_GPL(rust_helper_put_cred);
+
+const struct of_device_id *rust_helper_of_match_device(
+		const struct of_device_id *matches, const struct device *dev)
+{
+	return of_match_device(matches, dev);
+}
+EXPORT_SYMBOL_GPL(rust_helper_of_match_device);
 
 /* We use bindgen's --size_t-is-usize option to bind the C size_t type
  * as the Rust usize type, so we can use it in contexts where Rust
