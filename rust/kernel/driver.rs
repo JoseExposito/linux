@@ -5,30 +5,15 @@
 //! Each bus/subsystem is expected to implement [`DriverOps`], which allows drivers to register
 //! using the [`Registration`] class.
 
-use crate::{str::CStr, sync::Ref, Error, KernelModule, Result, ScopeGuard, ThisModule};
-use alloc::{boxed::Box, vec::Vec};
-use core::{cell::UnsafeCell, marker::PhantomData, mem::MaybeUninit, ops::Deref, pin::Pin};
+use crate::{str::CStr, sync::Ref, Error, KernelModule, Result, ThisModule};
+use alloc::boxed::Box;
+use core::{cell::UnsafeCell, marker::PhantomData, ops::Deref, pin::Pin};
 
 /// A subsystem (e.g., PCI, Platform, Amba, etc.) that allows drivers to be written for it.
 pub trait DriverOps {
     /// The type that holds information about the registration. This is typically a struct defined
     /// by the C portion of the kernel.
     type RegType: Default;
-
-    /// The type that holds identification data for the devices supported by the driver. In
-    /// addition to the information required by the bus, it may also store device-specific data
-    /// using Rust types.
-    type IdType: 'static;
-
-    /// The table of ids containing all supported devices.
-    const ID_TABLE: &'static [Self::IdType];
-
-    /// The raw type that holds identification data for the devices supported by the driver. This
-    /// is typically a struct defined by the C portion of the kernel.
-    ///
-    /// A zero-terminated array of this type is produced and passed to the C portion during
-    /// registration.
-    type RawIdType;
 
     /// Registers a driver.
     ///
@@ -37,15 +22,12 @@ pub trait DriverOps {
     /// `reg` must point to valid, initialised, and writable memory. It may be modified by this
     /// function to hold registration state.
     ///
-    /// `id_table` must point to a valid for read zero-terminated array of ids.
-    ///
-    /// On success, `reg` and `id_table` must remain pinned and valid until the matching call to
+    /// On success, `reg` must remain pinned and valid until the matching call to
     /// [`DriverOps::unregister`].
     unsafe fn register(
         reg: *mut Self::RegType,
         name: &'static CStr,
         module: &'static ThisModule,
-        id_table: *const Self::RawIdType,
     ) -> Result;
 
     /// Unregisters a driver previously registered with [`DriverOps::register`].
@@ -55,18 +37,12 @@ pub trait DriverOps {
     /// `reg` must point to valid writable memory, initialised by a previous successful call to
     /// [`DriverOps::register`].
     unsafe fn unregister(reg: *mut Self::RegType);
-
-    /// Converts an id into a raw id.
-    ///
-    /// This is used when building a zero-terminated array from the Rust array.
-    fn to_raw_id(index: usize, id: &Self::IdType) -> Self::RawIdType;
 }
 
 /// The registration of a driver.
 pub struct Registration<T: DriverOps> {
     is_registered: bool,
     concrete_reg: UnsafeCell<T::RegType>,
-    id_table: Vec<MaybeUninit<T::RawIdType>>,
 }
 
 // SAFETY: `Registration` has no fields or methods accessible via `&Registration`, so it is safe to
@@ -79,7 +55,6 @@ impl<T: DriverOps> Registration<T> {
         Self {
             is_registered: false,
             concrete_reg: UnsafeCell::new(T::RegType::default()),
-            id_table: Vec::new(),
         }
     }
 
@@ -108,40 +83,11 @@ impl<T: DriverOps> Registration<T> {
             return Err(Error::EINVAL);
         }
 
-        if this.id_table.is_empty() {
-            this.build_table()?;
-        }
-
-        // SAFETY: `concrete_reg` was initialised via its default constructor. `id_table` was just
-        // initialised above with a zero terminating entry. Both are only freed after `Self::drop`
-        // is called, which first calls `T::unregister`.
-        unsafe {
-            T::register(
-                this.concrete_reg.get(),
-                name,
-                module,
-                &this.id_table[0] as *const _ as *const _,
-            )
-        }?;
+        // SAFETY: `concrete_reg` was initialised via its default constructor. It is only freed
+        // after `Self::drop` is called, which first calls `T::unregister`.
+        unsafe { T::register(this.concrete_reg.get(), name, module) }?;
 
         this.is_registered = true;
-        Ok(())
-    }
-
-    /// Builds the zero-terminated raw-type array of supported devices.
-    ///
-    /// This is not ideal because the table is built at runtime. Once Rust fully supports const
-    /// generics, we can build the table at compile time.
-    fn build_table(&mut self) -> Result {
-        // Clear the table on failure, to indicate that the table isn't initialised.
-        let mut table = ScopeGuard::new_with_data(&mut self.id_table, |t| t.clear());
-
-        table.try_reserve_exact(T::ID_TABLE.len() + 1)?;
-        for (i, id) in T::ID_TABLE.iter().enumerate() {
-            table.try_push(MaybeUninit::new(T::to_raw_id(i, id)))?;
-        }
-        table.try_push(MaybeUninit::zeroed())?;
-        table.dismiss();
         Ok(())
     }
 }
@@ -394,7 +340,6 @@ macro_rules! define_id_array {
     };
 }
 
-// TODO: Remove `ignore` tag from example once we go to 1.58.x.
 /// Defines a new constant [`IdTable`] with a concise syntax.
 ///
 /// It is meant to be used by buses and subsystems to create a similar macro with their device id
@@ -402,7 +347,7 @@ macro_rules! define_id_array {
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```
 /// #![feature(const_trait_impl)]
 /// # use kernel::{define_id_table, driver::RawDeviceId};
 ///
