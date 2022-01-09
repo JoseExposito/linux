@@ -2677,7 +2677,7 @@ config RUST_OVERFLOW_CHECKS
 	  Enables rustc's `-Coverflow-checks` codegen option.
 
 	  This flag allows you to control the behavior of runtime integer
-	  overflow. When overflow-checks are enabled, a panic will occur
+	  overflow. When overflow-checks are enabled, a Rust panic will occur
 	  on overflow.
 
 	  Note that this will apply to all Rust code, including `core`.
