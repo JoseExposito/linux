@@ -7,8 +7,6 @@
 
 Welcome to my fork of the Linux kernel.
 
-Here I work on my patches. I'm a newbie, so don't expect great changes, just humble contributions.
-
 
 ## Patches
 
@@ -31,7 +29,6 @@ Here I work on my patches. I'm a newbie, so don't expect great changes, just hum
 | [patch-hid-apple-usb-battery-v1](https://github.com/JoseExposito/linux/tree/patch-hid-apple-usb-battery-v1) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Fetch Magic Keyboard battery when connected over USB | 🔀 |
 | [patch-uperfect-y-sticky-fingers-v1](https://github.com/JoseExposito/linux/tree/patch-uperfect-y-sticky-fingers-v1) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Disable sticky fingers for UPERFECT Y | 🔀 |
 | [patch-intel-hid-deny-list-v1](https://github.com/JoseExposito/linux/tree/patch-intel-hid-deny-list-v1) | [upstream-pdx86-for-next](https://github.com/JoseExposito/linux/tree/upstream-pdx86-for-next) | libinput [issue 662](https://gitlab.freedesktop.org/libinput/libinput/-/issues/662) | 🔀 |
-| [patch-magic-mouse-cleanup-v1](https://github.com/JoseExposito/linux/tree/patch-magic-mouse-cleanup-v1) | [upstream-hid-for-next](https://github.com/JoseExposito/linux/tree/upstream-hid-for-next) | Magic Mouse/Trackpad driver cleanup | ⏳ |
 | [patch-magic-mouse-high-resolution-scroll-v1](https://github.com/JoseExposito/linux/tree/patch-magic-mouse-high-resolution-scroll-v1) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Emulate high-resolution scroll on the Magic Mouse for a smoother scrolling experience | 🔀 |
 | [patch-magic-trackpad-crash-disconnecting-usb](https://github.com/JoseExposito/linux/tree/patch-magic-trackpad-crash-disconnecting-usb) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Fix NULL pointer reference when disconnecting the Magic Trackpad 2 from the USB port | 🔀 |
 | [patch-coverity-1443831-1443827-1443804-1443763](https://github.com/JoseExposito/linux/tree/patch-coverity-1443831-1443827-1443804-1443804) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Coverity #1443831, #1443827, #1443804 and 1443763  | 🔀 |
