@@ -5,9 +5,9 @@
 //! Each bus/subsystem is expected to implement [`DriverOps`], which allows drivers to register
 //! using the [`Registration`] class.
 
-use crate::{str::CStr, Error, KernelModule, Result, ScopeGuard, ThisModule};
+use crate::{str::CStr, sync::Ref, Error, KernelModule, Result, ScopeGuard, ThisModule};
 use alloc::{boxed::Box, vec::Vec};
-use core::{cell::UnsafeCell, mem::MaybeUninit, pin::Pin};
+use core::{cell::UnsafeCell, mem::MaybeUninit, ops::Deref, pin::Pin};
 
 /// A subsystem (e.g., PCI, Platform, Amba, etc.) that allows drivers to be written for it.
 pub trait DriverOps {
@@ -163,6 +163,22 @@ pub trait DeviceRemoval {
     /// This is called when a device is removed and offers implementers the chance to run some code
     /// that cleans state up.
     fn device_remove(&self);
+}
+
+impl DeviceRemoval for () {
+    fn device_remove(&self) {}
+}
+
+impl<T: DeviceRemoval> DeviceRemoval for Ref<T> {
+    fn device_remove(&self) {
+        self.deref().device_remove();
+    }
+}
+
+impl<T: DeviceRemoval> DeviceRemoval for Box<T> {
+    fn device_remove(&self) {
+        self.deref().device_remove();
+    }
 }
 
 /// A kernel module that only registers the given driver on init.
