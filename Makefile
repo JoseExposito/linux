@@ -809,7 +809,7 @@ KBUILD_CFLAGS += -O3
 KBUILD_RUSTFLAGS_OPT_LEVEL_MAP := 3
 else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS += -Os
-KBUILD_RUSTFLAGS_OPT_LEVEL_MAP := z
+KBUILD_RUSTFLAGS_OPT_LEVEL_MAP := s
 endif
 
 # Always set `debug-assertions` and `overflow-checks` because their default
