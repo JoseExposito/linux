@@ -6,7 +6,7 @@
 
 use crate::{
     bindings, c_types, device, driver, error::from_kernel_result, io_mem::Resource, power,
-    str::CStr, to_result, types::PointerWrapper, Error, Result,
+    str::CStr, to_result, types::PointerWrapper, Error, Result, ThisModule,
 };
 use core::{marker::PhantomData, ops::Deref};
 
@@ -72,12 +72,14 @@ where
     unsafe fn register(
         reg: *mut bindings::amba_driver,
         name: &'static CStr,
+        module: &'static ThisModule,
         id_table: *const bindings::amba_id,
     ) -> Result {
         // SAFETY: By the safety requirements of this function (defined in the trait defintion),
         // `reg` is non-null and valid.
         let amba = unsafe { &mut *reg };
         amba.drv.name = name.as_char_ptr();
+        amba.drv.owner = module.0;
         amba.id_table = id_table;
         amba.probe = Some(probe_callback::<T>);
         amba.remove = Some(remove_callback::<T>);

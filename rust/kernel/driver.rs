@@ -44,6 +44,7 @@ pub trait DriverOps {
     unsafe fn register(
         reg: *mut Self::RegType,
         name: &'static CStr,
+        module: &'static ThisModule,
         id_table: *const Self::RawIdType,
     ) -> Result;
 
@@ -85,9 +86,9 @@ impl<T: DriverOps> Registration<T> {
     /// Allocates a pinned registration object and registers it.
     ///
     /// Returns a pinned heap-allocated representation of the registration.
-    pub fn new_pinned(name: &'static CStr) -> Result<Pin<Box<Self>>> {
+    pub fn new_pinned(name: &'static CStr, module: &'static ThisModule) -> Result<Pin<Box<Self>>> {
         let mut reg = Pin::from(Box::try_new(Self::new())?);
-        reg.as_mut().register(name)?;
+        reg.as_mut().register(name, module)?;
         Ok(reg)
     }
 
@@ -95,7 +96,11 @@ impl<T: DriverOps> Registration<T> {
     ///
     /// It must be pinned because the memory block that represents the registration is potentially
     /// self-referential.
-    pub fn register(self: Pin<&mut Self>, name: &'static CStr) -> Result {
+    pub fn register(
+        self: Pin<&mut Self>,
+        name: &'static CStr,
+        module: &'static ThisModule,
+    ) -> Result {
         // SAFETY: We never move out of `this`.
         let this = unsafe { self.get_unchecked_mut() };
         if this.is_registered {
@@ -114,6 +119,7 @@ impl<T: DriverOps> Registration<T> {
             T::register(
                 this.concrete_reg.get(),
                 name,
+                module,
                 &this.id_table[0] as *const _ as *const _,
             )
         }?;
@@ -174,9 +180,9 @@ pub struct Module<T: DriverOps> {
 }
 
 impl<T: DriverOps> KernelModule for Module<T> {
-    fn init(name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
+    fn init(name: &'static CStr, module: &'static ThisModule) -> Result<Self> {
         Ok(Self {
-            _driver: Registration::new_pinned(name)?,
+            _driver: Registration::new_pinned(name, module)?,
         })
     }
 }
