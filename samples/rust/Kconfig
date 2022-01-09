@@ -110,4 +110,14 @@ config SAMPLE_RUST_RANDOM
 
 	  If unsure, say N.
 
+config SAMPLE_RUST_PLATFORM
+	tristate "Platform device driver"
+	help
+	  This option builds the Rust platform device driver sample.
+
+	  To compile this as a module, choose M here:
+	  the module will be called rust_platform.
+
+	  If unsure, say N.
+
 endif # SAMPLES_RUST
