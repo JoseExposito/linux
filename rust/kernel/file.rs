@@ -127,12 +127,6 @@ impl File {
         unsafe { (*self.ptr).f_pos as u64 }
     }
 
-    /// Returns whether the file is in blocking mode.
-    pub fn is_blocking(&self) -> bool {
-        // SAFETY: `File::ptr` is guaranteed to be valid by the type invariants.
-        unsafe { (*self.ptr).f_flags & bindings::O_NONBLOCK == 0 }
-    }
-
     /// Returns the credentials of the task that originally opened the file.
     pub fn cred(&self) -> CredentialRef<'_> {
         // SAFETY: `File::ptr` is guaranteed to be valid by the type invariants.
