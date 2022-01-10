@@ -340,8 +340,8 @@ $(objtree)/rust/kernel.o: $(srctree)/rust/kernel/lib.rs $(objtree)/rust/alloc.o 
 # Targets that need to expand twice
 .SECONDEXPANSION:
 $(objtree)/rust/core.o: private skip_clippy = 1
-$(objtree)/rust/core.o: private skip_flags = -Dunreachable_pub
-$(objtree)/rust/core.o: private rustc_target_flags = $(core-cfgs)
+$(objtree)/rust/core.o: private skip_flags = -Dunreachable_pub --edition=2021
+$(objtree)/rust/core.o: private rustc_target_flags = $(core-cfgs) --edition=2018
 $(objtree)/rust/core.o: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
 	$(call if_changed_dep,rustc_library)
 
