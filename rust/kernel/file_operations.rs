@@ -4,11 +4,6 @@
 //!
 //! C header: [`include/linux/fs.h`](../../../../include/linux/fs.h)
 
-use core::convert::{TryFrom, TryInto};
-use core::{marker, mem, ptr};
-
-use alloc::boxed::Box;
-
 use crate::{
     bindings, c_types,
     error::{from_kernel_result, Error, Result},
@@ -19,6 +14,8 @@ use crate::{
     types::PointerWrapper,
     user_ptr::{UserSlicePtr, UserSlicePtrReader, UserSlicePtrWriter},
 };
+use core::convert::{TryFrom, TryInto};
+use core::{marker, mem, ptr};
 
 /// Wraps the kernel's `struct poll_table_struct`.
 ///
@@ -589,12 +586,12 @@ pub trait FileOpenAdapter<T: Sync> {
 /// File descriptors may be used from multiple threads/processes concurrently, so your type must be
 /// [`Sync`]. It must also be [`Send`] because [`FileOperations::release`] will be called from the
 /// thread that decrements that associated file's refcount to zero.
-pub trait FileOperations: Send + Sync + Sized + 'static {
+pub trait FileOperations {
     /// The methods to use to populate [`struct file_operations`].
     const TO_USE: ToUse;
 
     /// The pointer type that will be used to hold ourselves.
-    type Wrapper: PointerWrapper = Box<Self>;
+    type Wrapper: PointerWrapper + Send + Sync = ();
 
     /// The type of the context data passed to [`FileOperations::open`].
     type OpenData: Sync = ();
