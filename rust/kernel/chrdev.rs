@@ -134,7 +134,9 @@ impl<const N: usize> Registration<{ N }> {
     /// Registers a character device.
     ///
     /// You may call this once per device type, up to `N` times.
-    pub fn register<T: file_operations::FileOpener<()>>(self: Pin<&mut Self>) -> Result {
+    pub fn register<T: file_operations::FileOperations<OpenData = ()>>(
+        self: Pin<&mut Self>,
+    ) -> Result {
         // SAFETY: We must ensure that we never move out of `this`.
         let this = unsafe { self.get_unchecked_mut() };
         if this.inner.is_none() {
@@ -177,13 +179,8 @@ impl<const N: usize> Registration<{ N }> {
     }
 }
 
-impl<const N: usize> file_operations::FileOpenAdapter for Registration<{ N }> {
-    type Arg = ();
-
-    unsafe fn convert(
-        _inode: *mut bindings::inode,
-        _file: *mut bindings::file,
-    ) -> *const Self::Arg {
+impl<const N: usize> file_operations::FileOpenAdapter<()> for Registration<{ N }> {
+    unsafe fn convert(_inode: *mut bindings::inode, _file: *mut bindings::file) -> *const () {
         // TODO: Update the SAFETY comment on the call to `FileOperationsVTable::build` above once
         // this is updated to retrieve state.
         &()

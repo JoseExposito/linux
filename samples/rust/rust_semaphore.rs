@@ -20,7 +20,7 @@ use core::sync::atomic::{AtomicU64, Ordering};
 use kernel::{
     condvar_init, declare_file_operations,
     file::File,
-    file_operations::{FileOpener, FileOperations, IoctlCommand, IoctlHandler},
+    file_operations::{FileOperations, IoctlCommand, IoctlHandler},
     io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev::Registration,
     mutex_init,
@@ -65,17 +65,17 @@ impl FileState {
     }
 }
 
-impl FileOpener<Ref<Semaphore>> for FileState {
+impl FileOperations for FileState {
+    type OpenData = Ref<Semaphore>;
+
+    declare_file_operations!(read, write, ioctl);
+
     fn open(shared: &Ref<Semaphore>, _file: &File) -> Result<Box<Self>> {
         Ok(Box::try_new(Self {
             read_count: AtomicU64::new(0),
             shared: shared.clone(),
         })?)
     }
-}
-
-impl FileOperations for FileState {
-    declare_file_operations!(read, write, ioctl);
 
     fn read(this: &Self, _: &File, data: &mut impl IoBufferWriter, offset: u64) -> Result<usize> {
         if data.is_empty() || offset > 0 {
@@ -106,7 +106,7 @@ impl FileOperations for FileState {
 }
 
 struct RustSemaphore {
-    _dev: Pin<Box<Registration<Ref<Semaphore>>>>,
+    _dev: Pin<Box<Registration<FileState>>>,
 }
 
 impl KernelModule for RustSemaphore {
@@ -135,7 +135,7 @@ impl KernelModule for RustSemaphore {
         mutex_init!(pinned, "Semaphore::inner");
 
         Ok(Self {
-            _dev: Registration::new_pinned::<FileState>(name, None, sema.into())?,
+            _dev: Registration::new_pinned(name, None, sema.into())?,
         })
     }
 }

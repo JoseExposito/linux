@@ -8,7 +8,7 @@
 use kernel::prelude::*;
 use kernel::{
     file::File,
-    file_operations::{FileOpener, FileOperations},
+    file_operations::FileOperations,
     io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev,
     sync::{CondVar, Mutex, Ref, RefBorrow, UniqueRef},
@@ -55,17 +55,15 @@ impl SharedState {
 }
 
 struct Token;
+impl FileOperations for Token {
+    type Wrapper = Ref<SharedState>;
+    type OpenData = Ref<SharedState>;
 
-impl FileOpener<Ref<SharedState>> for Token {
+    kernel::declare_file_operations!(read, write);
+
     fn open(shared: &Ref<SharedState>, _file: &File) -> Result<Self::Wrapper> {
         Ok(shared.clone())
     }
-}
-
-impl FileOperations for Token {
-    type Wrapper = Ref<SharedState>;
-
-    kernel::declare_file_operations!(read, write);
 
     fn read(
         shared: RefBorrow<'_, SharedState>,
@@ -127,7 +125,7 @@ impl FileOperations for Token {
 }
 
 struct RustMiscdev {
-    _dev: Pin<Box<miscdev::Registration<Ref<SharedState>>>>,
+    _dev: Pin<Box<miscdev::Registration<Token>>>,
 }
 
 impl KernelModule for RustMiscdev {
@@ -137,7 +135,7 @@ impl KernelModule for RustMiscdev {
         let state = SharedState::try_new()?;
 
         Ok(RustMiscdev {
-            _dev: miscdev::Registration::new_pinned::<Token>(name, None, state)?,
+            _dev: miscdev::Registration::new_pinned(name, None, state)?,
         })
     }
 }

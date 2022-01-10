@@ -5,7 +5,7 @@ use kernel::{
     bindings, c_types,
     cred::Credential,
     file::File,
-    file_operations::{FileOpener, FileOperations, IoctlCommand, IoctlHandler, PollTable},
+    file_operations::{FileOperations, IoctlCommand, IoctlHandler, PollTable},
     io_buffer::{IoBufferReader, IoBufferWriter},
     linked_list::List,
     pages::Pages,
@@ -806,16 +806,15 @@ impl IoctlHandler for Process {
     }
 }
 
-impl FileOpener<Ref<Context>> for Process {
+impl FileOperations for Process {
+    type Wrapper = Ref<Self>;
+    type OpenData = Ref<Context>;
+
+    kernel::declare_file_operations!(ioctl, compat_ioctl, mmap, poll);
+
     fn open(ctx: &Ref<Context>, file: &File) -> Result<Self::Wrapper> {
         Self::new(ctx.clone(), file.cred().clone())
     }
-}
-
-impl FileOperations for Process {
-    type Wrapper = Ref<Self>;
-
-    kernel::declare_file_operations!(ioctl, compat_ioctl, mmap, poll);
 
     fn release(obj: Self::Wrapper, _file: &File) {
         // Mark this process as dead. We'll do the same for the threads later.

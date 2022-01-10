@@ -18,11 +18,14 @@ module! {
     license: b"GPL v2",
 }
 
-#[derive(Default)]
 struct RngDevice;
 
 impl FileOperations for RngDevice {
     kernel::declare_file_operations!(read);
+
+    fn open(_open_data: &(), _file: &File) -> Result<Self::Wrapper> {
+        Ok(Box::try_new(RngDevice)?)
+    }
 
     fn read(_: &Self, _: &File, data: &mut impl IoBufferWriter, offset: u64) -> Result<usize> {
         // Succeed if the caller doesn't provide a buffer or if not at the start.
@@ -38,12 +41,11 @@ impl FileOperations for RngDevice {
 struct RngDriver;
 
 impl PlatformDriver for RngDriver {
-    type DrvData = Pin<Box<miscdev::Registration<()>>>;
+    type DrvData = Pin<Box<miscdev::Registration<RngDevice>>>;
 
     fn probe(device_id: i32) -> Result<Self::DrvData> {
         pr_info!("probing discovered hwrng with id {}\n", device_id);
-        let drv_data =
-            miscdev::Registration::new_pinned::<RngDevice>(c_str!("rust_hwrng"), None, ())?;
+        let drv_data = miscdev::Registration::new_pinned(c_str!("rust_hwrng"), None, ())?;
         Ok(drv_data)
     }
 

@@ -15,11 +15,14 @@ use kernel::{
     prelude::*,
 };
 
-#[derive(Default)]
 struct RandomFile;
 
 impl FileOperations for RandomFile {
     kernel::declare_file_operations!(read, write, read_iter, write_iter);
+
+    fn open(_open_data: &(), _file: &File) -> Result<Self::Wrapper> {
+        Ok(Box::try_new(RandomFile)?)
+    }
 
     fn read(_this: &Self, file: &File, buf: &mut impl IoBufferWriter, _: u64) -> Result<usize> {
         let total_len = buf.len();
