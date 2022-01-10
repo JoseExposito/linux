@@ -40,6 +40,7 @@ pub struct Mutex<T: ?Sized> {
 }
 
 // SAFETY: `Mutex` can be transferred across thread boundaries iff the data it protects can.
+#[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl<T: ?Sized + Send> Send for Mutex<T> {}
 
 // SAFETY: `Mutex` serialises the interior mutability it provides, so it is `Sync` as long as the

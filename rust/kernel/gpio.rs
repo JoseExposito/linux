@@ -218,6 +218,7 @@ unsafe impl<T: Chip> Sync for Registration<T> {}
 // SAFETY: Registration with and unregistration from the gpio subsystem can happen from any thread.
 // Additionally, `T::Data` (which is dropped during unregistration) is `Send`, so it is ok to move
 // `Registration` to different threads.
+#[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl<T: Chip> Send for Registration<T> {}
 
 impl<T: Chip> Default for Registration<T> {
@@ -399,6 +400,7 @@ mod irqchip {
     // SAFETY: Registration with and unregistration from the gpio subsystem (including irq chips for
     // them) can happen from any thread. Additionally, `T::Data` (which is dropped during
     // unregistration) is `Send`, so it is ok to move `Registration` to different threads.
+    #[allow(clippy::non_send_fields_in_send_ty)]
     unsafe impl<T: ChipWithIrqChip> Send for RegistrationWithIrqChip<T> where T::Data: Send {}
 
     struct FlowHandler<T: ChipWithIrqChip>(PhantomData<T>);
