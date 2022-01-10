@@ -11,7 +11,6 @@ use core::{
     mem::ManuallyDrop,
     ops::{Deref, DerefMut},
     pin::Pin,
-    ptr::drop_in_place,
 };
 
 /// The state within a `RevocableMutex` that is protected by a mutex.
@@ -138,10 +137,11 @@ impl<T: ?Sized> RevocableMutex<T> {
             return;
         }
 
-        // SAFETY: We know `inner.data` is valid because `is_available` is set to true. We'll drop
-        // it here and set it to false so it isn't dropped again.
-        unsafe { drop_in_place(&mut inner.data) };
         inner.is_available = false;
+
+        // SAFETY: We know `inner.data` is valid because `is_available` was true. We'll drop it
+        // here, and given that we set `is_available` to false above, it won't be dropped again.
+        unsafe { ManuallyDrop::drop(&mut inner.data) };
     }
 }
 
