@@ -43,7 +43,7 @@ Welcome to my fork of the Linux kernel.
 | [patch-coverity-1493352](https://github.com/JoseExposito/linux/tree/patch-coverity-1493352) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1493352  | 🔀 |
 | [patch-coverity-1493934](https://github.com/JoseExposito/linux/tree/patch-coverity-1493934) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1493934  | 🔀 |
 | [patch-coverity-1494000](https://github.com/JoseExposito/linux/tree/coverity-1494000) | [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | Coverity #1494000  | ⏳ |
-| [patch-coverity-1493909](https://github.com/JoseExposito/linux/tree/patch-coverity-1493909) | [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | Coverity #1493909  | ⏳ |
+| [patch-coverity-1493909](https://github.com/JoseExposito/linux/tree/patch-coverity-1493909) | [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | Coverity #1493909  | 🔀 |
 
 🔨 Under development &nbsp;|&nbsp; ⏳ Waiting for review &nbsp;|&nbsp; 🔀 Merged upstream
 
