@@ -20,6 +20,7 @@
     const_mut_refs,
     doc_cfg,
     generic_associated_types,
+    maybe_uninit_extra,
     ptr_metadata,
     receiver_trait,
     coerce_unsized,

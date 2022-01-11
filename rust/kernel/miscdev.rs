@@ -12,9 +12,13 @@ use crate::file_operations::{FileOpenAdapter, FileOpener, FileOperationsVtable};
 use crate::{str::CStr, KernelModule, ThisModule};
 use alloc::boxed::Box;
 use core::marker::{PhantomData, PhantomPinned};
-use core::pin::Pin;
+use core::{mem::MaybeUninit, pin::Pin};
 
 /// A registration of a miscellaneous device.
+///
+/// # Invariants
+///
+/// `Context` is always initialised when `registered` is `true`, and not initialised otherwise.
 pub struct Registration<T: Sync = ()> {
     registered: bool,
     mdev: bindings::miscdevice,
@@ -22,19 +26,20 @@ pub struct Registration<T: Sync = ()> {
 
     /// Context initialised on construction and made available to all file instances on
     /// [`FileOpener::open`].
-    pub context: T,
+    open_data: MaybeUninit<T>,
 }
 
 impl<T: Sync> Registration<T> {
     /// Creates a new [`Registration`] but does not register it yet.
     ///
     /// It is allowed to move.
-    pub fn new(context: T) -> Self {
+    pub fn new() -> Self {
+        // INVARIANT: `registered` is `false` and `open_data` is not initialised.
         Self {
             registered: false,
             mdev: bindings::miscdevice::default(),
             _pin: PhantomPinned,
-            context,
+            open_data: MaybeUninit::uninit(),
         }
     }
 
@@ -44,10 +49,10 @@ impl<T: Sync> Registration<T> {
     pub fn new_pinned<F: FileOpener<T>>(
         name: &'static CStr,
         minor: Option<i32>,
-        context: T,
+        open_data: T,
     ) -> Result<Pin<Box<Self>>> {
-        let mut r = Pin::from(Box::try_new(Self::new(context))?);
-        r.as_mut().register::<F>(name, minor)?;
+        let mut r = Pin::from(Box::try_new(Self::new())?);
+        r.as_mut().register::<F>(name, minor, open_data)?;
         Ok(r)
     }
 
@@ -59,6 +64,7 @@ impl<T: Sync> Registration<T> {
         self: Pin<&mut Self>,
         name: &'static CStr,
         minor: Option<i32>,
+        open_data: T,
     ) -> Result {
         // SAFETY: We must ensure that we never move out of `this`.
         let this = unsafe { self.get_unchecked_mut() };
@@ -72,12 +78,29 @@ impl<T: Sync> Registration<T> {
         this.mdev.name = name.as_char_ptr();
         this.mdev.minor = minor.unwrap_or(bindings::MISC_DYNAMIC_MINOR as i32);
 
+        // We write to `open_data` here because as soon as `misc_register` succeeds, the file can be
+        // opened, so we need `open_data` configured ahead of time.
+        //
+        // INVARIANT: `registered` is set to `true`, but `open_data` is also initialised.
+        this.registered = true;
+        this.open_data.write(open_data);
+
         let ret = unsafe { bindings::misc_register(&mut this.mdev) };
         if ret < 0 {
+            // INVARIANT: `registered` is set back to `false` and the `open_data` is destructued.
+            this.registered = false;
+            // SAFETY: `open_data` was initialised a few lines above.
+            unsafe { this.open_data.assume_init_drop() };
             return Err(Error::from_kernel_errno(ret));
         }
-        this.registered = true;
+
         Ok(())
+    }
+}
+
+impl<T: Sync> Default for Registration<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -87,16 +110,19 @@ impl<T: Sync> FileOpenAdapter for Registration<T> {
     unsafe fn convert(_inode: *mut bindings::inode, file: *mut bindings::file) -> *const Self::Arg {
         // SAFETY: the caller must guarantee that `file` is valid.
         let reg = crate::container_of!(unsafe { (*file).private_data }, Self, mdev);
-        unsafe { &(*reg).context }
+
+        // SAFETY: This function is only called while the misc device is still registered, so the
+        // registration must be valid. Additionally, the type invariants guarantee that while the
+        // miscdev is registered, `open_data` is initialised.
+        unsafe { (*reg).open_data.as_ptr() }
     }
 }
 
 // SAFETY: The only method is `register()`, which requires a (pinned) mutable `Registration`, so it
-// is safe to pass `&Registration` to multiple threads because it offers no interior mutability,
-// except maybe through `Registration::context`, but it is itself `Sync`.
+// is safe to pass `&Registration` to multiple threads because it offers no interior mutability.
 unsafe impl<T: Sync> Sync for Registration<T> {}
 
-// SAFETY: All functions work from any thread. So as long as the `Registration::context` is
+// SAFETY: All functions work from any thread. So as long as the `Registration::open_data` is
 // `Send`, so is `Registration<T>`. `T` needs to be `Sync` because it's a requirement of
 // `Registration<T>`.
 unsafe impl<T: Send + Sync> Send for Registration<T> {}
@@ -105,7 +131,13 @@ impl<T: Sync> Drop for Registration<T> {
     /// Removes the registration from the kernel if it has completed successfully before.
     fn drop(&mut self) {
         if self.registered {
-            unsafe { bindings::misc_deregister(&mut self.mdev) }
+            // SAFETY: `registered` being `true` indicates that a previous call to  `misc_register`
+            // succeeded.
+            unsafe { bindings::misc_deregister(&mut self.mdev) };
+
+            // SAFETY: The type invariant guarantees that `open_data` is initialised when
+            // `registered` is `true`.
+            unsafe { self.open_data.assume_init_drop() };
         }
     }
 }
