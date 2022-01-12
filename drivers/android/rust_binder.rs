@@ -102,13 +102,13 @@ const fn ptr_align(value: usize) -> usize {
 unsafe impl Sync for BinderModule {}
 
 struct BinderModule {
-    _reg: Pin<Box<Registration<Ref<Context>>>>,
+    _reg: Pin<Box<Registration<process::Process>>>,
 }
 
 impl KernelModule for BinderModule {
     fn init(name: &'static CStr, _module: &'static kernel::ThisModule) -> Result<Self> {
         let ctx = Context::new()?;
-        let reg = Registration::new_pinned::<process::Process>(name, None, ctx)?;
+        let reg = Registration::new_pinned(name, None, ctx)?;
         Ok(Self { _reg: reg })
     }
 }

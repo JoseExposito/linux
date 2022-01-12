@@ -8,10 +8,10 @@
 
 use crate::bindings;
 use crate::error::{Error, Result};
-use crate::file_operations::{FileOpenAdapter, FileOpener, FileOperationsVtable};
+use crate::file_operations::{FileOpenAdapter, FileOperations, FileOperationsVtable};
 use crate::{str::CStr, KernelModule, ThisModule};
 use alloc::boxed::Box;
-use core::marker::{PhantomData, PhantomPinned};
+use core::marker::PhantomPinned;
 use core::{mem::MaybeUninit, pin::Pin};
 
 /// A registration of a miscellaneous device.
@@ -19,17 +19,17 @@ use core::{mem::MaybeUninit, pin::Pin};
 /// # Invariants
 ///
 /// `Context` is always initialised when `registered` is `true`, and not initialised otherwise.
-pub struct Registration<T: Sync = ()> {
+pub struct Registration<T: FileOperations> {
     registered: bool,
     mdev: bindings::miscdevice,
     _pin: PhantomPinned,
 
     /// Context initialised on construction and made available to all file instances on
-    /// [`FileOpener::open`].
-    open_data: MaybeUninit<T>,
+    /// [`FileOperations::open`].
+    open_data: MaybeUninit<T::OpenData>,
 }
 
-impl<T: Sync> Registration<T> {
+impl<T: FileOperations> Registration<T> {
     /// Creates a new [`Registration`] but does not register it yet.
     ///
     /// It is allowed to move.
@@ -46,13 +46,13 @@ impl<T: Sync> Registration<T> {
     /// Registers a miscellaneous device.
     ///
     /// Returns a pinned heap-allocated representation of the registration.
-    pub fn new_pinned<F: FileOpener<T>>(
+    pub fn new_pinned(
         name: &'static CStr,
         minor: Option<i32>,
-        open_data: T,
+        open_data: T::OpenData,
     ) -> Result<Pin<Box<Self>>> {
         let mut r = Pin::from(Box::try_new(Self::new())?);
-        r.as_mut().register::<F>(name, minor, open_data)?;
+        r.as_mut().register(name, minor, open_data)?;
         Ok(r)
     }
 
@@ -60,11 +60,11 @@ impl<T: Sync> Registration<T> {
     ///
     /// It must be pinned because the memory block that represents the registration is
     /// self-referential. If a minor is not given, the kernel allocates a new one if possible.
-    pub fn register<F: FileOpener<T>>(
+    pub fn register(
         self: Pin<&mut Self>,
         name: &'static CStr,
         minor: Option<i32>,
-        open_data: T,
+        open_data: T::OpenData,
     ) -> Result {
         // SAFETY: We must ensure that we never move out of `this`.
         let this = unsafe { self.get_unchecked_mut() };
@@ -74,7 +74,7 @@ impl<T: Sync> Registration<T> {
         }
 
         // SAFETY: The adapter is compatible with `misc_register`.
-        this.mdev.fops = unsafe { FileOperationsVtable::<Self, F>::build() };
+        this.mdev.fops = unsafe { FileOperationsVtable::<Self, T>::build() };
         this.mdev.name = name.as_char_ptr();
         this.mdev.minor = minor.unwrap_or(bindings::MISC_DYNAMIC_MINOR as i32);
 
@@ -98,16 +98,17 @@ impl<T: Sync> Registration<T> {
     }
 }
 
-impl<T: Sync> Default for Registration<T> {
+impl<T: FileOperations> Default for Registration<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T: Sync> FileOpenAdapter for Registration<T> {
-    type Arg = T;
-
-    unsafe fn convert(_inode: *mut bindings::inode, file: *mut bindings::file) -> *const Self::Arg {
+impl<T: FileOperations> FileOpenAdapter<T::OpenData> for Registration<T> {
+    unsafe fn convert(
+        _inode: *mut bindings::inode,
+        file: *mut bindings::file,
+    ) -> *const T::OpenData {
         // SAFETY: the caller must guarantee that `file` is valid.
         let reg = crate::container_of!(unsafe { (*file).private_data }, Self, mdev);
 
@@ -120,14 +121,13 @@ impl<T: Sync> FileOpenAdapter for Registration<T> {
 
 // SAFETY: The only method is `register()`, which requires a (pinned) mutable `Registration`, so it
 // is safe to pass `&Registration` to multiple threads because it offers no interior mutability.
-unsafe impl<T: Sync> Sync for Registration<T> {}
+unsafe impl<T: FileOperations> Sync for Registration<T> {}
 
 // SAFETY: All functions work from any thread. So as long as the `Registration::open_data` is
-// `Send`, so is `Registration<T>`. `T` needs to be `Sync` because it's a requirement of
-// `Registration<T>`.
-unsafe impl<T: Send + Sync> Send for Registration<T> {}
+// `Send`, so is `Registration<T>`.
+unsafe impl<T: FileOperations> Send for Registration<T> where T::OpenData: Send {}
 
-impl<T: Sync> Drop for Registration<T> {
+impl<T: FileOperations> Drop for Registration<T> {
     /// Removes the registration from the kernel if it has completed successfully before.
     fn drop(&mut self) {
         if self.registered {
@@ -142,17 +142,15 @@ impl<T: Sync> Drop for Registration<T> {
     }
 }
 
-/// Kernel module that exposes a single miscdev device implemented by `F`.
-pub struct Module<F: FileOpener<()>> {
-    _dev: Pin<Box<Registration>>,
-    _p: PhantomData<F>,
+/// Kernel module that exposes a single miscdev device implemented by `T`.
+pub struct Module<T: FileOperations<OpenData = ()>> {
+    _dev: Pin<Box<Registration<T>>>,
 }
 
-impl<F: FileOpener<()>> KernelModule for Module<F> {
+impl<T: FileOperations<OpenData = ()>> KernelModule for Module<T> {
     fn init(name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         Ok(Self {
-            _p: PhantomData,
-            _dev: Registration::new_pinned::<F>(name, None, ())?,
+            _dev: Registration::new_pinned(name, None, ())?,
         })
     }
 }

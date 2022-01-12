@@ -6,7 +6,7 @@
 #![feature(allocator_api, global_asm)]
 
 use kernel::prelude::*;
-use kernel::{chrdev, file_operations::FileOperations};
+use kernel::{chrdev, file, file_operations::FileOperations};
 
 module! {
     type: RustChrdev,
@@ -16,11 +16,14 @@ module! {
     license: b"GPL v2",
 }
 
-#[derive(Default)]
 struct RustFile;
 
 impl FileOperations for RustFile {
     kernel::declare_file_operations!();
+
+    fn open(_shared: &(), _file: &file::File) -> Result<Self::Wrapper> {
+        Ok(Box::try_new(RustFile)?)
+    }
 }
 
 struct RustChrdev {

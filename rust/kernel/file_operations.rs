@@ -86,7 +86,7 @@ pub enum SeekFrom {
 ///
 /// The returned value of `A::convert` must be a valid non-null pointer and
 /// `T:open` must return a valid non-null pointer on an `Ok` result.
-unsafe extern "C" fn open_callback<A: FileOpenAdapter, T: FileOpener<A::Arg>>(
+unsafe extern "C" fn open_callback<A: FileOpenAdapter<T::OpenData>, T: FileOperations>(
     inode: *mut bindings::inode,
     file: *mut bindings::file,
 ) -> c_types::c_int {
@@ -312,7 +312,7 @@ unsafe extern "C" fn poll_callback<T: FileOperations>(
 
 pub(crate) struct FileOperationsVtable<A, T>(marker::PhantomData<A>, marker::PhantomData<T>);
 
-impl<A: FileOpenAdapter, T: FileOpener<A::Arg>> FileOperationsVtable<A, T> {
+impl<A: FileOpenAdapter<T::OpenData>, T: FileOperations> FileOperationsVtable<A, T> {
     const VTABLE: bindings::file_operations = bindings::file_operations {
         open: Some(open_callback::<A, T>),
         release: Some(release_callback::<T>),
@@ -568,10 +568,7 @@ impl IoctlCommand {
 /// Trait for extracting file open arguments from kernel data structures.
 ///
 /// This is meant to be implemented by registration managers.
-pub trait FileOpenAdapter {
-    /// The type of argument this adapter extracts.
-    type Arg;
-
+pub trait FileOpenAdapter<T: Sync> {
     /// Converts untyped data stored in [`struct inode`] and [`struct file`] (when [`struct
     /// file_operations::open`] is called) into the given type. For example, for `miscdev`
     /// devices, a pointer to the registered [`struct miscdev`] is stored in [`struct
@@ -582,27 +579,7 @@ pub trait FileOpenAdapter {
     /// This function must be called only when [`struct file_operations::open`] is being called for
     /// a file that was registered by the implementer. The returned pointer must be valid and
     /// not-null.
-    unsafe fn convert(_inode: *mut bindings::inode, _file: *mut bindings::file)
-        -> *const Self::Arg;
-}
-
-/// Trait for implementers of kernel files.
-///
-/// In addition to the methods in [`FileOperations`], implementers must also provide
-/// [`FileOpener::open`] with a customised argument. This allows a single implementation of
-/// [`FileOperations`] to be used for different types of registrations, for example, `miscdev` and
-/// `chrdev`.
-pub trait FileOpener<T: ?Sized>: FileOperations {
-    /// Creates a new instance of this file.
-    ///
-    /// Corresponds to the `open` function pointer in `struct file_operations`.
-    fn open(context: &T, file: &File) -> Result<Self::Wrapper>;
-}
-
-impl<T: FileOperations<Wrapper = Box<T>> + Default> FileOpener<()> for T {
-    fn open(_: &(), _file: &File) -> Result<Self::Wrapper> {
-        Ok(Box::try_new(T::default())?)
-    }
+    unsafe fn convert(_inode: *mut bindings::inode, _file: *mut bindings::file) -> *const T;
 }
 
 /// Corresponds to the kernel's `struct file_operations`.
@@ -618,6 +595,14 @@ pub trait FileOperations: Send + Sync + Sized + 'static {
 
     /// The pointer type that will be used to hold ourselves.
     type Wrapper: PointerWrapper = Box<Self>;
+
+    /// The type of the context data passed to [`FileOperations::open`].
+    type OpenData: Sync = ();
+
+    /// Creates a new instance of this file.
+    ///
+    /// Corresponds to the `open` function pointer in `struct file_operations`.
+    fn open(context: &Self::OpenData, file: &File) -> Result<Self::Wrapper>;
 
     /// Cleans up after the last reference to the file goes away.
     ///
