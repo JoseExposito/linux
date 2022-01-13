@@ -18,6 +18,10 @@
     concat_idents,
     const_fn_trait_bound,
     const_mut_refs,
+    const_precise_live_drops, // TODO: Remove once we go to 1.58.x.
+    const_ptr_offset_from,
+    const_refs_to_cell,
+    const_trait_impl,
     doc_cfg,
     generic_associated_types,
     maybe_uninit_extra,
