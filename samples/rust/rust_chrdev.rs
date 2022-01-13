@@ -21,8 +21,8 @@ struct RustFile;
 impl FileOperations for RustFile {
     kernel::declare_file_operations!();
 
-    fn open(_shared: &(), _file: &file::File) -> Result<Self::Wrapper> {
-        Ok(Box::try_new(RustFile)?)
+    fn open(_shared: &(), _file: &file::File) -> Result {
+        Ok(())
     }
 }
 

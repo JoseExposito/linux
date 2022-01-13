@@ -23,11 +23,11 @@ struct RngDevice;
 impl FileOperations for RngDevice {
     kernel::declare_file_operations!(read);
 
-    fn open(_open_data: &(), _file: &File) -> Result<Self::Wrapper> {
-        Ok(Box::try_new(RngDevice)?)
+    fn open(_open_data: &(), _file: &File) -> Result {
+        Ok(())
     }
 
-    fn read(_: &Self, _: &File, data: &mut impl IoBufferWriter, offset: u64) -> Result<usize> {
+    fn read(_: (), _: &File, data: &mut impl IoBufferWriter, offset: u64) -> Result<usize> {
         // Succeed if the caller doesn't provide a buffer or if not at the start.
         if data.is_empty() || offset != 0 {
             return Ok(0);
