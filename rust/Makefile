@@ -188,9 +188,9 @@ else
 # bindgen relies on libclang to parse C. Ideally, bindgen would support a GCC
 # plugin backend and/or the Clang driver would be perfectly compatible with GCC.
 #
-# For the moment, here we are tweaking the flags on the fly. Some config
-# options may not work (e.g. `GCC_PLUGIN_RANDSTRUCT` if we end up using one
-# of those structs).
+# For the moment, here we are tweaking the flags on the fly. This is a hack,
+# and some kernel configurations may not work (e.g. `GCC_PLUGIN_RANDSTRUCT`
+# if we end up using one of those structs).
 bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-mskip-rax-setup -mgeneral-regs-only -msign-return-address=% \
 	-mindirect-branch=thunk-extern -mindirect-branch-register -mrecord-mcount \
