@@ -49,7 +49,10 @@ version later on requires re-adding the component.
 Otherwise, if a standalone installer is used, the Rust repository may be cloned
 into the installation folder of the toolchain::
 
-	git clone --recurse-submodules https://github.com/rust-lang/rust $(rustc --print sysroot)/lib/rustlib/src/rust
+	git clone --recurse-submodules \
+		--branch $(scripts/min-tool-version.sh rustc) \
+		https://github.com/rust-lang/rust \
+		$(rustc --print sysroot)/lib/rustlib/src/rust
 
 In this case, upgrading the Rust compiler version later on requires manually
 updating this clone.
