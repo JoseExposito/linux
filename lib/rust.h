@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-#ifndef __LINUX_RUST_H
-#define __LINUX_RUST_H
+#ifndef _LIB_RUST_H
+#define _LIB_RUST_H
 
 #ifdef CONFIG_RUST
 char *rust_fmt_argument(char* buf, char* end, void *ptr);
@@ -11,4 +11,4 @@ static inline char *rust_fmt_argument(char* buf, char* end, void *ptr)
 }
 #endif
 
-#endif /* __LINUX_RUST_H */
+#endif /* _LIB_RUST_H */
