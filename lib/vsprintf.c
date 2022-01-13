@@ -41,7 +41,6 @@
 #include <linux/siphash.h>
 #include <linux/compiler.h>
 #include <linux/property.h>
-#include <linux/rust.h>
 #ifdef CONFIG_BLOCK
 #include <linux/blkdev.h>
 #endif
@@ -53,6 +52,7 @@
 
 #include <linux/string_helpers.h>
 #include "kstrtox.h"
+#include "rust.h"
 
 static noinline unsigned long long simple_strntoull(const char *startp, size_t max_chars, char **endp, unsigned int base)
 {
