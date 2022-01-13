@@ -60,6 +60,7 @@ pub struct SeqLock<L: CreatableLock + ?Sized> {
 
 // SAFETY: `SeqLock` can be transferred across thread boundaries iff the data it protects and the
 // underlying lock can.
+#[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl<L: CreatableLock + Send> Send for SeqLock<L> where L::Inner: Send {}
 
 // SAFETY: `SeqLock` allows concurrent access to the data it protects by both readers and writers,
