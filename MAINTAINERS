@@ -16591,6 +16591,7 @@ F:	rust/
 F:	samples/rust/
 F:	Documentation/rust/
 F:	lib/rust.h
+F:	scripts/*rust*
 K:	\b(?i:rust)\b
 
 RXRPC SOCKETS (AF_RXRPC)

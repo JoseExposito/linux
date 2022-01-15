@@ -60,14 +60,16 @@ config LLD_VERSION
 	default $(ld-version) if LD_IS_LLD
 	default 0
 
-config HAS_RUST
-	depends on ARM64 || CPU_32v6 || CPU_32v6K || (PPC64 && CPU_LITTLE_ENDIAN) || X86_64 || RISCV
-	def_bool $(success,$(RUSTC) --version)
+config RUST_IS_AVAILABLE
+	def_bool $(success,$(srctree)/scripts/rust-is-available.sh)
+	help
+	  This shows whether a suitable Rust toolchain is available (found).
 
-config RUSTC_VERSION
-	depends on HAS_RUST
-	int
-	default $(shell,$(srctree)/scripts/rust-version.sh $(RUSTC))
+	  Please see Documentation/rust/quick-start.rst for instructions on how
+	  to satify the build requirements of Rust support.
+
+	  In particular, the Makefile target 'rustavailable' is useful to check
+	  why the Rust toolchain is not being detected.
 
 config CC_CAN_LINK
 	bool
@@ -2056,9 +2058,11 @@ config PROFILING
 
 config RUST
 	bool "Rust support"
-	depends on HAS_RUST
+	depends on RUST_IS_AVAILABLE
+	depends on ARM64 || CPU_32v6 || CPU_32v6K || (PPC64 && CPU_LITTLE_ENDIAN) || X86_64 || RISCV
 	depends on !COMPILE_TEST
 	depends on !MODVERSIONS
+	depends on !GCC_PLUGIN_RANDSTRUCT
 	default n
 	help
 	  Enables Rust support in the kernel.
@@ -2072,6 +2076,16 @@ config RUST
 	  See Documentation/rust/ for more information.
 
 	  If unsure, say N.
+
+config RUSTC_VERSION_TEXT
+	depends on RUST
+	string
+	default $(shell,$(RUSTC) --version)
+
+config BINDGEN_VERSION_TEXT
+	depends on RUST
+	string
+	default $(shell,$(BINDGEN) --version)
 
 #
 # Place an empty function call at each tracepoint site. Can be

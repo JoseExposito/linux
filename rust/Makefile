@@ -188,26 +188,24 @@ else
 # bindgen relies on libclang to parse C. Ideally, bindgen would support a GCC
 # plugin backend and/or the Clang driver would be perfectly compatible with GCC.
 #
-# For the moment, here we are tweaking the flags on the fly. Some config
-# options may not work (e.g. `GCC_PLUGIN_RANDSTRUCT` if we end up using one
-# of those structs).
+# For the moment, here we are tweaking the flags on the fly. This is a hack,
+# and some kernel configurations may not work (e.g. `GCC_PLUGIN_RANDSTRUCT`
+# if we end up using one of those structs).
 bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-mskip-rax-setup -mgeneral-regs-only -msign-return-address=% \
 	-mindirect-branch=thunk-extern -mindirect-branch-register -mrecord-mcount \
-	-mabi=lp64 -mstack-protector-guard% -fconserve-stack -falign-jumps=% \
-	-falign-loops=% -femit-struct-debug-baseonly \
-	-fno-ipa-cp-clone -fno-ipa-sra -fno-partial-inlining \
-	-fplugin-arg-arm_ssp_per_task_plugin-% \
+	-mabi=lp64 -mstack-protector-guard% -mtraceback=no \
+	-mno-pointers-to-nested-functions -mno-string -mno-strict-align \
+	-fconserve-stack -falign-jumps=% -falign-loops=% \
+	-femit-struct-debug-baseonly -fno-ipa-cp-clone -fno-ipa-sra \
+	-fno-partial-inlining -fplugin-arg-arm_ssp_per_task_plugin-% \
 	-fno-reorder-blocks -fno-allow-store-data-races -fasan-shadow-offset=% \
 	-Wno-packed-not-aligned -Wno-format-truncation -Wno-format-overflow \
 	-Wno-stringop-truncation -Wno-unused-but-set-variable \
 	-Wno-stringop-overflow -Wno-restrict -Wno-maybe-uninitialized \
 	-Werror=designated-init -Wno-zero-length-bounds -Wimplicit-fallthrough=% \
-	-Wno-alloc-size-larger-than --param=% --param asan-%
-
-# PowerPC
-bindgen_skip_c_flags += -mtraceback=no -mno-pointers-to-nested-functions \
-	-mno-string -mno-strict-align
+	-Wno-alloc-size-larger-than \
+	--param=% --param asan-%
 
 # Derived from `scripts/Makefile.clang`
 BINDGEN_TARGET_arm	:= arm-linux-gnueabi

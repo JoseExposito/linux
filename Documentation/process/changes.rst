@@ -26,17 +26,12 @@ running a Linux kernel.  Also, not all tools are necessary on all
 systems; obviously, if you don't have any PC Card hardware, for example,
 you probably needn't concern yourself with pcmciautils.
 
-Furthermore, note that newer versions of the Rust toolchain may or may not work
-because, for the moment, we depend on some unstable features. Thus, unless you
-know what you are doing, use the exact version listed here. Please see
-:ref:`Documentation/rust/quick-start.rst <rust_quick_start>` for details.
-
 ====================== ===============  ========================================
         Program        Minimal version       Command to check the version
 ====================== ===============  ========================================
 GNU C                  5.1              gcc --version
 Clang/LLVM (optional)  10.0.1           clang --version
-rustc (optional)       1.58.0           rustc --version
+Rust (optional)        1.58.0           rustc --version
 bindgen (optional)     0.56.0           bindgen --version
 GNU make               3.81             make --version
 binutils               2.23             ld -v
@@ -84,6 +79,27 @@ The latest formal release of clang and LLVM utils (according to
 kernels. Older releases aren't guaranteed to work, and we may drop workarounds
 from the kernel that were used to support older versions. Please see additional
 docs on :ref:`Building Linux with Clang/LLVM <kbuild_llvm>`.
+
+Rust (optional)
+---------------
+
+A particular version of the Rust toolchain is required. Newer versions may or
+may not work because the kernel depends on some unstable Rust features, for
+the moment.
+
+Each Rust toolchain comes with several "components", some of which are required
+(like ``rustc``) and some that are optional. The ``rust-src`` component (which
+is optional) needs to be installed to build the kernel. Other components are
+useful for developing.
+
+Please see :ref:`Documentation/rust/quick-start.rst <rust_quick_start>` for
+more information.
+
+bindgen (optional)
+------------------
+
+``bindgen`` is used to generate the Rust bindings to the C side of the kernel.
+It depends on ``libclang``.
 
 Make
 ----
@@ -368,6 +384,16 @@ Clang/LLVM
 ----------
 
 - :ref:`Getting LLVM <getting_llvm>`.
+
+Rust
+----
+
+- :ref:`Documentation/rust/quick-start.rst <rust_quick_start>`.
+
+bindgen
+-------
+
+- :ref:`Documentation/rust/quick-start.rst <rust_quick_start>`.
 
 Make
 ----
