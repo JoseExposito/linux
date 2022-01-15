@@ -111,3 +111,41 @@ To learn more about how to write documentation for Rust and extra features,
 please take a look at the ``rustdoc`` `book`_.
 
 .. _book: https://doc.rust-lang.org/rustdoc/how-to-write-documentation.html
+
+
+Naming
+------
+
+Rust kernel code follows the usual Rust naming conventions:
+
+	https://rust-lang.github.io/api-guidelines/naming.html
+
+When existing C concepts (e.g. macros, functions, objects...) are wrapped into
+a Rust abstraction, a name as close as reasonably possible to the C side should
+be used in order to avoid confusion and to improve readability when switching
+back and forth between the C and Rust sides. For instance, macros such as
+``pr_info`` from C are named the same in the Rust side.
+
+Having said that, casing should be adjusted to follow the Rust naming
+conventions, and namespacing introduced by modules and types should not be
+repeated in the item names. For instance, when wrapping constants like:
+
+.. code-block:: c
+
+	#define GPIO_LINE_DIRECTION_IN	0
+	#define GPIO_LINE_DIRECTION_OUT	1
+
+The equivalent in Rust may look like (ignoring documentation):
+
+.. code-block:: rust
+
+	pub mod gpio {
+	    pub enum LineDirection {
+	        In = bindings::GPIO_LINE_DIRECTION_IN as _,
+	        Out = bindings::GPIO_LINE_DIRECTION_OUT as _,
+	    }
+	}
+
+That is, the equivalent of ``GPIO_LINE_DIRECTION_IN`` would be referred to as
+``gpio::LineDirection::In``. In particular, it should not be named
+``gpio::gpio_line_direction::GPIO_LINE_DIRECTION_IN``.
