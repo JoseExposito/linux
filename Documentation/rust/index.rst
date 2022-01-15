@@ -9,8 +9,8 @@ in the kernel, please read the
     :maxdepth: 1
 
     quick-start
-    coding
-    docs
+    general-information
+    coding-guidelines
     arch-support
 
 .. only::  subproject and html

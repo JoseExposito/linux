@@ -93,7 +93,9 @@ is optional) needs to be installed to build the kernel. Other components are
 useful for developing.
 
 Please see :ref:`Documentation/rust/quick-start.rst <rust_quick_start>` for
-more information.
+instructions on how to satify the build requirements of Rust support. In
+particular, the Makefile target 'rustavailable' is useful to check why the Rust
+toolchain may not be detected.
 
 bindgen (optional)
 ------------------
@@ -366,8 +368,9 @@ for details about Sphinx requirements.
 rustdoc
 -------
 
-``rustdoc`` is used to generate Rust documentation. Please see
-:ref:`Documentation/rust/docs.rst <rust_docs>` for more information.
+``rustdoc`` is used to generate the documentation for Rust code. Please see
+:ref:`Documentation/rust/general-information.rst <rust_general_information>`
+for more information.
 
 Getting updated software
 ========================
