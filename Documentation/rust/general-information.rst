@@ -1,43 +1,38 @@
-.. _rust_coding:
+.. _rust_general_information:
 
-Coding
-======
+General Information
+===================
 
-This document describes how to write Rust code in the kernel.
+This document contains useful information to know when working with
+the Rust support in the kernel.
 
 
-Coding style
-------------
+Code documentation
+------------------
 
-The code should be formatted using ``rustfmt``. In this way, a person
-contributing from time to time to the kernel does not need to learn and
-remember one more style guide. More importantly, reviewers and maintainers
-do not need to spend time pointing out style issues anymore, and thus
-less patch roundtrips may be needed to land a change.
+Rust kernel code is documented using ``rustdoc``, its built-in documentation
+generator.
 
-.. note:: Conventions on comments and documentation are not checked by
-  ``rustfmt``. Thus those are still needed to be taken care of: please see
-  :ref:`Documentation/rust/docs.rst <rust_docs>`.
+The generated HTML docs include integrated search, linked items (e.g. types,
+functions, constants), source code, etc. They may be read at (TODO: link when
+in mainline and generated alongside the rest of the documentation):
 
-The default settings of ``rustfmt`` are used. This means the idiomatic Rust
-style is followed. For instance, 4 spaces are used for indentation rather
-than tabs.
+	http://kernel.org/
 
-It is convenient to instruct editors/IDEs to format while typing,
-when saving or at commit time. However, if for some reason reformatting
-the entire kernel Rust sources is needed at some point, the following can be
-run::
+The docs can also be easily generated and read locally. This is quite fast
+(same order as compiling the code itself) and no special tools or environment
+are needed. This has the added advantage that they will be tailored to
+the particular kernel configuration used. To generate them, use the ``rustdoc``
+target with the same invocation used for compilation, e.g.::
 
-	make LLVM=1 rustfmt
+	make LLVM=1 rustdoc
 
-It is also possible to check if everything is formatted (printing a diff
-otherwise), for instance for a CI, with::
+To read the docs locally in your web browser, run e.g.::
 
-	make LLVM=1 rustfmtcheck
+	xdg-open rust/doc/kernel/index.html
 
-Like ``clang-format`` for the rest of the kernel, ``rustfmt`` works on
-individual files, and does not require a kernel configuration. Sometimes it may
-even work with broken code.
+To learn about how to write the documentation, please see the coding guidelines
+at :ref:`Documentation/rust/coding-guidelines.rst <rust_coding_guidelines>`.
 
 
 Extra lints
@@ -83,9 +78,3 @@ configuration:
 	#[cfg(CONFIG_X="y")]   // Enabled as a built-in (`y`)
 	#[cfg(CONFIG_X="m")]   // Enabled as a module   (`m`)
 	#[cfg(not(CONFIG_X))]  // Disabled
-
-
-Documentation
--------------
-
-Please see :ref:`Documentation/rust/docs.rst <rust_docs>`.

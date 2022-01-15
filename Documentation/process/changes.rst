@@ -368,8 +368,9 @@ for details about Sphinx requirements.
 rustdoc
 -------
 
-``rustdoc`` is used to generate Rust documentation. Please see
-:ref:`Documentation/rust/docs.rst <rust_docs>` for more information.
+``rustdoc`` is used to generate the documentation for Rust code. Please see
+:ref:`Documentation/rust/general-information.rst <rust_general_information>`
+for more information.
 
 Getting updated software
 ========================

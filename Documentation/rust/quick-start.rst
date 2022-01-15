@@ -113,7 +113,7 @@ rustfmt
 
 The ``rustfmt`` tool is used to automatically format all the Rust kernel code,
 including the generated C bindings (for details, please see
-:ref:`Documentation/rust/coding.rst <rust_coding>`).
+:ref:`Documentation/rust/coding-guidelines.rst <rust_coding_guidelines>`).
 
 If ``rustup`` is being used, its ``default`` profile already installs the tool,
 thus nothing needs to be done. If another profile is being used, the component
@@ -129,7 +129,7 @@ clippy
 
 ``clippy`` is a Rust linter. Running it provides extra warnings for Rust code.
 It can be run by passing ``CLIPPY=1`` to ``make`` (for details, please see
-:ref:`Documentation/rust/coding.rst <rust_coding>`).
+:ref:`Documentation/rust/general-information.rst <rust_general_information>`).
 
 If ``rustup`` is being used, its ``default`` profile already installs the tool,
 thus nothing needs to be done. If another profile is being used, the component
@@ -159,7 +159,7 @@ rustdoc
 
 ``rustdoc`` is the documentation tool for Rust. It generates pretty HTML
 documentation for Rust code (for details, please see
-:ref:`Documentation/rust/docs.rst <rust_docs>`).
+:ref:`Documentation/rust/general-information.rst <rust_general_information>`).
 
 ``rustdoc`` is also used to test the examples provided in documented Rust code
 (called doctests or documentation tests). The ``rusttest`` Make target uses

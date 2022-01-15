@@ -1,10 +1,46 @@
-.. _rust_docs:
+.. _rust_coding_guidelines:
 
-Docs
-====
+Coding Guidelines
+=================
 
-This document describes how to make the most out of the kernel documentation
-for Rust.
+This document describes how to write Rust code in the kernel.
+
+
+Style & formatting
+------------------
+
+The code should be formatted using ``rustfmt``. In this way, a person
+contributing from time to time to the kernel does not need to learn and
+remember one more style guide. More importantly, reviewers and maintainers
+do not need to spend time pointing out style issues anymore, and thus
+less patch roundtrips may be needed to land a change.
+
+.. note:: Conventions on comments and documentation are not checked by
+  ``rustfmt``. Thus those are still needed to be taken care of.
+
+The default settings of ``rustfmt`` are used. This means the idiomatic Rust
+style is followed. For instance, 4 spaces are used for indentation rather
+than tabs.
+
+It is convenient to instruct editors/IDEs to format while typing,
+when saving or at commit time. However, if for some reason reformatting
+the entire kernel Rust sources is needed at some point, the following can be
+run::
+
+	make LLVM=1 rustfmt
+
+It is also possible to check if everything is formatted (printing a diff
+otherwise), for instance for a CI, with::
+
+	make LLVM=1 rustfmtcheck
+
+Like ``clang-format`` for the rest of the kernel, ``rustfmt`` works on
+individual files, and does not require a kernel configuration. Sometimes it may
+even work with broken code.
+
+
+Code documentation
+------------------
 
 Rust kernel code is not documented like C kernel code (i.e. via kernel-doc).
 Instead, the usual system for documenting Rust code is used: the ``rustdoc``
@@ -14,33 +50,6 @@ To learn Markdown, there are many guides available out there. For instance,
 the one at:
 
 	https://commonmark.org/help/
-
-
-Reading the docs
-----------------
-
-The generated HTML docs produced by ``rustdoc`` include integrated search,
-linked items (e.g. types, functions, constants), source code, etc.
-
-The generated docs may be read at (TODO: link when in mainline and generated
-alongside the rest of the documentation):
-
-	http://kernel.org/
-
-The docs can also be easily generated and read locally. This is quite fast
-(same order as compiling the code itself) and no special tools or environment
-are needed. This has the added advantage that they will be tailored to
-the particular kernel configuration used. To generate them, use the ``rustdoc``
-target with the same invocation used for compilation, e.g.::
-
-	make LLVM=1 rustdoc
-
-To read the docs locally in your web browser, run e.g.::
-
-	xdg-open rust/doc/kernel/index.html
-
-Writing the docs
-----------------
 
 This is how a well-documented Rust function may look like::
 
