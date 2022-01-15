@@ -2078,14 +2078,14 @@ config RUST
 	  If unsure, say N.
 
 config RUSTC_VERSION_TEXT
-	depends on RUST
 	string
-	default $(shell,$(RUSTC) --version)
+	depends on RUST
+	default $(shell,command -v $(RUSTC) >/dev/null 2>&1 && $(RUSTC) --version || echo n)
 
 config BINDGEN_VERSION_TEXT
-	depends on RUST
 	string
-	default $(shell,$(BINDGEN) --version)
+	depends on RUST
+	default $(shell,command -v $(BINDGEN) >/dev/null 2>&1 && $(BINDGEN) --version || echo n)
 
 #
 # Place an empty function call at each tracepoint site. Can be
