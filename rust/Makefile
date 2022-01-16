@@ -338,16 +338,14 @@ $(objtree)/rust/kernel.o: $(srctree)/rust/kernel/lib.rs $(objtree)/rust/alloc.o 
     $(objtree)/rust/bindings_helpers_generated.rs FORCE
 	$(call if_changed_dep,rustc_library)
 
-# Targets that need to expand twice
-.SECONDEXPANSION:
 $(objtree)/rust/core.o: private skip_clippy = 1
 $(objtree)/rust/core.o: private skip_flags = -Dunreachable_pub --edition=2021
 $(objtree)/rust/core.o: private rustc_target_flags = $(core-cfgs) --edition=2018
-$(objtree)/rust/core.o: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
+$(objtree)/rust/core.o: $(RUST_LIB_SRC)/core/src/lib.rs FORCE
 	$(call if_changed_dep,rustc_library)
 
 rustdoc-core: private rustc_target_flags = $(core-cfgs)
-rustdoc-core: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
+rustdoc-core: $(RUST_LIB_SRC)/core/src/lib.rs FORCE
 	$(call if_changed,rustdoc)
 
 endif # CONFIG_RUST
