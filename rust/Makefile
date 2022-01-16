@@ -1,21 +1,25 @@
 # SPDX-License-Identifier: GPL-2.0
 
 obj-$(CONFIG_RUST) += core.o compiler_builtins.o helpers.o
-extra-$(CONFIG_RUST) += exports_core_generated.h
+always-$(CONFIG_RUST) += exports_core_generated.h
 
-extra-$(CONFIG_RUST) += libmacros.so
+always-$(CONFIG_RUST) += libmacros.so
+no-clean-files += libmacros.so
 
-extra-$(CONFIG_RUST) += bindings_generated.rs bindings_helpers_generated.rs
+always-$(CONFIG_RUST) += bindings_generated.rs bindings_helpers_generated.rs
 obj-$(CONFIG_RUST) += alloc.o kernel.o
-extra-$(CONFIG_RUST) += exports_alloc_generated.h exports_kernel_generated.h
+always-$(CONFIG_RUST) += exports_alloc_generated.h exports_kernel_generated.h
 
 ifdef CONFIG_RUST_BUILD_ASSERT_DENY
-extra-$(CONFIG_RUST) += build_error.o
+always-$(CONFIG_RUST) += build_error.o
 else
 obj-$(CONFIG_RUST) += build_error.o
 endif
 
 obj-$(CONFIG_RUST) += exports.o
+
+# Avoids running `$(RUSTC)` for the sysroot when it may not be available.
+ifdef CONFIG_RUST
 
 ifeq ($(quiet),silent_)
 cargo_quiet=-q
@@ -302,8 +306,8 @@ quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L 
 	$(if $(rustc_objcopy),;$(OBJCOPY) $(rustc_objcopy) $@)
 
 # `$(rust_flags)` is passed in case the user added `--sysroot`.
-rustc_sysroot = $(shell $(RUSTC) $(rust_flags) --print sysroot)
-rustc_host_target = $(shell $(RUSTC) --version --verbose | grep -F 'host: ' | cut -d' ' -f2)
+rustc_sysroot := $(shell $(RUSTC) $(rust_flags) --print sysroot)
+rustc_host_target := $(shell $(RUSTC) --version --verbose | grep -F 'host: ' | cut -d' ' -f2)
 RUST_LIB_SRC ?= $(rustc_sysroot)/lib/rustlib/src/rust/library
 
 rust-analyzer:
@@ -335,14 +339,14 @@ $(objtree)/rust/kernel.o: $(srctree)/rust/kernel/lib.rs $(objtree)/rust/alloc.o 
     $(objtree)/rust/bindings_helpers_generated.rs FORCE
 	$(call if_changed_dep,rustc_library)
 
-# Targets that need to expand twice
-.SECONDEXPANSION:
 $(objtree)/rust/core.o: private skip_clippy = 1
 $(objtree)/rust/core.o: private skip_flags = -Dunreachable_pub --edition=2021
 $(objtree)/rust/core.o: private rustc_target_flags = $(core-cfgs) --edition=2018
-$(objtree)/rust/core.o: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
+$(objtree)/rust/core.o: $(RUST_LIB_SRC)/core/src/lib.rs FORCE
 	$(call if_changed_dep,rustc_library)
 
 rustdoc-core: private rustc_target_flags = $(core-cfgs)
-rustdoc-core: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
+rustdoc-core: $(RUST_LIB_SRC)/core/src/lib.rs FORCE
 	$(call if_changed,rustdoc)
+
+endif # CONFIG_RUST

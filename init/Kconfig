@@ -2060,7 +2060,6 @@ config RUST
 	bool "Rust support"
 	depends on RUST_IS_AVAILABLE
 	depends on ARM64 || CPU_32v6 || CPU_32v6K || (PPC64 && CPU_LITTLE_ENDIAN) || X86_64 || RISCV
-	depends on !COMPILE_TEST
 	depends on !MODVERSIONS
 	depends on !GCC_PLUGIN_RANDSTRUCT
 	default n
@@ -2078,14 +2077,14 @@ config RUST
 	  If unsure, say N.
 
 config RUSTC_VERSION_TEXT
-	depends on RUST
 	string
-	default $(shell,$(RUSTC) --version)
+	depends on RUST
+	default $(shell,command -v $(RUSTC) >/dev/null 2>&1 && $(RUSTC) --version || echo n)
 
 config BINDGEN_VERSION_TEXT
-	depends on RUST
 	string
-	default $(shell,$(BINDGEN) --version)
+	depends on RUST
+	default $(shell,command -v $(BINDGEN) >/dev/null 2>&1 && $(BINDGEN) --version || echo n)
 
 #
 # Place an empty function call at each tracepoint site. Can be
