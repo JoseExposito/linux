@@ -157,8 +157,3 @@ if [ ! -e "$rustc_src_core" ]; then
 	fi
 	exit 1
 fi
-
-# Success!
-if [ "$1" = -v ]; then
-	echo >&2 "Rust is available!"
-fi
