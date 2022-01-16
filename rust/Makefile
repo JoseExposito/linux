@@ -305,8 +305,8 @@ quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L 
 	$(if $(rustc_objcopy),;$(OBJCOPY) $(rustc_objcopy) $@)
 
 # `$(rust_flags)` is passed in case the user added `--sysroot`.
-rustc_sysroot = $(shell $(RUSTC) $(rust_flags) --print sysroot)
-rustc_host_target = $(shell $(RUSTC) --version --verbose | grep -F 'host: ' | cut -d' ' -f2)
+rustc_sysroot := $(shell $(RUSTC) $(rust_flags) --print sysroot)
+rustc_host_target := $(shell $(RUSTC) --version --verbose | grep -F 'host: ' | cut -d' ' -f2)
 RUST_LIB_SRC ?= $(rustc_sysroot)/lib/rustlib/src/rust/library
 
 rust-analyzer:
