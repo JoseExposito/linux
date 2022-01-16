@@ -44,7 +44,11 @@ fi
 # Check that the Rust compiler version is suitable.
 #
 # Non-stable and distributions' versions may have a version suffix, e.g. `-dev`.
-rust_compiler_version=$("$RUSTC" --version | cut -f2 -d' ' | cut -f1 -d'-')
+rust_compiler_version=$( \
+	LC_ALL=C "$RUSTC" --version 2>/dev/null \
+		| head -n 1 \
+		| grep -oE '[0-9]+\.[0-9]+\.[0-9]+' \
+)
 rust_compiler_min_version=$($min_tool_version rustc)
 rust_compiler_cversion=$(get_canonical_version $rust_compiler_version)
 rust_compiler_min_cversion=$(get_canonical_version $rust_compiler_min_version)
@@ -69,7 +73,11 @@ fi
 # Check that the Rust bindings generator is suitable.
 #
 # Non-stable and distributions' versions may have a version suffix, e.g. `-dev`.
-rust_bindings_generator_version=$("$BINDGEN" --version | cut -f2 -d' ' | cut -f1 -d'-')
+rust_bindings_generator_version=$( \
+	LC_ALL=C "$BINDGEN" --version 2>/dev/null \
+		| head -n 1 \
+		| grep -oE '[0-9]+\.[0-9]+\.[0-9]+' \
+)
 rust_bindings_generator_min_version=$($min_tool_version bindgen)
 rust_bindings_generator_cversion=$(get_canonical_version $rust_bindings_generator_version)
 rust_bindings_generator_min_cversion=$(get_canonical_version $rust_bindings_generator_min_version)
@@ -92,15 +100,11 @@ if [ "$1" = -v ] && [ "$rust_bindings_generator_cversion" -gt "$rust_bindings_ge
 fi
 
 # Check that the `libclang` used by the Rust bindings generator is suitable.
-#
-# There may be a better way to do this in the future,
-# see https://github.com/rust-lang/rust-bindgen/issues/2138
-bindgen_libclang_full_version=$(\
-	"$BINDGEN" $(dirname $0)/rust-is-available-bindgen-libclang.h 2>&1 >/dev/null \
-		| grep -F 'clang version' \
-		| sed -E 's:^.*(clang version .*) \[.*$:\1:' \
+bindgen_libclang_version=$( \
+	LC_ALL=C "$BINDGEN" $(dirname $0)/rust-is-available-bindgen-libclang.h 2>&1 >/dev/null \
+		| grep -F 'clang version ' \
+		| grep -oE '[0-9]+\.[0-9]+\.[0-9]+' \
 )
-bindgen_libclang_version=$(echo "$bindgen_libclang_full_version" | cut -f3 -d' ')
 bindgen_libclang_min_version=$($min_tool_version llvm)
 bindgen_libclang_cversion=$(get_canonical_version $bindgen_libclang_version)
 bindgen_libclang_min_cversion=$(get_canonical_version $bindgen_libclang_min_version)
@@ -115,17 +119,24 @@ if [ "$bindgen_libclang_cversion" -lt "$bindgen_libclang_min_cversion" ]; then
 	exit 1
 fi
 
-# If the C compiler is Clang, then we can also check whether its full version
-# matches exactly the `libclang` used by the Rust bindings generator.
+# If the C compiler is Clang, then we can also check whether its version
+# matches the `libclang` version used by the Rust bindings generator.
+#
+# In the future, we might be able to perform a full version check, see
+# https://github.com/rust-lang/rust-bindgen/issues/2138.
 if [ "$1" = -v ]; then
 	cc_name=$($(dirname $0)/cc-version.sh "$CC" | cut -f1 -d' ')
 	if [ "$cc_name" = Clang ]; then
-		clang_full_version=$("$CC" --version | grep -F 'clang version')
-		if [ "$clang_full_version" != "$bindgen_libclang_full_version" ]; then
+		clang_version=$( \
+			LC_ALL=C "$CC" --version 2>/dev/null \
+				| head -n 1 \
+				| grep -oE '[0-9]+\.[0-9]+\.[0-9]+' \
+		)
+		if [ "$clang_version" != "$bindgen_libclang_version" ]; then
 			echo >&2 "***"
-			echo >&2 "*** libclang (used by the Rust bindings generator '$BINDGEN') full version does not match Clang's. This may be a problem."
-			echo >&2 "***   libclang: $bindgen_libclang_full_version"
-			echo >&2 "***   Clang:    $clang_full_version"
+			echo >&2 "*** libclang (used by the Rust bindings generator '$BINDGEN') version does not match Clang's. This may be a problem."
+			echo >&2 "***   libclang version: $bindgen_libclang_version"
+			echo >&2 "***   Clang version:    $clang_version"
 			echo >&2 "***"
 		fi
 	fi
