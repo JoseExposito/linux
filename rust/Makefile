@@ -4,6 +4,7 @@ obj-$(CONFIG_RUST) += core.o compiler_builtins.o helpers.o
 always-$(CONFIG_RUST) += exports_core_generated.h
 
 always-$(CONFIG_RUST) += libmacros.so
+no-clean-files += libmacros.so
 
 always-$(CONFIG_RUST) += bindings_generated.rs bindings_helpers_generated.rs
 obj-$(CONFIG_RUST) += alloc.o kernel.o
