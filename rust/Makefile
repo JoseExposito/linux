@@ -17,6 +17,9 @@ endif
 
 obj-$(CONFIG_RUST) += exports.o
 
+# Avoids running `$(RUSTC)` for the sysroot when it may not be available.
+ifdef CONFIG_RUST
+
 ifeq ($(quiet),silent_)
 cargo_quiet=-q
 rust_test_quiet=-q
@@ -346,3 +349,5 @@ $(objtree)/rust/core.o: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
 rustdoc-core: private rustc_target_flags = $(core-cfgs)
 rustdoc-core: $$(RUST_LIB_SRC)/core/src/lib.rs FORCE
 	$(call if_changed,rustdoc)
+
+endif # CONFIG_RUST

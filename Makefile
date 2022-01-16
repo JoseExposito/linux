@@ -1162,11 +1162,7 @@ export MODULES_NSDEPS := $(extmod_prefix)modules.nsdeps
 ifeq ($(KBUILD_EXTMOD),)
 core-y			+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/
 core-$(CONFIG_BLOCK)	+= block/
-
-# Keep this one as an `ifdef` block since its `Makefile` runs `rustc`.
-ifdef CONFIG_RUST
-core-y			+= rust/
-endif
+core-$(CONFIG_RUST)	+= rust/
 
 vmlinux-dirs	:= $(patsubst %/,%,$(filter %/, \
 		     $(core-y) $(core-m) $(drivers-y) $(drivers-m) \
@@ -1584,7 +1580,7 @@ MRPROPER_FILES += include/config include/generated          \
 		  certs/x509.genkey \
 		  vmlinux-gdb.py \
 		  *.spec \
-		  rust/*_generated.h rust/*_generated.rs rust/libmacros.so
+		  rust/libmacros.so
 
 # clean - Delete most, but leave enough to build external modules
 #
