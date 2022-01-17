@@ -7,7 +7,7 @@
 //!
 //! See <https://www.kernel.org/doc/Documentation/locking/seqlock.rst>.
 
-use super::{CreatableLock, Guard, Lock, NeedsLockClass};
+use super::{CreatableLock, Guard, Lock, NeedsLockClass, ReadLock};
 use crate::{bindings, str::CStr, Opaque};
 use core::{cell::UnsafeCell, marker::PhantomPinned, ops::Deref, pin::Pin};
 
@@ -122,7 +122,7 @@ impl<L: CreatableLock + ?Sized> SeqLock<L> {
     /// The guard is not mutable though because readers are still allowed to concurrently access
     /// the data. The protected data structure needs to provide interior mutability itself (e.g.,
     /// via atomic types) for the individual fields that can be mutated.
-    pub fn write(&self) -> Guard<'_, Self> {
+    pub fn write(&self) -> Guard<'_, Self, ReadLock> {
         let ctx = self.lock_noguard();
         // SAFETY: The seqlock was just acquired.
         unsafe { Guard::new(self, ctx) }
@@ -146,7 +146,7 @@ impl<L: CreatableLock + ?Sized> NeedsLockClass for SeqLock<L> {
 }
 
 // SAFETY: The underlying lock ensures mutual exclusion.
-unsafe impl<L: CreatableLock + ?Sized> Lock for SeqLock<L> {
+unsafe impl<L: CreatableLock + ?Sized> Lock<ReadLock> for SeqLock<L> {
     type Inner = L::Inner;
     type GuardContext = L::GuardContext;
 

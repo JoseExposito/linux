@@ -5,7 +5,7 @@
 use crate::{
     bindings,
     str::CStr,
-    sync::{GuardMut, Mutex, NeedsLockClass},
+    sync::{Guard, Mutex, NeedsLockClass},
 };
 use core::{
     mem::ManuallyDrop,
@@ -153,11 +153,11 @@ impl<T: ?Sized> Drop for RevocableMutex<T> {
 
 /// A guard that allows access to a revocable object and keeps it alive.
 pub struct RevocableMutexGuard<'a, T: ?Sized> {
-    guard: GuardMut<'a, Mutex<RevocableMutexInner<T>>>,
+    guard: Guard<'a, Mutex<RevocableMutexInner<T>>>,
 }
 
 impl<'a, T: ?Sized> RevocableMutexGuard<'a, T> {
-    fn new(guard: GuardMut<'a, Mutex<RevocableMutexInner<T>>>) -> Self {
+    fn new(guard: Guard<'a, Mutex<RevocableMutexInner<T>>>) -> Self {
         Self { guard }
     }
 

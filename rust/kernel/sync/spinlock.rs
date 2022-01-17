@@ -6,7 +6,7 @@
 //!
 //! See <https://www.kernel.org/doc/Documentation/locking/spinlocks.txt>.
 
-use super::{CreatableLock, GuardMut, Lock};
+use super::{CreatableLock, Guard, Lock};
 use crate::{bindings, c_types, str::CStr, Opaque};
 use core::{cell::UnsafeCell, marker::PhantomPinned, pin::Pin};
 
@@ -108,20 +108,20 @@ impl<T> SpinLock<T> {
 impl<T: ?Sized> SpinLock<T> {
     /// Locks the spinlock and gives the caller access to the data protected by it. Only one thread
     /// at a time is allowed to access the protected data.
-    pub fn lock(&self) -> GuardMut<'_, Self> {
+    pub fn lock(&self) -> Guard<'_, Self> {
         let ctx = self.lock_noguard();
         // SAFETY: The spinlock was just acquired.
-        unsafe { GuardMut::new(self, ctx) }
+        unsafe { Guard::new(self, ctx) }
     }
 
     /// Locks the spinlock and gives the caller access to the data protected by it. Additionally it
     /// disables interrupts (if they are enabled).
     ///
     /// When the lock in unlocked, the interrupt state (enabled/disabled) is restored.
-    pub fn lock_irqdisable(&self) -> GuardMut<'_, Self> {
+    pub fn lock_irqdisable(&self) -> Guard<'_, Self> {
         let ctx = self.internal_lock_irqsave();
         // SAFETY: The spinlock was just acquired.
-        unsafe { GuardMut::new(self, Some(ctx)) }
+        unsafe { Guard::new(self, Some(ctx)) }
     }
 
     fn internal_lock_irqsave(&self) -> c_types::c_ulong {
