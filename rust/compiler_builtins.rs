@@ -7,7 +7,7 @@
 //! by providing this file.
 //!
 //! At the moment, some builtins are required that should not be. For instance,
-//! [`core`] has floating-point functionality which we should not be compiling
+//! [`core`] has 128-bit integers functionality which we should not be compiling
 //! in. We will work with upstream [`core`] to provide feature flags to disable
 //! the parts we do not need. For the moment, we define them to [`panic!`] at
 //! runtime for simplicity to catch mistakes, instead of performing surgery
