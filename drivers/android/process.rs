@@ -11,7 +11,7 @@ use kernel::{
     pages::Pages,
     prelude::*,
     rbtree::RBTree,
-    sync::{GuardMut, Mutex, Ref, RefBorrow, UniqueRef},
+    sync::{Guard, Mutex, Ref, RefBorrow, UniqueRef},
     task::Task,
     user_ptr::{UserSlicePtr, UserSlicePtrReader},
 };
@@ -949,7 +949,7 @@ impl<'a> Registration<'a> {
     fn new(
         process: &'a Process,
         thread: &'a Ref<Thread>,
-        guard: &mut GuardMut<'_, Mutex<ProcessInner>>,
+        guard: &mut Guard<'_, Mutex<ProcessInner>>,
     ) -> Self {
         guard.ready_threads.push_back(thread.clone());
         Self { process, thread }
