@@ -9,10 +9,88 @@
 use crate::bindings;
 use crate::error::{Error, Result};
 use crate::file_operations::{FileOpenAdapter, FileOperations, FileOperationsVtable};
-use crate::{str::CStr, KernelModule, ThisModule};
+use crate::{device, str::CStr, KernelModule, ThisModule};
 use alloc::boxed::Box;
 use core::marker::PhantomPinned;
 use core::{mem::MaybeUninit, pin::Pin};
+
+/// Options which can be used to configure how a misc device is registered.
+///
+/// # Examples
+///
+/// ```
+/// # use kernel::{c_str, device::RawDevice, file_operations::FileOperations, miscdev, prelude::*};
+/// pub fn example(
+///     reg: Pin<&mut miscdev::Registration<impl FileOperations<OpenData = ()>>>,
+///     parent: &dyn RawDevice,
+/// ) -> Result {
+///     miscdev::Options::new()
+///         .mode(0o600)
+///         .minor(10)
+///         .parent(parent)
+///         .register(reg, c_str!("sample"), ())
+/// }
+/// ```
+#[derive(Default)]
+pub struct Options<'a> {
+    minor: Option<i32>,
+    mode: Option<u16>,
+    parent: Option<&'a dyn device::RawDevice>,
+}
+
+impl<'a> Options<'a> {
+    /// Creates new [`Options`] instance with the required fields.
+    pub const fn new() -> Self {
+        Self {
+            minor: None,
+            mode: None,
+            parent: None,
+        }
+    }
+
+    /// Sets the minor device number.
+    pub const fn minor(&mut self, v: i32) -> &mut Self {
+        self.minor = Some(v);
+        self
+    }
+
+    /// Sets the device mode.
+    ///
+    /// This is usually an octal number and describes who can perform read/write/execute operations
+    /// on the device.
+    pub const fn mode(&mut self, m: u16) -> &mut Self {
+        self.mode = Some(m);
+        self
+    }
+
+    /// Sets the device parent.
+    pub const fn parent(&mut self, p: &'a dyn device::RawDevice) -> &mut Self {
+        self.parent = Some(p);
+        self
+    }
+
+    /// Registers a misc device using the configured options.
+    pub fn register<T: FileOperations>(
+        &self,
+        reg: Pin<&mut Registration<T>>,
+        name: &'static CStr,
+        open_data: T::OpenData,
+    ) -> Result {
+        reg.register_with_options(name, open_data, self)
+    }
+
+    /// Allocates a new registration of a misc device and completes the registration with the
+    /// configured options.
+    pub fn register_new<T: FileOperations>(
+        &self,
+        name: &'static CStr,
+        open_data: T::OpenData,
+    ) -> Result<Pin<Box<Registration<T>>>> {
+        let mut r = Pin::from(Box::try_new(Registration::new())?);
+        self.register(r.as_mut(), name, open_data)?;
+        Ok(r)
+    }
+}
 
 /// A registration of a miscellaneous device.
 ///
@@ -46,25 +124,28 @@ impl<T: FileOperations> Registration<T> {
     /// Registers a miscellaneous device.
     ///
     /// Returns a pinned heap-allocated representation of the registration.
-    pub fn new_pinned(
-        name: &'static CStr,
-        minor: Option<i32>,
-        open_data: T::OpenData,
-    ) -> Result<Pin<Box<Self>>> {
-        let mut r = Pin::from(Box::try_new(Self::new())?);
-        r.as_mut().register(name, minor, open_data)?;
-        Ok(r)
+    pub fn new_pinned(name: &'static CStr, open_data: T::OpenData) -> Result<Pin<Box<Self>>> {
+        Options::new().register_new(name, open_data)
     }
 
     /// Registers a miscellaneous device with the rest of the kernel.
     ///
     /// It must be pinned because the memory block that represents the registration is
-    /// self-referential. If a minor is not given, the kernel allocates a new one if possible.
-    pub fn register(
+    /// self-referential.
+    pub fn register(self: Pin<&mut Self>, name: &'static CStr, open_data: T::OpenData) -> Result {
+        Options::new().register(self, name, open_data)
+    }
+
+    /// Registers a miscellaneous device with the rest of the kernel. Additional optional settings
+    /// are provided via the `opts` parameter.
+    ///
+    /// It must be pinned because the memory block that represents the registration is
+    /// self-referential.
+    pub fn register_with_options(
         self: Pin<&mut Self>,
         name: &'static CStr,
-        minor: Option<i32>,
         open_data: T::OpenData,
+        opts: &Options<'_>,
     ) -> Result {
         // SAFETY: We must ensure that we never move out of `this`.
         let this = unsafe { self.get_unchecked_mut() };
@@ -76,7 +157,11 @@ impl<T: FileOperations> Registration<T> {
         // SAFETY: The adapter is compatible with `misc_register`.
         this.mdev.fops = unsafe { FileOperationsVtable::<Self, T>::build() };
         this.mdev.name = name.as_char_ptr();
-        this.mdev.minor = minor.unwrap_or(bindings::MISC_DYNAMIC_MINOR as i32);
+        this.mdev.minor = opts.minor.unwrap_or(bindings::MISC_DYNAMIC_MINOR as i32);
+        this.mdev.mode = opts.mode.unwrap_or(0);
+        this.mdev.parent = opts
+            .parent
+            .map_or(core::ptr::null_mut(), |p| p.raw_device());
 
         // We write to `open_data` here because as soon as `misc_register` succeeds, the file can be
         // opened, so we need `open_data` configured ahead of time.
@@ -150,7 +235,7 @@ pub struct Module<T: FileOperations<OpenData = ()>> {
 impl<T: FileOperations<OpenData = ()>> KernelModule for Module<T> {
     fn init(name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         Ok(Self {
-            _dev: Registration::new_pinned(name, None, ())?,
+            _dev: Registration::new_pinned(name, ())?,
         })
     }
 }
