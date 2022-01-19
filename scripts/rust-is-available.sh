@@ -146,7 +146,7 @@ fi
 #
 # `$KRUSTFLAGS` is passed in case the user added `--sysroot`.
 rustc_sysroot=$("$RUSTC" $KRUSTFLAGS --print sysroot)
-rustc_src="$rustc_sysroot/lib/rustlib/src/rust/library"
+rustc_src=${RUST_LIB_SRC:-"$rustc_sysroot/lib/rustlib/src/rust/library"}
 rustc_src_core="$rustc_src/core/src/lib.rs"
 if [ ! -e "$rustc_src_core" ]; then
 	if [ "$1" = -v ]; then
