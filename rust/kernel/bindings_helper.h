@@ -10,7 +10,6 @@
 #include <linux/sysctl.h>
 #include <linux/uaccess.h>
 #include <linux/uio.h>
-#include <linux/version.h>
 #include <linux/miscdevice.h>
 #include <linux/poll.h>
 #include <linux/mm.h>
