@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-//! Rust stack probing sample
+//! Rust stack probing sample.
 
 use kernel::prelude::*;
 

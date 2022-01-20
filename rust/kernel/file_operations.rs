@@ -711,7 +711,7 @@ pub trait FileOperations {
     /// Maps areas of the caller's virtual memory with device/file memory.
     ///
     /// Corresponds to the `mmap` function pointer in `struct file_operations`.
-    /// TODO: wrap `vm_area_struct` so that we don't have to expose it.
+    /// TODO: Wrap `vm_area_struct` so that we don't have to expose it.
     fn mmap(
         _this: <Self::Wrapper as PointerWrapper>::Borrowed<'_>,
         _file: &File,

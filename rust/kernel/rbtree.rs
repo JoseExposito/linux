@@ -322,7 +322,7 @@ impl<K, V> RBTree<K, V> {
     where
         K: Ord,
     {
-        // SAFETY: the `find` return value is a node in the tree, so it is valid.
+        // SAFETY: The `find` return value is a node in the tree, so it is valid.
         self.find(key)
             .map(|mut node| unsafe { &mut node.as_mut().value })
     }
@@ -336,13 +336,13 @@ impl<K, V> RBTree<K, V> {
     {
         let mut node = self.find(key)?;
 
-        // SAFETY: the `find` return value is a node in the tree, so it is valid.
+        // SAFETY: The `find` return value is a node in the tree, so it is valid.
         unsafe { bindings::rb_erase(&mut node.as_mut().links, &mut self.root) };
 
         // INVARIANT: The node is being returned and the caller may free it, however, it was
         // removed from the tree. So the invariants still hold.
         Some(RBTreeNode {
-            // SAFETY: the `find` return value was a node in the tree, so it is valid.
+            // SAFETY: The `find` return value was a node in the tree, so it is valid.
             node: unsafe { Box::from_raw(node.as_ptr()) },
         })
     }

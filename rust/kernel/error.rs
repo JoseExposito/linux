@@ -324,7 +324,7 @@ impl Error {
     /// be returned in such a case.
     pub(crate) fn from_kernel_errno(errno: c_types::c_int) -> Error {
         if errno < -(bindings::MAX_ERRNO as i32) || errno >= 0 {
-            // TODO: make it a `WARN_ONCE` once available.
+            // TODO: Make it a `WARN_ONCE` once available.
             crate::pr_warn!(
                 "attempted to create `Error` with out of range `errno`: {}",
                 errno
@@ -332,7 +332,7 @@ impl Error {
             return Error::EINVAL;
         }
 
-        // INVARIANT: the check above ensures the type invariant
+        // INVARIANT: The check above ensures the type invariant
         // will hold.
         Error(errno)
     }
@@ -343,7 +343,7 @@ impl Error {
     ///
     /// `errno` must be within error code range (i.e. `>= -MAX_ERRNO && < 0`).
     pub(crate) unsafe fn from_kernel_errno_unchecked(errno: c_types::c_int) -> Error {
-        // INVARIANT: the contract ensures the type invariant
+        // INVARIANT: The contract ensures the type invariant
         // will hold.
         Error(errno)
     }
@@ -507,16 +507,16 @@ pub(crate) use from_kernel_result;
 ///     }
 /// }
 /// ```
-// TODO: remove `dead_code` marker once an in-kernel client is available.
+// TODO: Remove `dead_code` marker once an in-kernel client is available.
 #[allow(dead_code)]
 pub(crate) fn from_kernel_err_ptr<T>(ptr: *mut T) -> Result<*mut T> {
-    // CAST: casting a pointer to `*const c_types::c_void` is always valid.
+    // CAST: Casting a pointer to `*const c_types::c_void` is always valid.
     let const_ptr: *const c_types::c_void = ptr.cast();
-    // SAFETY: the FFI function does not deref the pointer.
+    // SAFETY: The FFI function does not deref the pointer.
     if unsafe { bindings::IS_ERR(const_ptr) } {
-        // SAFETY: the FFI function does not deref the pointer.
+        // SAFETY: The FFI function does not deref the pointer.
         let err = unsafe { bindings::PTR_ERR(const_ptr) };
-        // CAST: if `IS_ERR()` returns `true`,
+        // CAST: If `IS_ERR()` returns `true`,
         // then `PTR_ERR()` is guaranteed to return a
         // negative value greater-or-equal to `-bindings::MAX_ERRNO`,
         // which always fits in an `i16`, as per the invariant above.
@@ -524,7 +524,7 @@ pub(crate) fn from_kernel_err_ptr<T>(ptr: *mut T) -> Result<*mut T> {
         // an `i32` can never overflow, and is always valid.
         //
         // SAFETY: `IS_ERR()` ensures `err` is a
-        // negative value greater-or-equal to `-bindings::MAX_ERRNO`
+        // negative value greater-or-equal to `-bindings::MAX_ERRNO`.
         return Err(unsafe { Error::from_kernel_errno_unchecked(err as i32) });
     }
     Ok(ptr)

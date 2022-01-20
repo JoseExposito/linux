@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-//! Rust miscellaneous device sample
+//! Rust miscellaneous device sample.
 
 use kernel::prelude::*;
 use kernel::{

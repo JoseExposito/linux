@@ -303,7 +303,7 @@ impl Index<ops::RangeFull> for CStr {
 mod private {
     use core::ops;
 
-    //  Marker trait for index types that can be forward to `BStr`.
+    // Marker trait for index types that can be forward to `BStr`.
     pub trait CStrIndex {}
 
     impl CStrIndex for usize {}

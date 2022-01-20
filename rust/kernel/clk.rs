@@ -26,7 +26,7 @@ impl Clk {
 
     /// Returns value of the rate field of `struct clk`.
     pub fn get_rate(&self) -> usize {
-        // SAFETY: the pointer is valid by the type invariant.
+        // SAFETY: The pointer is valid by the type invariant.
         unsafe { bindings::clk_get_rate(self.0) as usize }
     }
 
@@ -34,7 +34,7 @@ impl Clk {
     ///
     /// This function should not be called in atomic context.
     pub fn prepare_enable(self) -> Result<EnabledClk> {
-        // SAFETY: the pointer is valid by the type invariant.
+        // SAFETY: The pointer is valid by the type invariant.
         to_result(|| unsafe { bindings::clk_prepare_enable(self.0) })?;
         Ok(EnabledClk(self))
     }
@@ -42,7 +42,7 @@ impl Clk {
 
 impl Drop for Clk {
     fn drop(&mut self) {
-        // SAFETY: the pointer is valid by the type invariant.
+        // SAFETY: The pointer is valid by the type invariant.
         unsafe { bindings::clk_put(self.0) };
     }
 }
@@ -61,7 +61,7 @@ impl EnabledClk {
     /// This function should not be called in atomic context.
     pub fn disable_unprepare(self) -> Clk {
         let mut clk = ManuallyDrop::new(self);
-        // SAFETY: the pointer is valid by the type invariant.
+        // SAFETY: The pointer is valid by the type invariant.
         unsafe { bindings::clk_disable_unprepare(clk.0 .0) };
         core::mem::replace(&mut clk.0, Clk(core::ptr::null_mut()))
     }
@@ -69,7 +69,7 @@ impl EnabledClk {
 
 impl Drop for EnabledClk {
     fn drop(&mut self) {
-        // SAFETY: the pointer is valid by the type invariant.
+        // SAFETY: The pointer is valid by the type invariant.
         unsafe { bindings::clk_disable_unprepare(self.0 .0) };
     }
 }

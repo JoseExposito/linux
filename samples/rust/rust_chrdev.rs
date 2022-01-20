@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-//! Rust character device sample
+//! Rust character device sample.
 
 use kernel::prelude::*;
 use kernel::{chrdev, file, file_operations::FileOperations};

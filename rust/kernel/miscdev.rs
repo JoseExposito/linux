@@ -194,7 +194,7 @@ impl<T: FileOperations> FileOpenAdapter<T::OpenData> for Registration<T> {
         _inode: *mut bindings::inode,
         file: *mut bindings::file,
     ) -> *const T::OpenData {
-        // SAFETY: the caller must guarantee that `file` is valid.
+        // SAFETY: The caller must guarantee that `file` is valid.
         let reg = crate::container_of!(unsafe { (*file).private_data }, Self, mdev);
 
         // SAFETY: This function is only called while the misc device is still registered, so the

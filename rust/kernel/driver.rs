@@ -116,8 +116,8 @@ impl<T: DriverOps> Drop for Registration<T> {
 /// # Safety
 ///
 /// Implementers must ensure that:
-///   * [`RawDeviceId::ZERO`] is actually a zeroed-out version of the raw device id.
-///   * [`RawDeviceId::to_rawid`] stores `offset` in the context/data field of the raw device id so
+///   - [`RawDeviceId::ZERO`] is actually a zeroed-out version of the raw device id.
+///   - [`RawDeviceId::to_rawid`] stores `offset` in the context/data field of the raw device id so
 ///     that buses can recover the pointer to the data.
 pub unsafe trait RawDeviceId {
     /// The raw type that holds the device id.

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-//! Rust minimal sample
+//! Rust minimal sample.
 
 use kernel::prelude::*;
 

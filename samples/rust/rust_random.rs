@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-//! Rust random device
+//! Rust random device.
 //!
 //! Adapted from Alex Gaynor's original available at
 //! <https://github.com/alex/just-use/blob/master/src/lib.rs>.

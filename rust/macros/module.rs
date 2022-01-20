@@ -320,7 +320,7 @@ pub(crate) fn module(ts: TokenStream) -> TokenStream {
         modinfo.emit("alias", &alias);
     }
 
-    // Built-in modules also export the `file` modinfo string
+    // Built-in modules also export the `file` modinfo string.
     let file =
         std::env::var("RUST_MODFILE").expect("Unable to fetch RUST_MODFILE environmental variable");
     modinfo.emit_only_builtin("file", &file);
@@ -351,8 +351,8 @@ pub(crate) fn module(ts: TokenStream) -> TokenStream {
             let param_description = get_byte_string(&mut param_it, "description");
             expect_end(&mut param_it);
 
-            // TODO: more primitive types
-            // TODO: other kinds: unsafes, etc.
+            // TODO: More primitive types.
+            // TODO: Other kinds: unsafes, etc.
             let (param_kernel_type, ops): (String, _) = match param_type {
                 ParamType::Ident(ref param_type) => (
                     param_type.to_string(),
@@ -437,7 +437,7 @@ pub(crate) fn module(ts: TokenStream) -> TokenStream {
                     // to undo GCC over-alignment of static structs of >32 bytes. It seems that is
                     // not the case anymore, so we simplify to a transparent representation here
                     // in the expectation that it is not needed anymore.
-                    // TODO: revisit this to confirm the above comment and remove it if it happened
+                    // TODO: Revisit this to confirm the above comment and remove it if it happened.
                     #[repr(transparent)]
                     struct __{name}_{param_name}_RacyKernelParam(kernel::bindings::kernel_param);
 
@@ -520,7 +520,7 @@ pub(crate) fn module(ts: TokenStream) -> TokenStream {
             #[cfg(not(MODULE))]
             static THIS_MODULE: kernel::ThisModule = unsafe {{ kernel::ThisModule::from_ptr(core::ptr::null_mut()) }};
 
-            // Loadable modules need to export the `{{init,cleanup}}_module` identifiers
+            // Loadable modules need to export the `{{init,cleanup}}_module` identifiers.
             #[cfg(MODULE)]
             #[doc(hidden)]
             #[no_mangle]
@@ -536,7 +536,7 @@ pub(crate) fn module(ts: TokenStream) -> TokenStream {
             }}
 
             // Built-in modules are initialized through an initcall pointer
-            // and the identifiers need to be unique
+            // and the identifiers need to be unique.
             #[cfg(not(MODULE))]
             #[cfg(not(CONFIG_HAVE_ARCH_PREL32_RELOCATIONS))]
             #[doc(hidden)]

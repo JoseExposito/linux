@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-//! Rust module parameters sample
+//! Rust module parameters sample.
 
 use kernel::prelude::*;
 

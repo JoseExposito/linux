@@ -72,7 +72,7 @@ This is how a well-documented Rust function may look like::
 		match self {
 			Some(val) => val,
 
-			// SAFETY: the safety contract must be upheld by the caller.
+			// SAFETY: The safety contract must be upheld by the caller.
 			None => unsafe { hint::unreachable_unchecked() },
 		}
 	}
