@@ -2,9 +2,6 @@
 
 //! Rust printing macros sample
 
-#![no_std]
-#![feature(allocator_api, global_asm)]
-
 use kernel::prelude::*;
 use kernel::{pr_cont, str::CStr, ThisModule};
 

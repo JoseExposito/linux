@@ -2,9 +2,6 @@
 
 //! Broadcom BCM2835 Random Number Generator support.
 
-#![no_std]
-#![feature(allocator_api, global_asm)]
-
 use kernel::{
     c_str, device, file::File, file_operations::FileOperations, io_buffer::IoBufferWriter, miscdev,
     module_platform_driver, of, platform, prelude::*, sync::Ref,

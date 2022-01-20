@@ -2,9 +2,6 @@
 
 //! Rust platform device driver sample.
 
-#![no_std]
-#![feature(allocator_api, global_asm)]
-
 use kernel::{module_platform_driver, of, platform, prelude::*};
 
 module_platform_driver! {

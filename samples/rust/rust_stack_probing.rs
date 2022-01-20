@@ -2,10 +2,6 @@
 
 //! Rust stack probing sample
 
-#![no_std]
-#![feature(allocator_api, global_asm)]
-#![feature(bench_black_box)]
-
 use kernel::prelude::*;
 
 module! {

@@ -4,9 +4,6 @@
 //!
 //! TODO: This module is a work in progress.
 
-#![no_std]
-#![feature(global_asm, allocator_api, concat_idents, generic_associated_types)]
-
 use kernel::{
     io_buffer::IoBufferWriter,
     linked_list::{GetLinks, GetLinksWrapped, Links},

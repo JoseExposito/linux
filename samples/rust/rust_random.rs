@@ -5,9 +5,6 @@
 //! Adapted from Alex Gaynor's original available at
 //! <https://github.com/alex/just-use/blob/master/src/lib.rs>.
 
-#![no_std]
-#![feature(allocator_api, global_asm)]
-
 use kernel::{
     file::File,
     file_operations::FileOperations,

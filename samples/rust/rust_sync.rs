@@ -2,9 +2,6 @@
 
 //! Rust synchronisation primitives sample
 
-#![no_std]
-#![feature(allocator_api, global_asm)]
-
 use kernel::prelude::*;
 use kernel::{
     condvar_init, mutex_init, spinlock_init,
