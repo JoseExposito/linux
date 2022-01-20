@@ -12,24 +12,22 @@
 //! do so first instead of bypassing this crate.
 
 #![no_std]
-#![feature(
-    allocator_api,
-    associated_type_defaults,
-    concat_idents,
-    const_fn_trait_bound,
-    const_mut_refs,
-    const_ptr_offset_from,
-    const_refs_to_cell,
-    const_trait_impl,
-    doc_cfg,
-    generic_associated_types,
-    maybe_uninit_extra,
-    ptr_metadata,
-    receiver_trait,
-    coerce_unsized,
-    dispatch_from_dyn,
-    unsize
-)]
+#![feature(allocator_api)]
+#![feature(associated_type_defaults)]
+#![feature(concat_idents)]
+#![feature(const_fn_trait_bound)]
+#![feature(const_mut_refs)]
+#![feature(const_ptr_offset_from)]
+#![feature(const_refs_to_cell)]
+#![feature(const_trait_impl)]
+#![feature(doc_cfg)]
+#![feature(generic_associated_types)]
+#![feature(maybe_uninit_extra)]
+#![feature(ptr_metadata)]
+#![feature(receiver_trait)]
+#![feature(coerce_unsized)]
+#![feature(dispatch_from_dyn)]
+#![feature(unsize)]
 
 // Ensure conditional compilation based on the kernel configuration works;
 // otherwise we may silently break things like initcall handling.
