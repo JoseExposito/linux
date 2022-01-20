@@ -23,6 +23,7 @@ __noreturn void rust_helper_BUG(void)
 {
 	BUG();
 }
+EXPORT_SYMBOL_GPL(rust_helper_BUG);
 
 void rust_helper_clk_disable_unprepare(struct clk *clk)
 {
@@ -40,16 +41,19 @@ unsigned long rust_helper_copy_from_user(void *to, const void __user *from, unsi
 {
 	return copy_from_user(to, from, n);
 }
+EXPORT_SYMBOL_GPL(rust_helper_copy_from_user);
 
 unsigned long rust_helper_copy_to_user(void __user *to, const void *from, unsigned long n)
 {
 	return copy_to_user(to, from, n);
 }
+EXPORT_SYMBOL_GPL(rust_helper_copy_to_user);
 
 unsigned long rust_helper_clear_user(void __user *to, unsigned long n)
 {
 	return clear_user(to, n);
 }
+EXPORT_SYMBOL_GPL(rust_helper_clear_user);
 
 void __iomem *rust_helper_ioremap(resource_size_t offset, unsigned long size)
 {
