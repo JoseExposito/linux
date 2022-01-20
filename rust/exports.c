@@ -6,6 +6,9 @@
 // This requires the Rust's new/future `v0` mangling scheme because the default
 // one ("legacy") uses invalid characters for C identifiers (thus we cannot use
 // the `EXPORT_SYMBOL_*` macros).
+//
+// All symbols are exported as GPL-only to guarantee no GPL-only feature is
+// accidentally exposed.
 
 #include <linux/module.h>
 
