@@ -39,6 +39,69 @@ individual files, and does not require a kernel configuration. Sometimes it may
 even work with broken code.
 
 
+Comments
+--------
+
+"Normal" comments (i.e. ``//``, rather than code documentation which starts
+with ``///`` or ``//!``) are written in Markdown the same way as documentation
+comments are, even though they will not be rendered. This improves consistency,
+simplifies the rules and allows to move content between the two kinds of
+comments more easily. For instance::
+
+.. code-block:: rust
+
+	// `object` is ready to be handled now.
+	f(object);
+
+Furthermore, just like documentation, comments are capitalized at the beginning
+of a sentence and ended with a period (even if it is a single sentence). This
+includes `// SAFETY: `, `// TODO: ` and other "tagged" comments, e.g.::
+
+.. code-block:: rust
+
+	// FIXME: The error should be handled properly.
+
+Comments should not be used for documentation purposes: comments are intended
+for implementation details, not users. This distinction is useful even if the
+reader of the source file is both an implementor and a user of an API. In fact,
+sometimes it is useful to use both comments and documentation at the same time.
+For instance, for a `TODO` list or to comment on the documentation itself. For
+the latter case, comments can be inserted in the middle; that is, closer to
+the line of documentation to be commented. For any other case, comments are
+written after the documentation, e.g.::
+
+.. code-block:: rust
+
+	/// Returns a new [`Foo`].
+	///
+	/// # Examples
+	///
+	// TODO: Find a better example.
+	/// ```
+	/// let foo = f(42);
+	/// ```
+	// FIXME: Use fallible approach.
+	pub fn f(x: i32) -> Foo {
+		// ...
+	}
+
+One special kind of comments are the `// SAFETY: ` comments. These must appear
+before every `unsafe` block, and they explain why the code inside the block is
+correct/sound, i.e. why it cannot trigger undefined behavior in any case, e.g.::
+
+.. code-block:: rust
+
+	// SAFETY: `p` is valid by the safety requirements.
+	unsafe { *p = 0; }
+
+`// SAFETY: ` comments are not to be confused with the `# Safety` sections in
+code documentation. ``# Safety`` sections specify the contract that callers
+(for functions) or implementors (for traits) need to abide by. ``// SAFETY: ``
+comments show why a call (for functions) or implementation (for traits) actually
+respects the preconditions stated in a ``# Safety`` section or the language
+reference.
+
+
 Code documentation
 ------------------
 
