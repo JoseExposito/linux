@@ -4,9 +4,6 @@
 //!
 //! Based on the C driver written by Baruch Siach <baruch@tkos.co.il>.
 
-#![no_std]
-#![feature(global_asm, allocator_api)]
-
 use kernel::{
     amba, bit, bits_iter, define_amba_id_table, device, gpio,
     io_mem::IoMem,

@@ -13,9 +13,6 @@
 //! before decrementing); `echo -n 123 > semaphore` increments the semaphore by 3, potentially
 //! unblocking up to 3 blocked readers.
 
-#![no_std]
-#![feature(allocator_api, global_asm, generic_associated_types)]
-
 use core::sync::atomic::{AtomicU64, Ordering};
 use kernel::{
     condvar_init, declare_file_operations,
