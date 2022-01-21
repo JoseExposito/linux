@@ -2703,7 +2703,7 @@ config RUST_OPT_LEVEL_SIMILAR_AS_CHOSEN_FOR_C
 
 	      -O2 is currently mapped to -Copt-level=2
 	      -O3 is currently mapped to -Copt-level=3
-	      -Os is currently mapped to -Copt-level=z
+	      -Os is currently mapped to -Copt-level=s
 
 	  The mapping may change over time to follow the intended semantics
 	  of the choice for C as sensibly as possible.
