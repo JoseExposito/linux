@@ -48,7 +48,7 @@ impl CondVar {
     /// # Safety
     ///
     /// The caller must call `CondVar::init` before using the conditional variable.
-    pub unsafe fn new() -> Self {
+    pub const unsafe fn new() -> Self {
         Self {
             wait_list: Opaque::uninit(),
             _pin: PhantomPinned,

@@ -2062,6 +2062,7 @@ config RUST
 	depends on ARM64 || CPU_32v6 || CPU_32v6K || (PPC64 && CPU_LITTLE_ENDIAN) || X86_64 || RISCV
 	depends on !MODVERSIONS
 	depends on !GCC_PLUGIN_RANDSTRUCT
+	select CONSTRUCTORS
 	default n
 	help
 	  Enables Rust support in the kernel.

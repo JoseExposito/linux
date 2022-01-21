@@ -283,7 +283,7 @@ impl<T> Opaque<T> {
     }
 
     /// Creates an uninitialised value.
-    pub fn uninit() -> Self {
+    pub const fn uninit() -> Self {
         Self(MaybeUninit::uninit())
     }
 

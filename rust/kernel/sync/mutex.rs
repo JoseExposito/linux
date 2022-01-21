@@ -53,7 +53,7 @@ impl<T> Mutex<T> {
     /// # Safety
     ///
     /// The caller must call [`Mutex::init_lock`] before using the mutex.
-    pub unsafe fn new(t: T) -> Self {
+    pub const unsafe fn new(t: T) -> Self {
         Self {
             mutex: Opaque::uninit(),
             data: UnsafeCell::new(t),

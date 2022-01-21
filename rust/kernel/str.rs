@@ -338,7 +338,7 @@ where
 /// ```
 #[macro_export]
 macro_rules! c_str {
-    ($str:literal) => {{
+    ($str:expr) => {{
         const S: &str = concat!($str, "\0");
         const C: &$crate::str::CStr = $crate::str::CStr::from_bytes_with_nul_unwrap(S.as_bytes());
         C
