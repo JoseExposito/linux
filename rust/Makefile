@@ -329,10 +329,9 @@ $(objtree)/rust/build_error.o: $(srctree)/rust/build_error.rs \
     $(objtree)/rust/compiler_builtins.o FORCE
 	$(call if_changed_dep,rustc_library)
 
-# ICE on `--extern macros`: https://github.com/rust-lang/rust/issues/56935
 $(objtree)/rust/kernel.o: private rustc_target_flags = --extern alloc \
     --extern build_error \
-    --extern macros=$(objtree)/rust/libmacros.so
+    --extern macros
 $(objtree)/rust/kernel.o: $(srctree)/rust/kernel/lib.rs $(objtree)/rust/alloc.o \
     $(objtree)/rust/build_error.o \
     $(objtree)/rust/libmacros.so $(objtree)/rust/bindings_generated.rs \
