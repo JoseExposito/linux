@@ -133,7 +133,7 @@ impl KernelModule for RustSemaphore {
         mutex_init!(pinned, "Semaphore::inner");
 
         Ok(Self {
-            _dev: Registration::new_pinned(name, None, sema.into())?,
+            _dev: Registration::new_pinned(name, sema.into())?,
         })
     }
 }
