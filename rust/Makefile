@@ -208,7 +208,7 @@ bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-Wno-stringop-truncation -Wno-unused-but-set-variable \
 	-Wno-stringop-overflow -Wno-restrict -Wno-maybe-uninitialized \
 	-Werror=designated-init -Wno-zero-length-bounds -Wimplicit-fallthrough=% \
-	-Wno-alloc-size-larger-than \
+	-Wno-alloc-size-larger-than -Wcast-function-type \
 	--param=% --param asan-%
 
 # Derived from `scripts/Makefile.clang`
