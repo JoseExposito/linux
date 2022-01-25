@@ -1707,6 +1707,10 @@ help:
 	@echo  '                    (requires kernel .config; downloads external repos)'
 	@echo  '  rust-analyzer	  - Generate rust-project.json rust-analyzer support file'
 	@echo  '		    (requires kernel .config)'
+	@echo  '  dir/file.[os]   - Build specified target only'
+	@echo  '  dir/file.i      - Build macro expanded source, similar to C preprocessing'
+	@echo  '                    (run with RUSTFMT=n to skip reformatting if needed)'
+	@echo  '  dir/file.ll     - Build the LLVM assembly file'
 	@echo  ''
 	@$(if $(dtstree), \
 		echo 'Devicetree:'; \
