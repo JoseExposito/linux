@@ -19,7 +19,7 @@ use core::{marker::PhantomData, ptr};
 ///
 /// The pointer `Pages::pages` is valid and points to 2^ORDER pages.
 pub struct Pages<const ORDER: u32> {
-    pages: *mut bindings::page,
+    pub(crate) pages: *mut bindings::page,
 }
 
 impl<const ORDER: u32> Pages<ORDER> {
@@ -38,24 +38,6 @@ impl<const ORDER: u32> Pages<ORDER> {
         }
         // INVARIANTS: We checked that the allocation above succeeded>
         Ok(Self { pages })
-    }
-
-    /// Maps a single page at the given address in the given VM area.
-    ///
-    /// This is only meant to be used by pages of order 0.
-    pub fn insert_page(&self, vma: &mut bindings::vm_area_struct, address: usize) -> Result {
-        if ORDER != 0 {
-            return Err(Error::EINVAL);
-        }
-
-        // SAFETY: We check above that the allocation is of order 0. The range of `address` is
-        // already checked by `vm_insert_page`.
-        let ret = unsafe { bindings::vm_insert_page(vma, address as _, self.pages) };
-        if ret != 0 {
-            Err(Error::from_kernel_errno(ret))
-        } else {
-            Ok(())
-        }
     }
 
     /// Copies data from the given [`UserSlicePtrReader`] into the pages.

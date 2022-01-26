@@ -2,12 +2,13 @@
 
 use core::{convert::TryFrom, mem::take, ops::Range};
 use kernel::{
-    bindings, c_types,
+    bindings,
     cred::Credential,
     file::File,
     file_operations::{FileOperations, IoctlCommand, IoctlHandler, PollTable},
     io_buffer::{IoBufferReader, IoBufferWriter},
     linked_list::List,
+    mm,
     pages::Pages,
     prelude::*,
     rbtree::RBTree,
@@ -577,24 +578,21 @@ impl Process {
         }
     }
 
-    fn create_mapping(&self, vma: &mut bindings::vm_area_struct) -> Result {
-        let size = core::cmp::min(
-            (vma.vm_end - vma.vm_start) as usize,
-            bindings::SZ_4M as usize,
-        );
-        let page_count = size >> bindings::PAGE_SHIFT;
+    fn create_mapping(&self, vma: &mut mm::virt::Area) -> Result {
+        let size = core::cmp::min(vma.end() - vma.start(), bindings::SZ_4M as usize);
+        let page_count = size / kernel::PAGE_SIZE;
 
         // Allocate and map all pages.
         //
         // N.B. If we fail halfway through mapping these pages, the kernel will unmap them.
         let mut pages = Vec::new();
         pages.try_reserve_exact(page_count)?;
-        let mut address = vma.vm_start as usize;
+        let mut address = vma.start();
         for _ in 0..page_count {
             let page = Pages::<0>::new()?;
-            page.insert_page(vma, address)?;
+            vma.insert_page(address, &page)?;
             pages.try_push(page)?;
-            address += 1 << bindings::PAGE_SHIFT;
+            address += kernel::PAGE_SIZE;
         }
 
         let ref_pages = Ref::try_from(pages)?;
@@ -602,7 +600,7 @@ impl Process {
         // Save pages for later.
         let mut inner = self.inner.lock();
         match &inner.mapping {
-            None => inner.mapping = Some(Mapping::new(vma.vm_start as _, size, ref_pages)?),
+            None => inner.mapping = Some(Mapping::new(vma.start(), size, ref_pages)?),
             Some(_) => return Err(Error::EBUSY),
         }
         Ok(())
@@ -905,26 +903,25 @@ impl FileOperations for Process {
         cmd.dispatch::<Self>(this, file)
     }
 
-    fn mmap(
-        this: RefBorrow<'_, Process>,
-        _file: &File,
-        vma: &mut bindings::vm_area_struct,
-    ) -> Result {
+    fn mmap(this: RefBorrow<'_, Process>, _file: &File, vma: &mut mm::virt::Area) -> Result {
         // We don't allow mmap to be used in a different process.
         if !Task::current().group_leader().eq(&this.task) {
             return Err(Error::EINVAL);
         }
 
-        if vma.vm_start == 0 {
+        if vma.start() == 0 {
             return Err(Error::EINVAL);
         }
 
-        if (vma.vm_flags & (bindings::VM_WRITE as c_types::c_ulong)) != 0 {
+        let mut flags = vma.flags();
+        use mm::virt::flags::*;
+        if flags & WRITE != 0 {
             return Err(Error::EPERM);
         }
 
-        vma.vm_flags |= (bindings::VM_DONTCOPY | bindings::VM_MIXEDMAP) as c_types::c_ulong;
-        vma.vm_flags &= !(bindings::VM_MAYWRITE as c_types::c_ulong);
+        flags |= DONTCOPY | MIXEDMAP;
+        flags &= !MAYWRITE;
+        vma.set_flags(flags);
 
         // TODO: Set ops. We need to learn when the user unmaps so that we can stop using it.
         this.create_mapping(vma)
