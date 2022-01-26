@@ -138,6 +138,7 @@ needed).
    misc-devices/index
    scheduler/index
    mhi/index
+   tty/index
 
 Architecture-agnostic documentation
 -----------------------------------
