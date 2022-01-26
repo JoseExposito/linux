@@ -129,8 +129,7 @@ if [ "$1" = -v ]; then
 	if [ "$cc_name" = Clang ]; then
 		clang_version=$( \
 			LC_ALL=C "$CC" --version 2>/dev/null \
-				| head -n 1 \
-				| grep -oE '[0-9]+\.[0-9]+\.[0-9]+' \
+				| sed -nE '1s:.*version ([0-9]+\.[0-9]+\.[0-9]+).*:\1:p'
 		)
 		if [ "$clang_version" != "$bindgen_libclang_version" ]; then
 			echo >&2 "***"
