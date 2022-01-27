@@ -96,7 +96,7 @@ impl<T> SpinLock<T> {
     /// # Safety
     ///
     /// The caller must call [`SpinLock::init_lock`] before using the spinlock.
-    pub unsafe fn new(t: T) -> Self {
+    pub const unsafe fn new(t: T) -> Self {
         Self {
             spin_lock: Opaque::uninit(),
             data: UnsafeCell::new(t),

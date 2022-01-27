@@ -80,7 +80,7 @@ impl<T> RevocableMutex<T> {
     /// # Safety
     ///
     /// The caller must call [`RevocableMutex::init`] before using the revocable mutex.
-    pub unsafe fn new(data: T) -> Self {
+    pub const unsafe fn new(data: T) -> Self {
         Self {
             // SAFETY: The safety requirements of this function require that `RevocableMutex::init`
             // be called before the returned object can be used. Mutex initialisation is called
