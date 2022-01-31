@@ -12,7 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
-| [patch-parblo-a610-plus-v2](https://github.com/JoseExposito/linux/tree/patch-parblo-a610-plus-v2) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Parblo A610 plus v2 drawing tablet support | 🔨 |
+| [patch-parblo-a610-plus-v2](https://github.com/JoseExposito/linux/tree/patch-parblo-a610-plus-v2) | [patch-digimend-parblo-patches](https://github.com/JoseExposito/linux/tree/patch-digimend-parblo-patches) | Parblo A610 plus v2 drawing tablet support | 🔨 |
 | [patch-digimend-parblo-patches](https://github.com/JoseExposito/linux/tree/patch-digimend-parblo-patches) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | DIGImend patches to upstream for Parblo drawing tablet support | 🔨 |
 | [patch-magic-keyboard-alu-and-2015-fn-key-mapping](https://github.com/JoseExposito/linux/tree/patch-magic-keyboard-alu-and-2015-fn-key-mapping) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Magic Keyboard first generation and 2015 function key mapping | ⏳ |
 | [patch-magic-keyboard-2021-fingerprint-fn-key-mapping](https://github.com/JoseExposito/linux/tree/patch-magic-keyboard-2021-fingerprint-fn-key-mapping) | [upstream-hid-for-next](https://github.com/JoseExposito/linux/tree/upstream-hid-for-next) | Add funtion key mapping for the Magic Keyboard 2021 with fingerprint reader and/or numpad | 🔀 |
