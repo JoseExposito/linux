@@ -7,6 +7,7 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-20.04
+    container: ghcr.io/rust-for-linux/ci
     timeout-minutes: 20
 
     strategy:
@@ -14,9 +15,7 @@ jobs:
         arch: [arm, arm64, ppc64le, riscv64, x86_64]
         toolchain: [gcc, clang, llvm]
         config: [debug, release]
-        rustc: [1.58.0]
         output: [src] # [src, build]
-        install: [rustup] # [rustup, standalone]
         sysroot: [common] # [common, custom]
         lto: [none] # [none, thin]
 
@@ -42,71 +41,55 @@ jobs:
 
         # A few independent combinations to avoid exploding the matrix:
         #   - The other option for `output`.
-        #   - Different releases for `rustc`.
+        #   - Whether to use a custom sysroot.
         #   - Explicitly enabling `lto` on platforms which support LTO.
-        #   - The other three (`install`, `sysroot`) combinations
-        #     (they are interrelated, so the cross-product needs to be tested)
         include:
           - arch: arm64
             toolchain: gcc
             config: debug
-            rustc: 1.58.0
             output: build
-            install: rustup
             sysroot: custom
             lto: none
 
           - arch: arm64
             toolchain: llvm
             config: debug
-            rustc: 1.58.0
             output: build
-            install: rustup
             sysroot: custom
             lto: thin
 
           - arch: arm64
             toolchain: llvm
             config: release
-            rustc: 1.58.0
             output: build
-            install: rustup
             sysroot: custom
             lto: thin
 
           - arch: ppc64le
             toolchain: clang
             config: release
-            rustc: 1.58.0
             output: build
-            install: standalone
             sysroot: common
             lto: none
 
           - arch: x86_64
             toolchain: llvm
             config: debug
-            rustc: 1.58.0
             output: build
-            install: standalone
             sysroot: custom
             lto: none
 
           - arch: x86_64
             toolchain: llvm
             config: debug
-            rustc: 1.58.0
             output: src
-            install: rustup
             sysroot: common
             lto: thin
 
           - arch: x86_64
             toolchain: llvm
             config: release
-            rustc: 1.58.0
             output: src
-            install: rustup
             sysroot: common
             lto: thin
 
@@ -120,7 +103,7 @@ jobs:
       # Setup: Github cache
       - uses: actions/cache@v2
         with:
-          path: ~/.ccache
+          path: /root/.ccache
           key: ${{ env.MATRIX_NAME }}-ccache-${{ github.run_id }}
           restore-keys: |
               ${{ env.MATRIX_NAME }}-ccache-
@@ -169,7 +152,7 @@ jobs:
           echo 'QEMU_ARGS=-bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.elf' >> $GITHUB_ENV
 
       - if: matrix.toolchain == 'clang'
-        run: echo 'MAKE_TOOLCHAIN=CC=clang-12' >> $GITHUB_ENV
+        run: echo 'MAKE_TOOLCHAIN=CC=clang' >> $GITHUB_ENV
       - if: matrix.toolchain == 'llvm'
         run: echo 'MAKE_TOOLCHAIN=LLVM=1' >> $GITHUB_ENV
 
@@ -184,66 +167,22 @@ jobs:
           echo 'MAKE_OUTPUT=O=build' >> $GITHUB_ENV
           echo 'BUILD_DIR=build/' >> $GITHUB_ENV
 
+      # Setup: Rust
+      #
+      # `rustc` via `rustup` needs to find the `settings.xml` file,
+      # but GitHub overrides `$HOME` for containers. Undo it, even
+      # if it makes GitHub show some Docker warnings.
+      # See https://github.com/actions/runner/issues/863.
+      #
+      # Note that the commands need to be in their own `run` to have
+      # `$HOME` visible for the second one.
+      - run: echo 'HOME=/root' >> $GITHUB_ENV
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
       - if: matrix.sysroot == 'custom'
         run: |
           echo 'RUSTC_SYSROOT=--sysroot=$HOME/sysroot' >> $GITHUB_ENV
           echo "MAKE_SYSROOT=KRUSTFLAGS=--sysroot=$HOME/sysroot" >> $GITHUB_ENV
-
-      # Setup: custom pre-built binaries folder
-      - run: |
-          mkdir bin
-          echo $(pwd)/bin >> $GITHUB_PATH
-
-      # Setup: LLVM
-      - run: curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-      # Retry to be resilient to intermittent network issues
-      - run: |
-          sudo add-apt-repository 'deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main' ||
-            sudo add-apt-repository 'deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main' ||
-            sudo add-apt-repository 'deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main'
-      - run: sudo apt-get update -y
-      - run: sudo apt-get install -y llvm-12 clang-12 lld-12 --fix-missing
-      - run: echo $(llvm-config-12 --bindir) >> $GITHUB_PATH
-
-      # Setup: GCC
-      - if: matrix.arch == 'arm'
-        run: sudo apt-get install -y gcc-arm-linux-gnueabi lzop
-      - if: matrix.arch == 'arm64'
-        run: sudo apt-get install -y gcc-aarch64-linux-gnu
-      - if: matrix.arch == 'ppc64le'
-        run: sudo apt-get install -y gcc-powerpc64le-linux-gnu
-      - if: matrix.arch == 'riscv64'
-        run: sudo apt-get install -y gcc-riscv64-linux-gnu
-
-      # Setup OpenSBI
-      - if: matrix.arch == 'riscv64'
-        run: sudo apt-get install -y opensbi
-
-      # Setup: libelf
-      - run: sudo apt-get install -y libelf-dev
-
-      # Setup: QEMU
-      - if: matrix.arch == 'x86_64'
-        run: sudo apt-get install -y qemu-system-x86
-      - if: matrix.arch == 'arm' || matrix.arch == 'arm64'
-        run: sudo apt-get install -y qemu-system-arm
-      - if: matrix.arch == 'ppc64le'
-        run: sudo apt-get install -y qemu-system-ppc
-      - if: matrix.arch == 'riscv64'
-        run: |
-          curl -o bin/qemu-system-riscv64 https://raw.githubusercontent.com/Rust-for-Linux/ci-bin/master/qemu-6.0.0/bin/qemu-system-riscv64
-          chmod u+x bin/qemu-system-riscv64
-
-      # Setup: rustc
-      - if: matrix.install == 'rustup'
-        run: |
-          rustup default ${{ matrix.rustc }}
-          rustup component add rustfmt
-      - if: matrix.install == 'standalone'
-        run: |
-          curl https://static.rust-lang.org/dist/rust-${{ matrix.rustc }}-x86_64-unknown-linux-gnu.tar.gz | tar xz
-          rust-${{ matrix.rustc }}-x86_64-unknown-linux-gnu/install.sh --without=rust-docs --prefix=$HOME/rustc
-          echo $HOME/rustc/bin >> $GITHUB_PATH
 
       # Setup: rustc native libs
       - if: matrix.sysroot == 'custom'
@@ -251,36 +190,12 @@ jobs:
           mkdir $(rustc ${{ env.RUSTC_SYSROOT }} --print sysroot)
           ln -s $(rustc --print sysroot)/lib $(rustc ${{ env.RUSTC_SYSROOT }} --print sysroot)/lib
 
-      # Setup: rustc source
-      - if: matrix.install == 'rustup' && matrix.sysroot == 'common'
-        run: rustup component add rust-src
-      - if: matrix.install != 'rustup' || matrix.sysroot != 'common'
-        run: |
-          git clone -n https://github.com/rust-lang/rust $(rustc ${{ env.RUSTC_SYSROOT }} --print sysroot)/lib/rustlib/src/rust
-          cd $(rustc ${{ env.RUSTC_SYSROOT }} --print sysroot)/lib/rustlib/src/rust
-          git checkout $(rustc -vV | grep -F 'commit-hash' | awk '{print $2}')
-          git submodule update --init library
-
-      # Setup: clippy
-      - run: rustup component add clippy
-
-      # Setup: bindgen
-      - run: |
-          curl -o bin/bindgen https://raw.githubusercontent.com/Rust-for-Linux/ci-bin/master/bindgen-0.56.0/bin/bindgen
-          chmod u+x bin/bindgen
-
       # Setup: ccache
       - run: |
-          sudo apt-get install ccache
           echo '/usr/lib/ccache:$PATH' >> $GITHUB_PATH
 
       # Setup: Check existing ccache
       - run: ccache -s
-
-      # Setup: busybox
-      - run: git clone --depth 1 -b 1_30_1 https://github.com/mirror/busybox
-      - run: mv .github/workflows/busybox.config busybox/.config
-      - run: cd busybox && make ${{ env.MAKE_CROSS_COMPILE }} -j3
 
       # Setup: module parameters test
       - run: |
@@ -319,9 +234,12 @@ jobs:
       # Make sure `CONFIG_WERROR` was enabled
       - run: grep -F 'CONFIG_WERROR=y' ${{ env.BUILD_DIR }}.config
 
-      # Run
-      - run: ${{ env.BUILD_DIR }}usr/gen_init_cpio .github/workflows/qemu-initramfs.desc > qemu-initramfs.img
+      # Prepare image
+      - run: |
+          mv $HOME/busybox-${{ matrix.arch }} busybox
+          ${{ env.BUILD_DIR }}usr/gen_init_cpio .github/workflows/qemu-initramfs.desc > qemu-initramfs.img
 
+      # Run
       - run: |
           qemu-system-${{ env.QEMU_ARCH }} \
             ${{ env.QEMU_ARGS }} \
