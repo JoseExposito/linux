@@ -120,7 +120,7 @@ macro_rules! init_static_sync {
         $(
             $(#[$outer])*
             $v static $id: $t = {
-                #[link_section = ".ctors"]
+                #[link_section = ".init_array"]
                 #[used]
                 static TMP: extern "C" fn() = {
                     extern "C" fn constructor() {
