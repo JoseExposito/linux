@@ -205,11 +205,6 @@ bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-fno-partial-inlining -fplugin-arg-arm_ssp_per_task_plugin-% \
 	-fno-reorder-blocks -fno-allow-store-data-races -fasan-shadow-offset=% \
 	-fzero-call-used-regs=% \
-	-Wno-packed-not-aligned -Wno-format-truncation -Wno-format-overflow \
-	-Wno-stringop-truncation -Wno-unused-but-set-variable \
-	-Wno-stringop-overflow -Wno-restrict -Wno-maybe-uninitialized \
-	-Werror=designated-init -Wno-zero-length-bounds -Wimplicit-fallthrough=% \
-	-Wno-alloc-size-larger-than -Wcast-function-type \
 	--param=% --param asan-%
 
 # Derived from `scripts/Makefile.clang`
@@ -220,9 +215,11 @@ BINDGEN_TARGET_riscv	:= riscv64-linux-gnu
 BINDGEN_TARGET_x86	:= x86_64-linux-gnu
 BINDGEN_TARGET		:= $(BINDGEN_TARGET_$(SRCARCH))
 
-bindgen_extra_c_flags = --target=$(BINDGEN_TARGET) \
-	-Wno-address-of-packed-member \
-	-Wno-gnu-variable-sized-type-not-at-end
+# All warnings are inhibited since GCC builds are very experimental,
+# many GCC warnings are not supported by Clang, they may only appear in
+# some configurations, with new GCC versions, etc.
+bindgen_extra_c_flags = -w --target=$(BINDGEN_TARGET)
+
 bindgen_c_flags = $(filter-out $(bindgen_skip_c_flags), $(c_flags)) \
 	$(bindgen_extra_c_flags)
 endif
