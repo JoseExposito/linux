@@ -338,7 +338,7 @@ jobs:
               rust_module_parameters_builtin_custom.my_usize=84 \
               rust_module_parameters_builtin_custom.my_array=1,2,3 \
             ' \
-            | sed s:$'\r'$:: \
+            | sed 's:\r$::' \
             | tee qemu-stdout.log
 
       # The kernel should not be generating any warnings
