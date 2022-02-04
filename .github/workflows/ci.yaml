@@ -1,7 +1,7 @@
 on:
   pull_request: {}
   schedule:
-    - cron:  '30 5,17 * * *'
+    - cron: '30 5,17 * * *'
   push:
 
 jobs:
@@ -121,9 +121,9 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: ~/.ccache
-          key: ${{ env.MATRIX_NAME  }}-ccache-${{ github.run_id }}
+          key: ${{ env.MATRIX_NAME }}-ccache-${{ github.run_id }}
           restore-keys: |
-              ${{ env.MATRIX_NAME  }}-ccache-
+              ${{ env.MATRIX_NAME }}-ccache-
 
       # Setup: variables
       - if: matrix.arch == 'x86_64'
