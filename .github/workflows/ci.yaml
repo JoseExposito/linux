@@ -314,6 +314,9 @@ jobs:
 
       - run: make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_LLVM_IAS }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3
 
+      # Print the final config used
+      - run: cat ${{ env.BUILD_DIR }}.config
+
       # Make sure `CONFIG_WERROR` was enabled
       - run: grep -F 'CONFIG_WERROR=y' ${{ env.BUILD_DIR }}.config
 
