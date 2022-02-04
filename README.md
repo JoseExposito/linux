@@ -61,7 +61,7 @@ Upstream code is saved in `upstream-*` branches to easily rebase and generate pa
 
 | Branch | Remote | Pull command | 
 | - | - | - |
-| [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | GitHub fork | Use GitHub's UI |
+| [upstream-torvalds-master](https://github.com/JoseExposito/linux/tree/upstream-torvalds-master) | git remote add torvalds git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git | git pull --rebase torvalds master |
 | [upstream-linux-next](https://github.com/JoseExposito/linux/tree/upstream-linux-next) | git remote add linux-next https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git | git pull --rebase linux-next master |
 | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | git remote add hid git://git.kernel.org/pub/scm/linux/kernel/git/hid/hid.git | git pull --rebase hid master |
 | [upstream-hid-for-next](https://github.com/JoseExposito/linux/tree/upstream-hid-for-next) | git remote add hid git://git.kernel.org/pub/scm/linux/kernel/git/hid/hid.git | git pull --rebase hid for-next |
