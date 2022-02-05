@@ -57,6 +57,7 @@ pub mod file_operations;
 pub mod gpio;
 pub mod irq;
 pub mod miscdev;
+pub mod mm;
 pub mod pages;
 pub mod power;
 pub mod revocable;

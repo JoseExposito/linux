@@ -10,6 +10,7 @@ use crate::{
     file::{File, FileRef},
     io_buffer::{IoBufferReader, IoBufferWriter},
     iov_iter::IovIter,
+    mm,
     sync::CondVar,
     types::PointerWrapper,
     user_ptr::{UserSlicePtr, UserSlicePtrReader, UserSlicePtrWriter},
@@ -288,7 +289,14 @@ impl<A: FileOpenAdapter<T::OpenData>, T: FileOperations> FileOperationsVtable<A,
             // references to `file` have been released, so we know it can't be called while this
             // function is running.
             let f = unsafe { T::Wrapper::borrow((*file).private_data) };
-            T::mmap(f, unsafe { &FileRef::from_ptr(file) }, unsafe { &mut *vma })?;
+
+            // SAFETY: The C API guarantees that `vma` is valid for the duration of this call.
+            // `area` only lives within this call, so it is guaranteed to be valid.
+            let mut area = unsafe { mm::virt::Area::from_ptr(vma) };
+
+            // SAFETY: The C API guarantees that `file` is valid for the duration of this call,
+            // which is longer than the lifetime of the file reference.
+            T::mmap(f, unsafe { &FileRef::from_ptr(file) }, &mut area)?;
             Ok(0)
         }
     }
@@ -707,7 +715,7 @@ pub trait FileOperations {
     fn mmap(
         _this: <Self::Wrapper as PointerWrapper>::Borrowed<'_>,
         _file: &File,
-        _vma: &mut bindings::vm_area_struct,
+        _vma: &mut mm::virt::Area,
     ) -> Result {
         Err(Error::EINVAL)
     }
