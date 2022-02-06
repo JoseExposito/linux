@@ -14,6 +14,6 @@ do
   if [[ $line =~ ^[0-9a-fA-F]+[[:space:]]+[uUtTrR][[:space:]]+_R[^[:space:]]+$ ]]; then
     exit 0
   fi
-done < <(nm "$module")
+done < <(${NM} "$module")
 
 exit 1
