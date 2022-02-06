@@ -242,29 +242,27 @@ bindgen_c_flags_final = $(filter-out -D_TASK_CPU=%, $(bindgen_c_flags_lto))
 
 quiet_cmd_bindgen = BINDGEN $@
       cmd_bindgen = \
-	$(BINDGEN) $< $(shell grep -v '^\#\|^$$' $(srctree)/rust/bindgen_parameters) \
+	$(BINDGEN) $< $(bindgen_target_flags) \
 		--use-core --with-derive-default --ctypes-prefix c_types \
 		--no-debug '.*' \
-		--size_t-is-usize -o $@ -- $(bindgen_c_flags_final) -DMODULE
+		--size_t-is-usize -o $@ -- $(bindgen_c_flags_final) -DMODULE \
+		$(bindgen_target_cflags) $(bindgen_target_extra)
 
+$(objtree)/rust/bindings_generated.rs: private bindgen_target_flags = \
+    $(shell grep -v '^\#\|^$$' $(srctree)/rust/bindgen_parameters)
 $(objtree)/rust/bindings_generated.rs: $(srctree)/rust/kernel/bindings_helper.h \
-	$(srctree)/rust/bindgen_parameters FORCE
+    $(srctree)/rust/bindgen_parameters FORCE
 	$(call if_changed_dep,bindgen)
 
-quiet_cmd_bindgen_helper = BINDGEN $@
-      cmd_bindgen_helper = \
-	$(BINDGEN) $< --blacklist-type '.*' --whitelist-var '' \
-		--whitelist-function 'rust_helper_.*' \
-		--use-core --with-derive-default --ctypes-prefix c_types \
-		--no-debug '.*' \
-		--size_t-is-usize -o $@ -- $(bindgen_c_flags_final) \
-		-I$(objtree)/rust/ -DMODULE $(bindgen_target_cflags); \
-	sed -Ei 's/pub fn rust_helper_([a-zA-Z0-9_]*)/\#[link_name="rust_helper_\1"]\n    pub fn \1/g' $@
-
-# See `CFLAGS_REMOVE_helpers.o` above.
-$(objtree)/rust/bindings_helpers_generated.rs: private bindgen_target_cflags = -Wno-missing-prototypes
+# See `CFLAGS_REMOVE_helpers.o` above for `-Wno-missing-prototypes`.
+$(objtree)/rust/bindings_helpers_generated.rs: private bindgen_target_flags = \
+    --blacklist-type '.*' --whitelist-var '' --whitelist-function 'rust_helper_.*'
+$(objtree)/rust/bindings_helpers_generated.rs: private bindgen_target_cflags = \
+    -I$(objtree)/rust/ -Wno-missing-prototypes
+$(objtree)/rust/bindings_helpers_generated.rs: private bindgen_target_extra = ; \
+    sed -Ei 's/pub fn rust_helper_([a-zA-Z0-9_]*)/#[link_name="rust_helper_\1"]\n    pub fn \1/g' $@
 $(objtree)/rust/bindings_helpers_generated.rs: $(srctree)/rust/helpers.c FORCE
-	$(call if_changed_dep,bindgen_helper)
+	$(call if_changed_dep,bindgen)
 
 quiet_cmd_exports = EXPORTS $@
       cmd_exports = \
