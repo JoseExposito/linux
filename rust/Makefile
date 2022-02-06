@@ -1,7 +1,12 @@
 # SPDX-License-Identifier: GPL-2.0
 
-obj-$(CONFIG_RUST) += core.o compiler_builtins.o helpers.o
+obj-$(CONFIG_RUST) += core.o compiler_builtins.o
 always-$(CONFIG_RUST) += exports_core_generated.h
+
+# Missing prototypes are expected in the helpers since these are exported
+# for Rust only, thus there is no header nor prototypes.
+obj-$(CONFIG_RUST) += helpers.o
+CFLAGS_REMOVE_helpers.o = -Wmissing-prototypes
 
 always-$(CONFIG_RUST) += libmacros.so
 no-clean-files += libmacros.so
@@ -253,9 +258,11 @@ quiet_cmd_bindgen_helper = BINDGEN $@
 		--use-core --with-derive-default --ctypes-prefix c_types \
 		--no-debug '.*' \
 		--size_t-is-usize -o $@ -- $(bindgen_c_flags_final) \
-		-I$(objtree)/rust/ -DMODULE; \
+		-I$(objtree)/rust/ -DMODULE $(bindgen_target_cflags); \
 	sed -Ei 's/pub fn rust_helper_([a-zA-Z0-9_]*)/\#[link_name="rust_helper_\1"]\n    pub fn \1/g' $@
 
+# See `CFLAGS_REMOVE_helpers.o` above.
+$(objtree)/rust/bindings_helpers_generated.rs: private bindgen_target_cflags = -Wno-missing-prototypes
 $(objtree)/rust/bindings_helpers_generated.rs: $(srctree)/rust/helpers.c FORCE
 	$(call if_changed_dep,bindgen_helper)
 
