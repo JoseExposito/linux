@@ -273,7 +273,6 @@ jobs:
       - run: |
           sudo apt-get install ccache
           echo '/usr/lib/ccache:$PATH' >> $GITHUB_PATH
-          echo 'CCACHE_COMPRESS=true' >> $GITHUB_ENV
 
       # Setup: Check existing ccache
       - run: ccache -s
