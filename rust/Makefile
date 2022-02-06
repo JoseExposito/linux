@@ -1,7 +1,12 @@
 # SPDX-License-Identifier: GPL-2.0
 
-obj-$(CONFIG_RUST) += core.o compiler_builtins.o helpers.o
+obj-$(CONFIG_RUST) += core.o compiler_builtins.o
 always-$(CONFIG_RUST) += exports_core_generated.h
+
+# Missing prototypes are expected in the helpers since these are exported
+# for Rust only, thus there is no header nor prototypes.
+obj-$(CONFIG_RUST) += helpers.o
+CFLAGS_REMOVE_helpers.o = -Wmissing-prototypes
 
 always-$(CONFIG_RUST) += libmacros.so
 no-clean-files += libmacros.so
@@ -200,15 +205,13 @@ bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-mindirect-branch=thunk-extern -mindirect-branch-register -mrecord-mcount \
 	-mabi=lp64 -mstack-protector-guard% -mtraceback=no \
 	-mno-pointers-to-nested-functions -mno-string -mno-strict-align \
+	-mstrict-align \
 	-fconserve-stack -falign-jumps=% -falign-loops=% \
 	-femit-struct-debug-baseonly -fno-ipa-cp-clone -fno-ipa-sra \
 	-fno-partial-inlining -fplugin-arg-arm_ssp_per_task_plugin-% \
 	-fno-reorder-blocks -fno-allow-store-data-races -fasan-shadow-offset=% \
-	-Wno-packed-not-aligned -Wno-format-truncation -Wno-format-overflow \
-	-Wno-stringop-truncation -Wno-unused-but-set-variable \
-	-Wno-stringop-overflow -Wno-restrict -Wno-maybe-uninitialized \
-	-Werror=designated-init -Wno-zero-length-bounds -Wimplicit-fallthrough=% \
-	-Wno-alloc-size-larger-than -Wcast-function-type \
+	-fzero-call-used-regs=% -fno-stack-clash-protection \
+	-fno-inline-functions-called-once \
 	--param=% --param asan-%
 
 # Derived from `scripts/Makefile.clang`
@@ -219,9 +222,11 @@ BINDGEN_TARGET_riscv	:= riscv64-linux-gnu
 BINDGEN_TARGET_x86	:= x86_64-linux-gnu
 BINDGEN_TARGET		:= $(BINDGEN_TARGET_$(SRCARCH))
 
-bindgen_extra_c_flags = --target=$(BINDGEN_TARGET) \
-	-Wno-address-of-packed-member \
-	-Wno-gnu-variable-sized-type-not-at-end
+# All warnings are inhibited since GCC builds are very experimental,
+# many GCC warnings are not supported by Clang, they may only appear in
+# some configurations, with new GCC versions, etc.
+bindgen_extra_c_flags = -w --target=$(BINDGEN_TARGET)
+
 bindgen_c_flags = $(filter-out $(bindgen_skip_c_flags), $(c_flags)) \
 	$(bindgen_extra_c_flags)
 endif
@@ -253,9 +258,11 @@ quiet_cmd_bindgen_helper = BINDGEN $@
 		--use-core --with-derive-default --ctypes-prefix c_types \
 		--no-debug '.*' \
 		--size_t-is-usize -o $@ -- $(bindgen_c_flags_final) \
-		-I$(objtree)/rust/ -DMODULE; \
+		-I$(objtree)/rust/ -DMODULE $(bindgen_target_cflags); \
 	sed -Ei 's/pub fn rust_helper_([a-zA-Z0-9_]*)/\#[link_name="rust_helper_\1"]\n    pub fn \1/g' $@
 
+# See `CFLAGS_REMOVE_helpers.o` above.
+$(objtree)/rust/bindings_helpers_generated.rs: private bindgen_target_cflags = -Wno-missing-prototypes
 $(objtree)/rust/bindings_helpers_generated.rs: $(srctree)/rust/helpers.c FORCE
 	$(call if_changed_dep,bindgen_helper)
 
