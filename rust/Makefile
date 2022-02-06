@@ -200,11 +200,13 @@ bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-mindirect-branch=thunk-extern -mindirect-branch-register -mrecord-mcount \
 	-mabi=lp64 -mstack-protector-guard% -mtraceback=no \
 	-mno-pointers-to-nested-functions -mno-string -mno-strict-align \
+	-mstrict-align \
 	-fconserve-stack -falign-jumps=% -falign-loops=% \
 	-femit-struct-debug-baseonly -fno-ipa-cp-clone -fno-ipa-sra \
 	-fno-partial-inlining -fplugin-arg-arm_ssp_per_task_plugin-% \
 	-fno-reorder-blocks -fno-allow-store-data-races -fasan-shadow-offset=% \
-	-fzero-call-used-regs=% \
+	-fzero-call-used-regs=% -fno-stack-clash-protection \
+	-fno-inline-functions-called-once \
 	--param=% --param asan-%
 
 # Derived from `scripts/Makefile.clang`
