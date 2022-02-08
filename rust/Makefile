@@ -6,7 +6,7 @@ always-$(CONFIG_RUST) += exports_core_generated.h
 # Missing prototypes are expected in the helpers since these are exported
 # for Rust only, thus there is no header nor prototypes.
 obj-$(CONFIG_RUST) += helpers.o
-CFLAGS_REMOVE_helpers.o = -Wmissing-prototypes
+CFLAGS_REMOVE_helpers.o = -Wmissing-prototypes -Wmissing-declarations
 
 always-$(CONFIG_RUST) += libmacros.so
 no-clean-files += libmacros.so
@@ -269,11 +269,14 @@ $(objtree)/rust/bindings_generated.rs: $(srctree)/rust/kernel/bindings_helper.h 
     $(srctree)/rust/bindgen_parameters FORCE
 	$(call if_changed_dep,bindgen)
 
-# See `CFLAGS_REMOVE_helpers.o` above for `-Wno-missing-prototypes`.
+# See `CFLAGS_REMOVE_helpers.o` above. In addition, Clang on C does not warn
+# with `-Wmissing-declarations` (unlike GCC), so it is not strictly needed here
+# given it is `libclang`; but for consistency, future Clang changes and/or
+# a potential future GCC backend for `bindgen`, we disable it too.
 $(objtree)/rust/bindings_helpers_generated.rs: private bindgen_target_flags = \
     --blacklist-type '.*' --whitelist-var '' --whitelist-function 'rust_helper_.*'
 $(objtree)/rust/bindings_helpers_generated.rs: private bindgen_target_cflags = \
-    -I$(objtree)/rust/ -Wno-missing-prototypes
+    -I$(objtree)/rust/ -Wno-missing-prototypes -Wno-missing-declarations
 $(objtree)/rust/bindings_helpers_generated.rs: private bindgen_target_extra = ; \
     sed -Ei 's/pub fn rust_helper_([a-zA-Z0-9_]*)/#[link_name="rust_helper_\1"]\n    pub fn \1/g' $@
 $(objtree)/rust/bindings_helpers_generated.rs: $(srctree)/rust/helpers.c FORCE
