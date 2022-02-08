@@ -373,3 +373,29 @@ mod tests {
         assert_eq!(unchecked_str, "🐧");
     }
 }
+
+// Use `usize` to use `saturating_*` functions.
+pub(crate) struct Formatter {
+    pub(crate) buf: usize,
+    pub(crate) end: usize,
+}
+
+impl fmt::Write for Formatter {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        // `buf` value after writing `len` bytes. This does not have to be bounded by `end`, but we
+        // don't want it to wrap around to 0.
+        let buf_new = self.buf.saturating_add(s.len());
+
+        // Amount that we can copy. `saturating_sub` ensures we get 0 if `buf` goes past `end`.
+        let len_to_copy = core::cmp::min(buf_new, self.end).saturating_sub(self.buf);
+
+        // SAFETY: In any case, `buf` is non-null and properly aligned.  If `len_to_copy` is
+        // non-zero, then we know `buf` has not past `end` yet and so is valid.
+        unsafe {
+            core::ptr::copy_nonoverlapping(s.as_bytes().as_ptr(), self.buf as *mut u8, len_to_copy)
+        };
+
+        self.buf = buf_new;
+        Ok(())
+    }
+}
