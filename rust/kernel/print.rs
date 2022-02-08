@@ -6,50 +6,17 @@
 //!
 //! Reference: <https://www.kernel.org/doc/html/latest/core-api/printk-basics.html>
 
-use core::cmp;
 use core::fmt;
 
-use crate::bindings;
 use crate::c_types::{c_char, c_void};
+use crate::{bindings, str::Formatter};
 
 // Called from `vsprintf` with format specifier `%pA`.
 #[no_mangle]
 unsafe fn rust_fmt_argument(buf: *mut c_char, end: *mut c_char, ptr: *const c_void) -> *mut c_char {
     use fmt::Write;
 
-    // Use `usize` to use `saturating_*` functions.
-    struct Writer {
-        buf: usize,
-        end: usize,
-    }
-
-    impl Write for Writer {
-        fn write_str(&mut self, s: &str) -> fmt::Result {
-            // `buf` value after writing `len` bytes. This does not have to be bounded
-            // by `end`, but we don't want it to wrap around to 0.
-            let buf_new = self.buf.saturating_add(s.len());
-
-            // Amount that we can copy. `saturating_sub` ensures we get 0 if
-            // `buf` goes past `end`.
-            let len_to_copy = cmp::min(buf_new, self.end).saturating_sub(self.buf);
-
-            // SAFETY: In any case, `buf` is non-null and properly aligned.
-            // If `len_to_copy` is non-zero, then we know `buf` has not past
-            // `end` yet and so is valid.
-            unsafe {
-                core::ptr::copy_nonoverlapping(
-                    s.as_bytes().as_ptr(),
-                    self.buf as *mut u8,
-                    len_to_copy,
-                )
-            };
-
-            self.buf = buf_new;
-            Ok(())
-        }
-    }
-
-    let mut w = Writer {
+    let mut w = Formatter {
         buf: buf as _,
         end: end as _,
     };
