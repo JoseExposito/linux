@@ -1258,13 +1258,13 @@ archprepare: outputmakefile archheaders archscripts scripts include/config/kerne
 prepare0: archprepare
 	$(Q)$(MAKE) $(build)=scripts/mod
 	$(Q)$(MAKE) $(build)=.
+
+# All the preparing..
+prepare: prepare0
 ifdef CONFIG_RUST
 	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/rust-is-available.sh -v
 	$(Q)$(MAKE) $(build)=rust
 endif
-
-# All the preparing..
-prepare: prepare0
 
 PHONY += remove-stale-files
 remove-stale-files:

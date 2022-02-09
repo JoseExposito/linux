@@ -252,8 +252,7 @@ else
 bindgen_c_flags_lto = $(bindgen_c_flags)
 endif
 
-# To avoid several recompilations in PowerPC, which inserts `-D_TASK_CPU`
-bindgen_c_flags_final = $(filter-out -D_TASK_CPU=%, $(bindgen_c_flags_lto))
+bindgen_c_flags_final = $(bindgen_c_flags_lto)
 
 quiet_cmd_bindgen = BINDGEN $@
       cmd_bindgen = \
