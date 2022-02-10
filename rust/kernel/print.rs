@@ -8,8 +8,13 @@
 
 use core::fmt;
 
-use crate::c_types::{c_char, c_void};
-use crate::{bindings, str::Formatter};
+use crate::{
+    c_types::{c_char, c_void},
+    str::Formatter,
+};
+
+#[cfg(CONFIG_PRINTK)]
+use crate::bindings;
 
 // Called from `vsprintf` with format specifier `%pA`.
 #[no_mangle]
@@ -93,12 +98,14 @@ pub mod format_strings {
 ///
 /// [`_printk`]: ../../../../include/linux/_printk.h
 #[doc(hidden)]
+#[cfg_attr(not(CONFIG_PRINTK), allow(unused_variables))]
 pub unsafe fn call_printk(
     format_string: &[u8; format_strings::LENGTH],
     module_name: &[u8],
     args: fmt::Arguments<'_>,
 ) {
     // `_printk` does not seem to fail in any path.
+    #[cfg(CONFIG_PRINTK)]
     unsafe {
         bindings::_printk(
             format_string.as_ptr() as _,
@@ -114,10 +121,12 @@ pub unsafe fn call_printk(
 ///
 /// [`_printk`]: ../../../../include/linux/printk.h
 #[doc(hidden)]
+#[cfg_attr(not(CONFIG_PRINTK), allow(unused_variables))]
 pub fn call_printk_cont(args: fmt::Arguments<'_>) {
     // `_printk` does not seem to fail in any path.
     //
     // SAFETY: The format string is fixed.
+    #[cfg(CONFIG_PRINTK)]
     unsafe {
         bindings::_printk(
             format_strings::CONT.as_ptr() as _,

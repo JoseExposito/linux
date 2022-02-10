@@ -8,7 +8,7 @@
 use crate::{clk::Clk, error::from_kernel_err_ptr};
 
 use crate::{
-    bindings, c_str, c_types,
+    bindings,
     revocable::{Revocable, RevocableGuard},
     str::CStr,
     sync::{NeedsLockClass, RevocableMutex, RevocableMutexGuard, UniqueRef},
@@ -19,6 +19,9 @@ use core::{
     ops::{Deref, DerefMut},
     pin::Pin,
 };
+
+#[cfg(CONFIG_PRINTK)]
+use crate::{c_str, c_types};
 
 /// A raw device.
 ///
@@ -138,10 +141,12 @@ pub unsafe trait RawDevice {
     ///
     /// Callers must ensure that `klevel` is null-terminated; in particular, one of the
     /// `KERN_*`constants, for example, `KERN_CRIT`, `KERN_ALERT`, etc.
+    #[cfg_attr(not(CONFIG_PRINTK), allow(unused_variables))]
     unsafe fn printk(&self, klevel: &[u8], msg: fmt::Arguments<'_>) {
         // SAFETY: `klevel` is null-terminated and one of the kernel constants. `self.raw_device`
         // is valid because `self` is valid. The "%pA" format string expects a pointer to
         // `fmt::Arguments`, which is what we're passing as the last argument.
+        #[cfg(CONFIG_PRINTK)]
         unsafe {
             bindings::_dev_printk(
                 klevel as *const _ as *const c_types::c_char,
