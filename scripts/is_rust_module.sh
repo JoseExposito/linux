@@ -1,19 +1,13 @@
-#!/bin/bash
+#!/bin/sh
 # SPDX-License-Identifier: GPL-2.0
 #
-# is_rust_module.sh MOD.ko
+# is_rust_module.sh module.ko
 #
-# Returns 0 if MOD.ko is a rust module, 1 otherwise.
+# Returns `0` if `module.ko` is a Rust module, `1` otherwise.
 
 set -e
-module="$*"
 
-while IFS= read -r line
-do
-  # Any symbol beginning with "_R" is a v0 mangled rust symbol
-  if [[ $line =~ ^[0-9a-fA-F]+[[:space:]]+[uUtTrR][[:space:]]+_R[^[:space:]]+$ ]]; then
-    exit 0
-  fi
-done < <(${NM} "$module")
-
-exit 1
+# Using the `16_` prefix ensures other symbols with the same substring
+# are not picked up (even if it would be unlikely). The last part is
+# used just in case LLVM decides to use the `.` suffix.
+${NM} "$*" | grep -qE '^[0-9a-fA-F]+ r _R[^[:space:]]+16___IS_RUST_MODULE[^[:space:]]*$'
