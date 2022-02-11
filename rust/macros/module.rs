@@ -503,6 +503,15 @@ pub(crate) fn module(ts: TokenStream) -> TokenStream {
             /// Used by the printing macros, e.g. [`info!`].
             const __LOG_PREFIX: &[u8] = b\"{name}\\0\";
 
+            /// The \"Rust loadable module\" mark, for `scripts/is_rust_module.sh`.
+            //
+            // This may be best done another way later on, e.g. as a new modinfo
+            // key or a new section. For the moment, keep it simple.
+            #[cfg(MODULE)]
+            #[doc(hidden)]
+            #[used]
+            static __IS_RUST_MODULE: () = ();
+
             static mut __MOD: Option<{type_}> = None;
 
             // SAFETY: `__this_module` is constructed by the kernel at load time and will not be freed until the module is unloaded.
