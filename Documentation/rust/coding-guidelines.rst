@@ -53,6 +53,8 @@ the one at:
 
 This is how a well-documented Rust function may look like::
 
+.. code-block:: rust
+
 	/// Returns the contained [`Some`] value, consuming the `self` value,
 	/// without checking that the value is not [`None`].
 	///
