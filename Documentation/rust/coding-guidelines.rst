@@ -51,7 +51,7 @@ the one at:
 
 	https://commonmark.org/help/
 
-This is how a well-documented Rust function may look like::
+This is how a well-documented Rust function may look like:
 
 .. code-block:: rust
 
