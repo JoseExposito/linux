@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-//! Bindings
+//! Bindings.
 //!
 //! Imports the generated bindings by `bindgen`.
 

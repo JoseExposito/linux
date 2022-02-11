@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-//! Rust synchronisation primitives sample
+//! Rust synchronisation primitives sample.
 
 use kernel::prelude::*;
 use kernel::{

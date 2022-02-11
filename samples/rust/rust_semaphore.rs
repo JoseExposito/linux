@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-//! Rust semaphore sample
+//! Rust semaphore sample.
 //!
 //! A counting semaphore that can be used by userspace.
 //!

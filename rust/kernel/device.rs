@@ -61,11 +61,11 @@ pub unsafe trait RawDevice {
             None => core::ptr::null(),
         };
 
-        // SAFETY: id_ptr is optional and may be either a valid pointer
+        // SAFETY: `id_ptr` is optional and may be either a valid pointer
         // from the type invariant or NULL otherwise.
         let clk_ptr = unsafe { from_kernel_err_ptr(bindings::clk_get(self.raw_device(), id_ptr)) }?;
 
-        // SAFETY: clock is initialized with valid pointer returned from `bindings::clk_get` call.
+        // SAFETY: Clock is initialized with valid pointer returned from `bindings::clk_get` call.
         unsafe { Ok(Clk::new(clk_ptr)) }
     }
 
@@ -222,10 +222,10 @@ impl Drop for Device {
 /// some device state must be freed and not used anymore, while others must remain accessible.
 ///
 /// This struct separates the device data into three categories:
-/// 1. Registrations: are destroyed when the device is removed, but before the io resources
-///    become inaccessible.
-/// 2. Io resources: are available until the device is removed.
-/// 3. General data: remain available as long as the ref count is nonzero.
+///   1. Registrations: are destroyed when the device is removed, but before the io resources
+///      become inaccessible.
+///   2. Io resources: are available until the device is removed.
+///   3. General data: remain available as long as the ref count is nonzero.
 ///
 /// This struct implements the `DeviceRemoval` trait so that it can clean resources up even if not
 /// explicitly called by the device drivers.

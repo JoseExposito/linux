@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-//! Rust printing macros sample
+//! Rust printing macros sample.
 
 use kernel::prelude::*;
 use kernel::{pr_cont, str::CStr, ThisModule};

@@ -23,9 +23,9 @@ use crate::str::CStr;
 ///
 /// # Invariants
 ///
-/// - [`self.0`] is valid and non-null.
-/// - [`(*self.0).ops`] is valid, non-null and has static lifetime.
-/// - [`(*self.0).owner`] is valid and, if non-null, has module lifetime.
+///   - [`self.0`] is valid and non-null.
+///   - [`(*self.0).ops`] is valid, non-null and has static lifetime.
+///   - [`(*self.0).owner`] is valid and, if non-null, has module lifetime.
 struct Cdev(*mut bindings::cdev);
 
 impl Cdev {
@@ -45,20 +45,20 @@ impl Cdev {
             (*cdev).owner = module.0;
         }
         // INVARIANTS:
-        // - [`self.0`] is valid and non-null.
-        // - [`(*self.0).ops`] is valid, non-null and has static lifetime,
-        //   because it was coerced from a reference with static lifetime.
-        // - [`(*self.0).owner`] is valid and, if non-null, has module lifetime,
-        //   guaranteed by the [`ThisModule`] invariant.
+        //   - [`self.0`] is valid and non-null.
+        //   - [`(*self.0).ops`] is valid, non-null and has static lifetime,
+        //     because it was coerced from a reference with static lifetime.
+        //   - [`(*self.0).owner`] is valid and, if non-null, has module lifetime,
+        //     guaranteed by the [`ThisModule`] invariant.
         Ok(Self(cdev))
     }
 
     fn add(&mut self, dev: bindings::dev_t, count: c_types::c_uint) -> Result {
-        // SAFETY: according to the type invariants:
-        // - [`self.0`] can be safely passed to [`bindings::cdev_add`].
-        // - [`(*self.0).ops`] will live at least as long as [`self.0`].
-        // - [`(*self.0).owner`] will live at least as long as the
-        //   module, which is an implicit requirement.
+        // SAFETY: According to the type invariants:
+        //   - [`self.0`] can be safely passed to [`bindings::cdev_add`].
+        //   - [`(*self.0).ops`] will live at least as long as [`self.0`].
+        //   - [`(*self.0).owner`] will live at least as long as the
+        //     module, which is an implicit requirement.
         let rc = unsafe { bindings::cdev_add(self.0, dev, count) };
         if rc != 0 {
             return Err(Error::from_kernel_errno(rc));
