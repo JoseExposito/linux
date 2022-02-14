@@ -1,5 +1,3 @@
-.. _rust_coding_guidelines:
-
 Coding Guidelines
 =================
 

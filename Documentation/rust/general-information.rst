@@ -1,5 +1,3 @@
-.. _rust_general_information:
-
 General Information
 ===================
 

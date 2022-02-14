@@ -1,5 +1,3 @@
-.. _rust_arch_support:
-
 Arch Support
 ============
 
