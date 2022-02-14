@@ -43,7 +43,6 @@ pub mod bindings;
 
 #[cfg(CONFIG_ARM_AMBA)]
 pub mod amba;
-pub mod buffer;
 pub mod c_types;
 pub mod chrdev;
 #[cfg(CONFIG_COMMON_CLK)]

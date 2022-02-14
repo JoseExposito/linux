@@ -10,7 +10,7 @@ use core::fmt;
 
 use crate::{
     c_types::{c_char, c_void},
-    str::Formatter,
+    str::RawFormatter,
 };
 
 #[cfg(CONFIG_PRINTK)]
@@ -20,13 +20,10 @@ use crate::bindings;
 #[no_mangle]
 unsafe fn rust_fmt_argument(buf: *mut c_char, end: *mut c_char, ptr: *const c_void) -> *mut c_char {
     use fmt::Write;
-
-    let mut w = Formatter {
-        buf: buf as _,
-        end: end as _,
-    };
+    // SAFETY: The C contract guarantees that `buf` is valid if it's less than `end`.
+    let mut w = unsafe { RawFormatter::from_ptrs(buf.cast(), end.cast()) };
     let _ = w.write_fmt(unsafe { *(ptr as *const fmt::Arguments<'_>) });
-    w.buf as _
+    w.pos().cast()
 }
 
 /// Format strings.

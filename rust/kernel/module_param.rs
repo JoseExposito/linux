@@ -4,7 +4,8 @@
 //!
 //! C header: [`include/linux/moduleparam.h`](../../../include/linux/moduleparam.h)
 
-use crate::str::CStr;
+use crate::error::from_kernel_result;
+use crate::str::{CStr, Formatter};
 use core::fmt::Write;
 
 /// Types that can be used for module parameters.
@@ -95,11 +96,11 @@ pub trait ModuleParam: core::fmt::Display + core::marker::Sized {
         buf: *mut crate::c_types::c_char,
         param: *const crate::bindings::kernel_param,
     ) -> crate::c_types::c_int {
-        let slice = unsafe { core::slice::from_raw_parts_mut(buf as *mut u8, crate::PAGE_SIZE) };
-        let mut buf = crate::buffer::Buffer::new(slice);
-        match unsafe { write!(buf, "{}\0", *((*param).__bindgen_anon_1.arg as *mut Self)) } {
-            Err(_) => crate::error::Error::EINVAL.to_kernel_errno(),
-            Ok(()) => buf.bytes_written() as crate::c_types::c_int,
+        from_kernel_result! {
+            // SAFETY: The C contracts guarantees that the buffer is at least `PAGE_SIZE` bytes.
+            let mut f = unsafe { Formatter::from_buffer(buf.cast(), crate::PAGE_SIZE) };
+            unsafe { write!(f, "{}\0", *((*param).__bindgen_anon_1.arg as *mut Self)) }?;
+            Ok(f.bytes_written().try_into()?)
         }
     }
 
