@@ -12,7 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
-| [patch-drm_panel_bridge_add](https://github.com/JoseExposito/linux/tree/patch-drm_panel_bridge_add) | [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | DRM: Migrate from `drm_of_find_panel_or_bridge` plus `drm_panel_bridge_add` to `devm_drm_of_get_bridge` | 🔨 |
+| [patch-drm_panel_bridge_add](https://github.com/JoseExposito/linux/tree/patch-drm_panel_bridge_add) | [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | DRM: Migrate from `drm_of_find_panel_or_bridge` + `drm_panel_bridge_add` to `devm_drm_of_get_bridge` | 🔨 |
 | [patch-omap-drm_of_find_panel_or_bridge](https://github.com/JoseExposito/linux/pull/new/patch-omap-drm_of_find_panel_or_bridge) | [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | DRM omap: Use drm_of_find_panel_or_bridge | 🔨 |
 | [patch-parblo-a610-plus-v2](https://github.com/JoseExposito/linux/tree/patch-parblo-a610-plus-v2) | [patch-digimend-parblo-patches](https://github.com/JoseExposito/linux/tree/patch-digimend-parblo-patches) | Parblo A610 plus v2 drawing tablet support | 🔨 |
 | [patch-digimend-parblo-patches-mailing-list](https://github.com/JoseExposito/linux/tree/patch-digimend-parblo-patches-mailing-list) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Version of [patch-digimend-parblo-patches](https://github.com/JoseExposito/linux/tree/patch-digimend-parblo-patches) to be upstreamed, including `checkpatch` fixes and review comments | ⏳ (7/37) |
