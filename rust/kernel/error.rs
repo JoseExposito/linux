@@ -352,23 +352,41 @@ impl Error {
     pub fn to_kernel_errno(self) -> c_types::c_int {
         self.0
     }
+
+    /// Returns a string representing the error, if one exists.
+    #[cfg(not(testlib))]
+    pub fn name(&self) -> Option<&'static CStr> {
+        // SAFETY: Just an FFI call, there are no extra safety requirements.
+        let ptr = unsafe { bindings::errname(-self.0) };
+        if ptr.is_null() {
+            None
+        } else {
+            // SAFETY: The string returned by `errname` is static and `NUL`-terminated.
+            Some(unsafe { CStr::from_char_ptr(ptr) })
+        }
+    }
+
+    /// Returns a string representing the error, if one exists.
+    ///
+    /// When `testlib` is configured, this always returns `None` to avoid the dependency on a
+    /// kernel function so that tests that use this (e.g., by calling [`Result::unwrap`]) can still
+    /// run in userspace.
+    #[cfg(testlib)]
+    pub fn name(&self) -> Option<&'static CStr> {
+        None
+    }
 }
 
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // SAFETY: FFI call.
-        let name = unsafe { bindings::errname(-self.0) };
-
-        if name.is_null() {
+        match self.name() {
             // Print out number if no name can be found.
-            return f.debug_tuple("Error").field(&-self.0).finish();
+            None => f.debug_tuple("Error").field(&-self.0).finish(),
+            // SAFETY: These strings are ASCII-only.
+            Some(name) => f
+                .debug_tuple(unsafe { str::from_utf8_unchecked(name) })
+                .finish(),
         }
-
-        // SAFETY: `'static` string from C, and is not NULL.
-        let cstr = unsafe { CStr::from_char_ptr(name) };
-        // SAFETY: These strings are ASCII-only.
-        let str = unsafe { str::from_utf8_unchecked(cstr) };
-        f.debug_tuple(str).finish()
     }
 }
 
