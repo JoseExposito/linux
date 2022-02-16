@@ -182,6 +182,13 @@ void rust_helper_writeq_relaxed(u64 value, volatile void __iomem *addr)
 }
 EXPORT_SYMBOL_GPL(rust_helper_writeq_relaxed);
 #endif
+
+void rust_helper_memcpy_fromio(void *to, const volatile void __iomem *from, long count)
+{
+	memcpy_fromio(to, from, count);
+}
+EXPORT_SYMBOL_GPL(rust_helper_memcpy_fromio);
+
 void rust_helper___spin_lock_init(spinlock_t *lock, const char *name,
 				  struct lock_class_key *key)
 {
