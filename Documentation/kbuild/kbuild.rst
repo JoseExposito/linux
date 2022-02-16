@@ -82,6 +82,10 @@ HOSTCXXFLAGS
 ------------
 Additional flags to be passed to $(HOSTCXX) when building host programs.
 
+HOSTRUSTFLAGS
+-------------
+Additional flags to be passed to $(HOSTRUSTC) when building host programs.
+
 HOSTLDFLAGS
 -----------
 Additional flags to be passed when linking host programs.
