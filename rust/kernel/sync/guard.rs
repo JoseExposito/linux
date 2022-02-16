@@ -7,14 +7,14 @@
 //! other constructs to work on generic locking primitives.
 
 use super::NeedsLockClass;
-use crate::{bindings, str::CStr};
+use crate::{bindings, str::CStr, Bool, False, True};
 use core::pin::Pin;
 
 /// Allows mutual exclusion primitives that implement the [`Lock`] trait to automatically unlock
 /// when a guard goes out of scope. It also provides a safe and convenient way to access the data
 /// protected by the lock.
 #[must_use = "the lock unlocks immediately when the guard is unused"]
-pub struct Guard<'a, L: Lock<M> + ?Sized, M = WriteLock> {
+pub struct Guard<'a, L: Lock<I> + ?Sized, I: LockInfo = WriteLock> {
     pub(crate) lock: &'a L,
     pub(crate) context: L::GuardContext,
 }
@@ -23,14 +23,15 @@ pub struct Guard<'a, L: Lock<M> + ?Sized, M = WriteLock> {
 // conservative than the default compiler implementation; more details can be found on
 // https://github.com/rust-lang/rust/issues/41622 -- it refers to `MutexGuard` from the standard
 // library.
-unsafe impl<L, M> Sync for Guard<'_, L, M>
+unsafe impl<L, I> Sync for Guard<'_, L, I>
 where
-    L: Lock<M> + ?Sized,
+    L: Lock<I> + ?Sized,
     L::Inner: Sync,
+    I: LockInfo,
 {
 }
 
-impl<L: Lock<M> + ?Sized, M> core::ops::Deref for Guard<'_, L, M> {
+impl<L: Lock<I> + ?Sized, I: LockInfo> core::ops::Deref for Guard<'_, L, I> {
     type Target = L::Inner;
 
     fn deref(&self) -> &Self::Target {
@@ -39,21 +40,21 @@ impl<L: Lock<M> + ?Sized, M> core::ops::Deref for Guard<'_, L, M> {
     }
 }
 
-impl<L: Lock<WriteLock> + ?Sized> core::ops::DerefMut for Guard<'_, L, WriteLock> {
+impl<L: Lock<I> + ?Sized, I: LockInfo<Writable = True>> core::ops::DerefMut for Guard<'_, L, I> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         // SAFETY: The caller owns the lock, so it is safe to deref the protected data.
         unsafe { &mut *self.lock.locked_data().get() }
     }
 }
 
-impl<L: Lock<M> + ?Sized, M> Drop for Guard<'_, L, M> {
+impl<L: Lock<I> + ?Sized, I: LockInfo> Drop for Guard<'_, L, I> {
     fn drop(&mut self) {
         // SAFETY: The caller owns the lock, so it is safe to unlock it.
         unsafe { self.lock.unlock(&mut self.context) };
     }
 }
 
-impl<'a, L: Lock<M> + ?Sized, M> Guard<'a, L, M> {
+impl<'a, L: Lock<I> + ?Sized, I: LockInfo> Guard<'a, L, I> {
     /// Constructs a new immutable lock guard.
     ///
     /// # Safety
@@ -64,11 +65,23 @@ impl<'a, L: Lock<M> + ?Sized, M> Guard<'a, L, M> {
     }
 }
 
+/// Specifies properties of a lock.
+pub trait LockInfo {
+    /// Determines if the data protected by a lock is writable.
+    type Writable: Bool;
+}
+
 /// A marker for locks that only allow reading.
 pub struct ReadLock;
+impl LockInfo for ReadLock {
+    type Writable = False;
+}
 
 /// A marker for locks that allow reading and writing.
 pub struct WriteLock;
+impl LockInfo for WriteLock {
+    type Writable = True;
+}
 
 /// A generic mutual exclusion primitive.
 ///
@@ -83,7 +96,7 @@ pub struct WriteLock;
 /// - Implementers of all other markers must ensure that a mutable reference to the protected data
 ///   is not active in any thread/CPU because at least one shared refence is active between calls
 ///   to `lock_noguard` and `unlock`.
-pub unsafe trait Lock<M = WriteLock> {
+pub unsafe trait Lock<I: LockInfo = WriteLock> {
     /// The type of the data protected by the lock.
     type Inner: ?Sized;
 
@@ -116,13 +129,16 @@ pub unsafe trait Lock<M = WriteLock> {
 }
 
 /// A generic mutual exclusion primitive that can be instantiated generically.
-pub trait CreatableLock<M = WriteLock>: Lock<M> {
+pub trait CreatableLock {
+    /// The type of the argument passed to [`CreatableLock::new_lock`].
+    type CreateArgType: ?Sized;
+
     /// Constructs a new instance of the lock.
     ///
     /// # Safety
     ///
     /// The caller must call [`CreatableLock::init_lock`] before using the lock.
-    unsafe fn new_lock(data: Self::Inner) -> Self;
+    unsafe fn new_lock(data: Self::CreateArgType) -> Self;
 
     /// Initialises the lock type instance so that it can be safely used.
     ///
