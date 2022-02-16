@@ -6,8 +6,8 @@
 //!
 //! See <https://www.kernel.org/doc/Documentation/locking/spinlocks.txt>.
 
-use super::{CreatableLock, Guard, Lock};
-use crate::{bindings, c_types, str::CStr, Opaque};
+use super::{mutex::EmptyGuardContext, CreatableLock, Guard, Lock, LockInfo, WriteLock};
+use crate::{bindings, c_types, str::CStr, Opaque, True};
 use core::{cell::UnsafeCell, marker::PhantomPinned, pin::Pin};
 
 /// Safely initialises a [`SpinLock`] with the given name, generating a new lock class.
@@ -108,8 +108,8 @@ impl<T> SpinLock<T> {
 impl<T: ?Sized> SpinLock<T> {
     /// Locks the spinlock and gives the caller access to the data protected by it. Only one thread
     /// at a time is allowed to access the protected data.
-    pub fn lock(&self) -> Guard<'_, Self> {
-        let ctx = self.lock_noguard();
+    pub fn lock(&self) -> Guard<'_, Self, WriteLock> {
+        let ctx = <Self as Lock<WriteLock>>::lock_noguard(self);
         // SAFETY: The spinlock was just acquired.
         unsafe { Guard::new(self, ctx) }
     }
@@ -118,15 +118,10 @@ impl<T: ?Sized> SpinLock<T> {
     /// disables interrupts (if they are enabled).
     ///
     /// When the lock in unlocked, the interrupt state (enabled/disabled) is restored.
-    pub fn lock_irqdisable(&self) -> Guard<'_, Self> {
-        let ctx = self.internal_lock_irqsave();
+    pub fn lock_irqdisable(&self) -> Guard<'_, Self, DisabledInterrupts> {
+        let ctx = <Self as Lock<DisabledInterrupts>>::lock_noguard(self);
         // SAFETY: The spinlock was just acquired.
-        unsafe { Guard::new(self, Some(ctx)) }
-    }
-
-    fn internal_lock_irqsave(&self) -> c_types::c_ulong {
-        // SAFETY: `spin_lock` points to valid memory.
-        unsafe { bindings::spin_lock_irqsave(self.spin_lock.get()) }
+        unsafe { Guard::new(self, ctx) }
     }
 }
 
@@ -147,33 +142,48 @@ impl<T> CreatableLock for SpinLock<T> {
     }
 }
 
+/// A type state indicating that interrupts were disabled.
+pub struct DisabledInterrupts;
+impl LockInfo for DisabledInterrupts {
+    type Writable = True;
+}
+
 // SAFETY: The underlying kernel `spinlock_t` object ensures mutual exclusion.
 unsafe impl<T: ?Sized> Lock for SpinLock<T> {
     type Inner = T;
-    type GuardContext = Option<c_types::c_ulong>;
+    type GuardContext = EmptyGuardContext;
 
-    fn lock_noguard(&self) -> Option<c_types::c_ulong> {
+    fn lock_noguard(&self) -> EmptyGuardContext {
         // SAFETY: `spin_lock` points to valid memory.
         unsafe { bindings::spin_lock(self.spin_lock.get()) };
-        None
+        EmptyGuardContext
     }
 
-    unsafe fn unlock(&self, ctx: &mut Option<c_types::c_ulong>) {
-        match ctx {
-            // SAFETY: The safety requirements of the function ensure that the spinlock is owned by
-            // the caller.
-            Some(v) => unsafe { bindings::spin_unlock_irqrestore(self.spin_lock.get(), *v) },
-            // SAFETY: The safety requirements of the function ensure that the spinlock is owned by
-            // the caller.
-            None => unsafe { bindings::spin_unlock(self.spin_lock.get()) },
-        }
+    unsafe fn unlock(&self, _: &mut EmptyGuardContext) {
+        // SAFETY: The safety requirements of the function ensure that the spinlock is owned by
+        // the caller.
+        unsafe { bindings::spin_unlock(self.spin_lock.get()) }
     }
 
-    fn relock(&self, ctx: &mut Self::GuardContext) {
-        match ctx {
-            Some(v) => *v = self.internal_lock_irqsave(),
-            None => *ctx = self.lock_noguard(),
-        }
+    fn locked_data(&self) -> &UnsafeCell<T> {
+        &self.data
+    }
+}
+
+// SAFETY: The underlying kernel `spinlock_t` object ensures mutual exclusion.
+unsafe impl<T: ?Sized> Lock<DisabledInterrupts> for SpinLock<T> {
+    type Inner = T;
+    type GuardContext = c_types::c_ulong;
+
+    fn lock_noguard(&self) -> c_types::c_ulong {
+        // SAFETY: `spin_lock` points to valid memory.
+        unsafe { bindings::spin_lock_irqsave(self.spin_lock.get()) }
+    }
+
+    unsafe fn unlock(&self, ctx: &mut c_types::c_ulong) {
+        // SAFETY: The safety requirements of the function ensure that the spinlock is owned by
+        // the caller.
+        unsafe { bindings::spin_unlock_irqrestore(self.spin_lock.get(), *ctx) }
     }
 
     fn locked_data(&self) -> &UnsafeCell<T> {
