@@ -96,7 +96,7 @@ pub mod user_ptr;
 pub use build_error::build_error;
 
 pub use crate::error::{to_result, Error, Result};
-pub use crate::types::{bit, bits_iter, Mode, Opaque, ScopeGuard};
+pub use crate::types::{bit, bits_iter, Bool, False, Mode, Opaque, ScopeGuard, True};
 
 use core::marker::PhantomData;
 

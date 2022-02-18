@@ -131,7 +131,9 @@ impl<T: ?Sized> SpinLock<T> {
 }
 
 impl<T> CreatableLock for SpinLock<T> {
-    unsafe fn new_lock(data: Self::Inner) -> Self {
+    type CreateArgType = T;
+
+    unsafe fn new_lock(data: Self::CreateArgType) -> Self {
         // SAFETY: The safety requirements of `new_lock` also require that `init_lock` be called.
         unsafe { Self::new(data) }
     }
