@@ -173,6 +173,16 @@ impl<const SIZE: usize> IoMem<SIZE> {
         }
     }
 
+    fn offset_ok_of_val<T: ?Sized>(offset: usize, value: &T) -> bool {
+        let value_size = core::mem::size_of_val(value);
+        let value_alignment = core::mem::align_of_val(value);
+        if let Some(end) = offset.checked_add(value_size) {
+            end <= SIZE && offset % value_alignment == 0
+        } else {
+            false
+        }
+    }
+
     const fn check_offset<T>(offset: usize) {
         crate::build_assert!(Self::offset_ok::<T>(offset), "IoMem offset overflow");
     }
