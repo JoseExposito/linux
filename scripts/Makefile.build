@@ -328,7 +328,7 @@ $(obj)/%.lst: $(src)/%.c FORCE
 # Compile Rust sources (.rs)
 # ---------------------------------------------------------------------------
 
-rust_cross_flags := --target=$(KBUILD_RUST_TARGET)
+rust_cross_flags := --target=$(objtree)/rust/target.json
 rust_allowed_features := allocator_api,bench_black_box,concat_idents,generic_associated_types
 
 rust_common_cmd = \

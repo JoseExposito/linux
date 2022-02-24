@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0
 
+always-$(CONFIG_RUST) += target.json
+no-clean-files += target.json
+
 obj-$(CONFIG_RUST) += core.o compiler_builtins.o
 always-$(CONFIG_RUST) += exports_core_generated.h
 
@@ -206,6 +209,11 @@ rusttest-kernel: $(srctree)/rust/kernel/lib.rs rusttest-prepare \
 	$(call if_changed,rustc_test_library)
 	$(call if_changed,rustdoc_test)
 
+filechk_rust_target = $(objtree)/scripts/generate_rust_target < $<
+
+$(objtree)/rust/target.json: $(objtree)/include/config/auto.conf FORCE
+	$(call filechk,rust_target)
+
 ifdef CONFIG_CC_IS_CLANG
 bindgen_c_flags = $(c_flags)
 else
@@ -364,7 +372,8 @@ $(objtree)/rust/kernel.o: $(srctree)/rust/kernel/lib.rs $(objtree)/rust/alloc.o 
 $(objtree)/rust/core.o: private skip_clippy = 1
 $(objtree)/rust/core.o: private skip_flags = -Dunreachable_pub --edition=2021
 $(objtree)/rust/core.o: private rustc_target_flags = $(core-cfgs) --edition=2018
-$(objtree)/rust/core.o: $(RUST_LIB_SRC)/core/src/lib.rs FORCE
+$(objtree)/rust/core.o: $(RUST_LIB_SRC)/core/src/lib.rs \
+    $(objtree)/rust/target.json FORCE
 	$(call if_changed_dep,rustc_library)
 
 rustdoc-core: private rustc_target_flags = $(core-cfgs)
