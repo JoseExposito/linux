@@ -171,9 +171,9 @@ in the kernel:
     there are no *extra* implicit constraints.
 
 To learn more about how to write documentation for Rust and extra features,
-please take a look at the ``rustdoc`` `book`_.
+please take a look at the ``rustdoc`` book at:
 
-.. _book: https://doc.rust-lang.org/rustdoc/how-to-write-documentation.html
+	https://doc.rust-lang.org/rustdoc/how-to-write-documentation.html
 
 
 Naming
