@@ -30,7 +30,7 @@ To read the docs locally in your web browser, run e.g.::
 	xdg-open rust/doc/kernel/index.html
 
 To learn about how to write the documentation, please see the coding guidelines
-at Documentation/rust/coding-guidelines.rst.
+at coding-guidelines.rst.
 
 
 Extra lints

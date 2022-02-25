@@ -2,7 +2,7 @@ Rust
 ====
 
 Documentation related to Rust within the kernel. To start using Rust
-in the kernel, please read the Documentation/rust/quick-start.rst guide.
+in the kernel, please read the quick-start.rst guide.
 
 .. toctree::
     :maxdepth: 1
