@@ -93,8 +93,8 @@ is optional) needs to be installed to build the kernel. Other components are
 useful for developing.
 
 Please see Documentation/rust/quick-start.rst for instructions on how to
-satisfy the build requirements of Rust support. In particular, the Makefile
-target 'rustavailable' is useful to check why the Rust toolchain may not
+satisfy the build requirements of Rust support. In particular, the ``Makefile``
+target ``rustavailable`` is useful to check why the Rust toolchain may not
 be detected.
 
 bindgen (optional)
