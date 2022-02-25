@@ -546,7 +546,7 @@ pub(crate) fn module(ts: TokenStream) -> TokenStream {
 
             #[cfg(not(MODULE))]
             #[cfg(CONFIG_HAVE_ARCH_PREL32_RELOCATIONS)]
-            global_asm!(
+            core::arch::global_asm!(
                 r#\".section \"{initcall_section}\", \"a\"
                 __{name}_initcall:
                     .long   __{name}_init - .

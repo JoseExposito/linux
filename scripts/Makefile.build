@@ -332,7 +332,7 @@ $(obj)/%.lst: $(src)/%.c FORCE
 # otherwise rustdoc and rustc compute different hashes for the target.
 rust_cross_flags := --target=$(realpath $(KBUILD_RUST_TARGET))
 
-rust_allowed_features := allocator_api,bench_black_box,concat_idents,generic_associated_types,global_asm
+rust_allowed_features := allocator_api,bench_black_box,concat_idents,generic_associated_types
 
 rust_common_cmd = \
 	RUST_MODFILE=$(modfile) $(RUSTC_OR_CLIPPY) \
