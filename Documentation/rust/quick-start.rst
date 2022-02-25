@@ -1,5 +1,3 @@
-.. _rust_quick_start:
-
 Quick Start
 ===========
 
@@ -86,8 +84,8 @@ Otherwise, building LLVM takes quite a while, but it is not a complex process:
 
 	https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm
 
-See :ref:`Documentation/kbuild/llvm.rst <kbuild_llvm>` for more information and
-further ways to fetch pre-built releases and distribution packages.
+Please see Documentation/kbuild/llvm.rst for more information and further ways
+to fetch pre-built releases and distribution packages.
 
 
 bindgen
@@ -113,7 +111,7 @@ rustfmt
 
 The ``rustfmt`` tool is used to automatically format all the Rust kernel code,
 including the generated C bindings (for details, please see
-:ref:`Documentation/rust/coding-guidelines.rst <rust_coding_guidelines>`).
+coding-guidelines.rst).
 
 If ``rustup`` is being used, its ``default`` profile already installs the tool,
 thus nothing needs to be done. If another profile is being used, the component
@@ -129,7 +127,7 @@ clippy
 
 ``clippy`` is a Rust linter. Running it provides extra warnings for Rust code.
 It can be run by passing ``CLIPPY=1`` to ``make`` (for details, please see
-:ref:`Documentation/rust/general-information.rst <rust_general_information>`).
+general-information.rst).
 
 If ``rustup`` is being used, its ``default`` profile already installs the tool,
 thus nothing needs to be done. If another profile is being used, the component
@@ -159,7 +157,7 @@ rustdoc
 
 ``rustdoc`` is the documentation tool for Rust. It generates pretty HTML
 documentation for Rust code (for details, please see
-:ref:`Documentation/rust/general-information.rst <rust_general_information>`).
+general-information.rst).
 
 ``rustdoc`` is also used to test the examples provided in documented Rust code
 (called doctests or documentation tests). The ``rusttest`` Make target uses

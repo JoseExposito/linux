@@ -1,5 +1,3 @@
-.. _rust_coding_guidelines:
-
 Coding Guidelines
 =================
 
@@ -46,7 +44,7 @@ Comments
 with ``///`` or ``//!``) are written in Markdown the same way as documentation
 comments are, even though they will not be rendered. This improves consistency,
 simplifies the rules and allows to move content between the two kinds of
-comments more easily. For instance::
+comments more easily. For instance:
 
 .. code-block:: rust
 
@@ -55,7 +53,7 @@ comments more easily. For instance::
 
 Furthermore, just like documentation, comments are capitalized at the beginning
 of a sentence and ended with a period (even if it is a single sentence). This
-includes `// SAFETY: `, `// TODO: ` and other "tagged" comments, e.g.::
+includes ``// SAFETY:``, ``// TODO:`` and other "tagged" comments, e.g.:
 
 .. code-block:: rust
 
@@ -65,10 +63,10 @@ Comments should not be used for documentation purposes: comments are intended
 for implementation details, not users. This distinction is useful even if the
 reader of the source file is both an implementor and a user of an API. In fact,
 sometimes it is useful to use both comments and documentation at the same time.
-For instance, for a `TODO` list or to comment on the documentation itself. For
-the latter case, comments can be inserted in the middle; that is, closer to
+For instance, for a ``TODO`` list or to comment on the documentation itself.
+For the latter case, comments can be inserted in the middle; that is, closer to
 the line of documentation to be commented. For any other case, comments are
-written after the documentation, e.g.::
+written after the documentation, e.g.:
 
 .. code-block:: rust
 
@@ -82,21 +80,21 @@ written after the documentation, e.g.::
 	/// ```
 	// FIXME: Use fallible approach.
 	pub fn f(x: i32) -> Foo {
-		// ...
+	    // ...
 	}
 
-One special kind of comments are the `// SAFETY: ` comments. These must appear
-before every `unsafe` block, and they explain why the code inside the block is
-correct/sound, i.e. why it cannot trigger undefined behavior in any case, e.g.::
+One special kind of comments are the ``// SAFETY:`` comments. These must appear
+before every ``unsafe`` block, and they explain why the code inside the block is
+correct/sound, i.e. why it cannot trigger undefined behavior in any case, e.g.:
 
 .. code-block:: rust
 
 	// SAFETY: `p` is valid by the safety requirements.
 	unsafe { *p = 0; }
 
-`// SAFETY: ` comments are not to be confused with the `# Safety` sections in
-code documentation. ``# Safety`` sections specify the contract that callers
-(for functions) or implementors (for traits) need to abide by. ``// SAFETY: ``
+``// SAFETY:`` comments are not to be confused with the ``# Safety`` sections
+in code documentation. ``# Safety`` sections specify the contract that callers
+(for functions) or implementors (for traits) need to abide by. ``// SAFETY:``
 comments show why a call (for functions) or implementation (for traits) actually
 respects the preconditions stated in a ``# Safety`` section or the language
 reference.
@@ -134,12 +132,12 @@ This is how a well-documented Rust function may look like:
 	/// assert_eq!(unsafe { x.unwrap_unchecked() }, "air");
 	/// ```
 	pub unsafe fn unwrap_unchecked(self) -> T {
-		match self {
-			Some(val) => val,
+	    match self {
+	        Some(val) => val,
 
-			// SAFETY: The safety contract must be upheld by the caller.
-			None => unsafe { hint::unreachable_unchecked() },
-		}
+	        // SAFETY: The safety contract must be upheld by the caller.
+	        None => unsafe { hint::unreachable_unchecked() },
+	    }
 	}
 
 This example showcases a few ``rustdoc`` features and some conventions followed
@@ -167,15 +165,15 @@ in the kernel:
   - Any ``unsafe`` block must be preceded by a ``// SAFETY:`` comment
     describing why the code inside is sound.
 
-    While sometimes the reason might look trivial and therefore unneeded, writing
-    these comments is not just a good way of documenting what has been taken into
-    account, but most importantly, it provides a way to know that there are
-    no *extra* implicit constraints.
+    While sometimes the reason might look trivial and therefore unneeded,
+    writing these comments is not just a good way of documenting what has been
+    taken into account, but most importantly, it provides a way to know that
+    there are no *extra* implicit constraints.
 
 To learn more about how to write documentation for Rust and extra features,
-please take a look at the ``rustdoc`` `book`_.
+please take a look at the ``rustdoc`` book at:
 
-.. _book: https://doc.rust-lang.org/rustdoc/how-to-write-documentation.html
+	https://doc.rust-lang.org/rustdoc/how-to-write-documentation.html
 
 
 Naming

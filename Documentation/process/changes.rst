@@ -92,10 +92,10 @@ Each Rust toolchain comes with several "components", some of which are required
 is optional) needs to be installed to build the kernel. Other components are
 useful for developing.
 
-Please see :ref:`Documentation/rust/quick-start.rst <rust_quick_start>` for
-instructions on how to satify the build requirements of Rust support. In
-particular, the Makefile target 'rustavailable' is useful to check why the Rust
-toolchain may not be detected.
+Please see Documentation/rust/quick-start.rst for instructions on how to
+satisfy the build requirements of Rust support. In particular, the ``Makefile``
+target ``rustavailable`` is useful to check why the Rust toolchain may not
+be detected.
 
 bindgen (optional)
 ------------------
@@ -369,8 +369,7 @@ rustdoc
 -------
 
 ``rustdoc`` is used to generate the documentation for Rust code. Please see
-:ref:`Documentation/rust/general-information.rst <rust_general_information>`
-for more information.
+Documentation/rust/general-information.rst for more information.
 
 Getting updated software
 ========================
@@ -391,12 +390,12 @@ Clang/LLVM
 Rust
 ----
 
-- :ref:`Documentation/rust/quick-start.rst <rust_quick_start>`.
+- Documentation/rust/quick-start.rst.
 
 bindgen
 -------
 
-- :ref:`Documentation/rust/quick-start.rst <rust_quick_start>`.
+- Documentation/rust/quick-start.rst.
 
 Make
 ----
