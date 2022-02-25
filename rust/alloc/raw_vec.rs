@@ -199,9 +199,12 @@ impl<T, A: Allocator> RawVec<T, A> {
                 Err(_) => handle_alloc_error(layout),
             };
 
+            // Allocators currently return a `NonNull<[u8]>` whose length
+            // matches the size requested. If that ever changes, the capacity
+            // here should change to `ptr.len() / mem::size_of::<T>()`.
             Self {
                 ptr: unsafe { Unique::new_unchecked(ptr.cast().as_ptr()) },
-                cap: Self::capacity_from_bytes(ptr.len()),
+                cap: capacity,
                 alloc,
             }
         }
@@ -220,9 +223,12 @@ impl<T, A: Allocator> RawVec<T, A> {
         };
         let ptr = result.map_err(|_| AllocError { layout, non_exhaustive: () })?;
 
+        // Allocators currently return a `NonNull<[u8]>` whose length
+        // matches the size requested. If that ever changes, the capacity
+        // here should change to `ptr.len() / mem::size_of::<T>()`.
         Ok(Self {
             ptr: unsafe { Unique::new_unchecked(ptr.cast().as_ptr()) },
-            cap: Self::capacity_from_bytes(ptr.len()),
+            cap: capacity,
             alloc,
         })
     }
@@ -318,6 +324,14 @@ impl<T, A: Allocator> RawVec<T, A> {
         }
     }
 
+    /// A specialized version of `reserve()` used only by the hot and
+    /// oft-instantiated `Vec::push()`, which does its own capacity check.
+    #[cfg(not(no_global_oom_handling))]
+    #[inline(never)]
+    pub fn reserve_for_push(&mut self, len: usize) {
+        handle_reserve(self.grow_amortized(len, 1));
+    }
+
     /// The same as `reserve`, but returns on errors instead of panicking or aborting.
     pub fn try_reserve(&mut self, len: usize, additional: usize) -> Result<(), TryReserveError> {
         if self.needs_to_grow(len, additional) {
@@ -358,7 +372,7 @@ impl<T, A: Allocator> RawVec<T, A> {
         if self.needs_to_grow(len, additional) { self.grow_exact(len, additional) } else { Ok(()) }
     }
 
-    /// Shrinks the allocation down to the specified amount. If the given amount
+    /// Shrinks the buffer down to the specified capacity. If the given amount
     /// is 0, actually completely deallocates.
     ///
     /// # Panics
@@ -369,18 +383,18 @@ impl<T, A: Allocator> RawVec<T, A> {
     ///
     /// Aborts on OOM.
     #[cfg(not(no_global_oom_handling))]
-    pub fn shrink_to_fit(&mut self, amount: usize) {
-        handle_reserve(self.shrink(amount));
+    pub fn shrink_to_fit(&mut self, cap: usize) {
+        handle_reserve(self.shrink(cap));
     }
 
-    /// Tries to shrink the allocation down to the specified amount. If the given amount
+    /// Tries to shrink the buffer down to the specified capacity. If the given amount
     /// is 0, actually completely deallocates.
     ///
     /// # Panics
     ///
     /// Panics if the given amount is *larger* than the current capacity.
-    pub fn try_shrink_to_fit(&mut self, amount: usize) -> Result<(), TryReserveError> {
-        self.shrink(amount)
+    pub fn try_shrink_to_fit(&mut self, cap: usize) -> Result<(), TryReserveError> {
+        self.shrink(cap)
     }
 }
 
@@ -391,14 +405,12 @@ impl<T, A: Allocator> RawVec<T, A> {
         additional > self.capacity().wrapping_sub(len)
     }
 
-    fn capacity_from_bytes(excess: usize) -> usize {
-        debug_assert_ne!(mem::size_of::<T>(), 0);
-        excess / mem::size_of::<T>()
-    }
-
-    fn set_ptr(&mut self, ptr: NonNull<[u8]>) {
+    fn set_ptr_and_cap(&mut self, ptr: NonNull<[u8]>, cap: usize) {
+        // Allocators currently return a `NonNull<[u8]>` whose length matches
+        // the size requested. If that ever changes, the capacity here should
+        // change to `ptr.len() / mem::size_of::<T>()`.
         self.ptr = unsafe { Unique::new_unchecked(ptr.cast().as_ptr()) };
-        self.cap = Self::capacity_from_bytes(ptr.len());
+        self.cap = cap;
     }
 
     // This method is usually instantiated many times. So we want it to be as
@@ -430,7 +442,7 @@ impl<T, A: Allocator> RawVec<T, A> {
 
         // `finish_grow` is non-generic over `T`.
         let ptr = finish_grow(new_layout, self.current_memory(), &mut self.alloc)?;
-        self.set_ptr(ptr);
+        self.set_ptr_and_cap(ptr, cap);
         Ok(())
     }
 
@@ -449,15 +461,15 @@ impl<T, A: Allocator> RawVec<T, A> {
 
         // `finish_grow` is non-generic over `T`.
         let ptr = finish_grow(new_layout, self.current_memory(), &mut self.alloc)?;
-        self.set_ptr(ptr);
+        self.set_ptr_and_cap(ptr, cap);
         Ok(())
     }
 
-    fn shrink(&mut self, amount: usize) -> Result<(), TryReserveError> {
-        assert!(amount <= self.capacity(), "Tried to shrink to a larger capacity");
+    fn shrink(&mut self, cap: usize) -> Result<(), TryReserveError> {
+        assert!(cap <= self.capacity(), "Tried to shrink to a larger capacity");
 
         let (ptr, layout) = if let Some(mem) = self.current_memory() { mem } else { return Ok(()) };
-        let new_size = amount * mem::size_of::<T>();
+        let new_size = cap * mem::size_of::<T>();
 
         let ptr = unsafe {
             let new_layout = Layout::from_size_align_unchecked(new_size, layout.align());
@@ -465,7 +477,7 @@ impl<T, A: Allocator> RawVec<T, A> {
                 .shrink(ptr, layout, new_layout)
                 .map_err(|_| AllocError { layout: new_layout, non_exhaustive: () })?
         };
-        self.set_ptr(ptr);
+        self.set_ptr_and_cap(ptr, cap);
         Ok(())
     }
 }
