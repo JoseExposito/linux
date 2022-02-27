@@ -328,10 +328,7 @@ $(obj)/%.lst: $(src)/%.c FORCE
 # Compile Rust sources (.rs)
 # ---------------------------------------------------------------------------
 
-# Need to use absolute path here and have symbolic links resolved;
-# otherwise rustdoc and rustc compute different hashes for the target.
-rust_cross_flags := --target=$(realpath $(KBUILD_RUST_TARGET))
-
+rust_cross_flags := --target=$(KBUILD_RUST_TARGET)
 rust_allowed_features := allocator_api,bench_black_box,concat_idents,generic_associated_types
 
 rust_common_cmd = \
