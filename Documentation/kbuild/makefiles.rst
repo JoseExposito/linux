@@ -1179,6 +1179,14 @@ When kbuild executes, the following steps are followed (roughly):
 	The first example utilises the trick that a config option expands
 	to 'y' when selected.
 
+    KBUILD_RUSTFLAGS
+	$(RUSTC) compiler flags
+
+	Default value - see top level Makefile
+	Append or modify as required per architecture.
+
+	Often, the KBUILD_RUSTFLAGS variable depends on the configuration.
+
     KBUILD_AFLAGS_KERNEL
 	Assembler options specific for built-in
 
@@ -1205,6 +1213,19 @@ When kbuild executes, the following steps are followed (roughly):
 	$(KBUILD_CFLAGS_MODULE) is used to add arch-specific options that
 	are used for $(CC).
 	From commandline CFLAGS_MODULE shall be used (see kbuild.rst).
+
+    KBUILD_RUSTFLAGS_KERNEL
+	$(RUSTC) options specific for built-in
+
+	$(KBUILD_RUSTFLAGS_KERNEL) contains extra Rust compiler flags used to
+	compile resident kernel code.
+
+    KBUILD_RUSTFLAGS_MODULE
+	Options for $(RUSTC) when building modules
+
+	$(KBUILD_RUSTFLAGS_MODULE) is used to add arch-specific options that
+	are used for $(RUSTC).
+	From commandline RUSTFLAGS_MODULE shall be used (see kbuild.rst).
 
     KBUILD_LDFLAGS_MODULE
 	Options for $(LD) when linking modules
