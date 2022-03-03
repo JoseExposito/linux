@@ -405,5 +405,8 @@ jobs:
           grep -F '.text'                       ${{ env.BUILD_DIR }}samples/rust/rust_minimal.s
           grep -F '; ModuleID'                  ${{ env.BUILD_DIR }}samples/rust/rust_minimal.ll
 
+      # Rust host programs
+      - run: ${{ env.BUILD_DIR }}samples/rust/hostprogs/single | grep -F 'The number is 42.'
+
       # View changes to ccache
       - run: ccache -s

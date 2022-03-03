@@ -120,4 +120,11 @@ config SAMPLE_RUST_PLATFORM
 
 	  If unsure, say N.
 
+config SAMPLE_RUST_HOSTPROGS
+	bool "Host programs"
+	help
+	  This option builds the Rust host program samples.
+
+	  If unsure, say N.
+
 endif # SAMPLES_RUST

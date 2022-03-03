@@ -29,8 +29,9 @@ This document describes the Linux kernel Makefiles.
 	   --- 4.1 Simple Host Program
 	   --- 4.2 Composite Host Programs
 	   --- 4.3 Using C++ for host programs
-	   --- 4.4 Controlling compiler options for host programs
-	   --- 4.5 When host programs are actually built
+	   --- 4.4 Using Rust for host programs
+	   --- 4.5 Controlling compiler options for host programs
+	   --- 4.6 When host programs are actually built
 
 	=== 5 Userspace Program support
 	   --- 5.1 Simple Userspace Program
@@ -835,7 +836,24 @@ Both possibilities are described in the following.
 		qconf-cxxobjs := qconf.o
 		qconf-objs    := check.o
 
-4.4 Controlling compiler options for host programs
+4.4 Using Rust for host programs
+--------------------------------
+
+	Kbuild offers support for host programs written in Rust. However,
+	since a Rust toolchain is not mandatory for kernel compilation,
+	it may only be used in scenarios where Rust is required to be
+	available (e.g. when  ``CONFIG_RUST`` is enabled).
+
+	Example::
+
+		hostprogs     := target
+		target-rust   := y
+
+	Kbuild will compile ``target`` using ``target.rs`` as the crate root,
+	located in the same directory as the ``Makefile``. The crate may
+	consist of several source files (see ``samples/rust/hostprogs``).
+
+4.5 Controlling compiler options for host programs
 --------------------------------------------------
 
 	When compiling host programs, it is possible to set specific flags.
@@ -867,7 +885,7 @@ Both possibilities are described in the following.
 	When linking qconf, it will be passed the extra option
 	"-L$(QTDIR)/lib".
 
-4.5 When host programs are actually built
+4.6 When host programs are actually built
 -----------------------------------------
 
 	Kbuild will only build host-programs when they are referenced
