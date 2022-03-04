@@ -1205,6 +1205,9 @@ When kbuild executes, the following steps are followed (roughly):
 
 	Often, the KBUILD_RUSTFLAGS variable depends on the configuration.
 
+	Note that target specification file generation (for ``--target``)
+	is handled in ``scripts/generate_rust_target.rs``.
+
     KBUILD_AFLAGS_KERNEL
 	Assembler options specific for built-in
 
