@@ -154,7 +154,6 @@ fn main() {
         );
         ts.push("dynamic-linking", true);
         ts.push("crt-static-respected", true);
-        ts.push("executables", true);
         ts.push("features", "+strict-align,+v6");
         ts.push("has-elf-tls", true);
         ts.push("has-rpath", true);
