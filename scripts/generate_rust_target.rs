@@ -238,7 +238,6 @@ fn main() {
     ts.push("env", "gnu");
     ts.push("frame-pointer", "may-omit");
     ts.push("function-sections", false);
-    ts.push("linker-is-gnu", true);
     ts.push("position-independent-executables", true);
     ts.push("relocation-model", "static");
     ts.push(
