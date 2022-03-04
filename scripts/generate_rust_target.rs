@@ -211,7 +211,6 @@ fn main() {
             "e-m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128",
         );
         ts.push("disable-redzone", true);
-        ts.push("emit-debug-gdb-scripts", false);
         ts.push("features", "+strict-align,+neon,+fp-armv8");
         ts.push("frame-pointer", "always");
         ts.push("llvm-target", "aarch64-unknown-none");
@@ -254,7 +253,6 @@ fn main() {
         }
         ts.push("code-model", "medium");
         ts.push("disable-redzone", true);
-        ts.push("emit-debug-gdb-scripts", false);
         let mut features = "+m,+a".to_string();
         if cfg.has("RISCV_ISA_C") {
             features += ",+c";
@@ -274,7 +272,6 @@ fn main() {
             "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128",
         );
         ts.push("disable-redzone", true);
-        ts.push("emit-debug-gdb-scripts", false);
         ts.push(
             "features",
             "-mmx,-sse,-sse2,-sse3,-ssse3,-sse4.1,-sse4.2,-3dnow,-3dnowa,-avx,-avx2,+soft-float",
@@ -292,6 +289,7 @@ fn main() {
         panic!("Unsupported architecture");
     }
 
+    ts.push("emit-debug-gdb-scripts", false);
     ts.push("env", "gnu");
     ts.push("function-sections", false);
     ts.push("linker-is-gnu", true);
