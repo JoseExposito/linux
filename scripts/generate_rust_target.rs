@@ -184,8 +184,6 @@ fn main() {
         ]),
     )];
 
-    let stack_probes = vec![("kind".to_string(), Value::String("none".to_string()))];
-
     if cfg.has("ARM") {
         ts.push("arch", "arm");
         ts.push(
@@ -217,7 +215,6 @@ fn main() {
         ts.push("max-atomic-width", 128);
         ts.push("needs-plt", true);
         ts.push("pre-link-args", pre_link_args_64);
-        ts.push("stack-probes", stack_probes);
         ts.push("target-c-int-width", "32");
         ts.push("target-pointer-width", "64");
         ts.push("vendor", "");
@@ -261,7 +258,6 @@ fn main() {
         ts.push("frame-pointer", "always");
         ts.push("needs-plt", true);
         ts.push("target-c-int-width", "32");
-        ts.push("stack-probes", stack_probes);
         ts.push("vendor", "");
     } else if cfg.has("X86") {
         ts.push("arch", "x86_64");
@@ -281,7 +277,6 @@ fn main() {
         ts.push("max-atomic-width", 64);
         ts.push("needs-plt", true);
         ts.push("pre-link-args", pre_link_args_64);
-        ts.push("stack-probes", stack_probes);
         ts.push("target-c-int-width", "32");
         ts.push("target-pointer-width", "64");
         ts.push("vendor", "unknown");
@@ -296,6 +291,10 @@ fn main() {
     ts.push("os", if cfg.has("ARM") { "linux" } else { "none" });
     ts.push("position-independent-executables", true);
     ts.push("relocation-model", "static");
+    ts.push(
+        "stack-probes",
+        vec![("kind".to_string(), Value::String("none".to_string()))],
+    );
 
     if !cfg.has("ARM") {
         ts.push("linker-flavor", "gcc");
