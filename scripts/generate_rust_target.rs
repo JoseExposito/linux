@@ -249,7 +249,6 @@ fn main() {
 
     if !cfg.has("ARM") {
         ts.push("linker-flavor", "gcc");
-        ts.push("panic-strategy", "abort");
         ts.push("relro-level", "full");
 
         if cfg.has("CPU_BIG_ENDIAN") {
