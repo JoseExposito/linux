@@ -210,7 +210,6 @@ fn main() {
         );
         ts.push("disable-redzone", true);
         ts.push("features", "+strict-align,+neon,+fp-armv8");
-        ts.push("frame-pointer", "always");
         ts.push("llvm-target", "aarch64-unknown-none");
         ts.push("max-atomic-width", 128);
         ts.push("needs-plt", true);
@@ -255,7 +254,6 @@ fn main() {
             features += ",+c";
         }
         ts.push("features", features);
-        ts.push("frame-pointer", "always");
         ts.push("needs-plt", true);
         ts.push("target-c-int-width", "32");
         ts.push("vendor", "");
@@ -272,7 +270,6 @@ fn main() {
             "features",
             "-mmx,-sse,-sse2,-sse3,-ssse3,-sse4.1,-sse4.2,-3dnow,-3dnowa,-avx,-avx2,+soft-float",
         );
-        ts.push("frame-pointer", "always");
         ts.push("llvm-target", "x86_64-elf");
         ts.push("max-atomic-width", 64);
         ts.push("needs-plt", true);
@@ -286,6 +283,7 @@ fn main() {
 
     ts.push("emit-debug-gdb-scripts", false);
     ts.push("env", "gnu");
+    ts.push("frame-pointer", "may-omit");
     ts.push("function-sections", false);
     ts.push("linker-is-gnu", true);
     ts.push("os", if cfg.has("ARM") { "linux" } else { "none" });
