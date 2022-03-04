@@ -176,7 +176,6 @@ fn main() {
         ts.push("needs-plt", true);
         ts.push("target-c-int-width", "32");
         ts.push("target-pointer-width", "64");
-        ts.push("vendor", "");
     } else if cfg.has("PPC") {
         ts.push("arch", "powerpc64");
         ts.push("code-model", "large");
@@ -213,7 +212,6 @@ fn main() {
         ts.push("features", features);
         ts.push("needs-plt", true);
         ts.push("target-c-int-width", "32");
-        ts.push("vendor", "");
     } else if cfg.has("X86") {
         ts.push("arch", "x86_64");
         ts.push("code-model", "kernel");
@@ -232,7 +230,6 @@ fn main() {
         ts.push("needs-plt", true);
         ts.push("target-c-int-width", "32");
         ts.push("target-pointer-width", "64");
-        ts.push("vendor", "unknown");
     } else {
         panic!("Unsupported architecture");
     }
