@@ -239,7 +239,6 @@ fn main() {
     ts.push("frame-pointer", "may-omit");
     ts.push("function-sections", false);
     ts.push("linker-is-gnu", true);
-    ts.push("os", if cfg.has("ARM") { "linux" } else { "none" });
     ts.push("position-independent-executables", true);
     ts.push("relocation-model", "static");
     ts.push(
