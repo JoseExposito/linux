@@ -158,32 +158,6 @@ fn main() {
     let cfg = KernelConfig::from_stdin();
     let mut ts = TargetSpec::new();
 
-    let pre_link_args = vec![(
-        "gcc".to_string(),
-        Value::Array(vec![
-            Value::String("-Wl,--as-needed".to_string()),
-            Value::String("-Wl,-z,noexecstack".to_string()),
-        ]),
-    )];
-
-    let pre_link_args_32 = vec![(
-        "gcc".to_string(),
-        Value::Array(vec![
-            Value::String("-Wl,--as-needed".to_string()),
-            Value::String("-Wl,-z,noexecstack".to_string()),
-            Value::String("-m32".to_string()),
-        ]),
-    )];
-
-    let pre_link_args_64 = vec![(
-        "gcc".to_string(),
-        Value::Array(vec![
-            Value::String("-Wl,--as-needed".to_string()),
-            Value::String("-Wl,-z,noexecstack".to_string()),
-            Value::String("-m64".to_string()),
-        ]),
-    )];
-
     if cfg.has("ARM") {
         ts.push("arch", "arm");
         ts.push(
@@ -198,7 +172,6 @@ fn main() {
         ts.push("has-rpath", true);
         ts.push("llvm-target", "arm-unknown-linux-gnueabi");
         ts.push("max-atomic-width", 64);
-        ts.push("pre-link-args", pre_link_args);
         ts.push("target-family", "unix");
         ts.push("target-mcount", "\\u0001__gnu_mcount_nc");
         ts.push("target-pointer-width", "32");
@@ -213,7 +186,6 @@ fn main() {
         ts.push("llvm-target", "aarch64-unknown-none");
         ts.push("max-atomic-width", 128);
         ts.push("needs-plt", true);
-        ts.push("pre-link-args", pre_link_args_64);
         ts.push("target-c-int-width", "32");
         ts.push("target-pointer-width", "64");
         ts.push("vendor", "");
@@ -225,7 +197,6 @@ fn main() {
         ts.push("features", "-altivec,-vsx,-hard-float");
         ts.push("llvm-target", "powerpc64le-elf");
         ts.push("max-atomic-width", 64);
-        ts.push("pre-link-args", pre_link_args_64);
         ts.push("target-family", "unix");
         ts.push("target-mcount", "_mcount");
         ts.push("target-pointer-width", "64");
@@ -236,7 +207,6 @@ fn main() {
             ts.push("data-layout", "e-m:e-p:64:64-i64:64-i128:128-n64-S128");
             ts.push("llvm-target", "riscv64");
             ts.push("max-atomic-width", 64);
-            ts.push("pre-link-args", pre_link_args_64);
             ts.push("target-pointer-width", "64");
         } else {
             ts.push("arch", "riscv32");
@@ -244,7 +214,6 @@ fn main() {
             ts.push("data-layout", "e-m:e-p:32:32-i64:64-n32-S128");
             ts.push("llvm-target", "riscv32");
             ts.push("max-atomic-width", 32);
-            ts.push("pre-link-args", pre_link_args_32);
             ts.push("target-pointer-width", "32");
         }
         ts.push("code-model", "medium");
@@ -273,7 +242,6 @@ fn main() {
         ts.push("llvm-target", "x86_64-elf");
         ts.push("max-atomic-width", 64);
         ts.push("needs-plt", true);
-        ts.push("pre-link-args", pre_link_args_64);
         ts.push("target-c-int-width", "32");
         ts.push("target-pointer-width", "64");
         ts.push("vendor", "unknown");
