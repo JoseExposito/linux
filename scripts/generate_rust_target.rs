@@ -246,16 +246,14 @@ fn main() {
         vec![("kind".to_string(), Value::String("none".to_string()))],
     );
 
+    // Everything else is LE, whether `CPU_LITTLE_ENDIAN`
+    // is declared or not (e.g. x86).
+    if cfg.has("CPU_BIG_ENDIAN") {
+        ts.push("target-endian", "big");
+    }
+
     if !cfg.has("ARM") {
         ts.push("relro-level", "full");
-
-        if cfg.has("CPU_BIG_ENDIAN") {
-            ts.push("target-endian", "big");
-        } else {
-            // Everything else is LE, whether `CPU_LITTLE_ENDIAN`
-            // is declared or not (e.g. x86).
-            ts.push("target-endian", "little");
-        }
     }
 
     println!("{}", ts);
