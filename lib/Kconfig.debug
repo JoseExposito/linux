@@ -2691,7 +2691,6 @@ menu "Rust hacking"
 
 config RUST_DEBUG_ASSERTIONS
 	bool "Debug assertions"
-	default n
 	depends on RUST
 	help
 	  Enables rustc's `-Cdebug-assertions` codegen option.
