@@ -2060,7 +2060,6 @@ config RUST
 	depends on !MODVERSIONS
 	depends on !GCC_PLUGIN_RANDSTRUCT
 	select CONSTRUCTORS
-	default n
 	help
 	  Enables Rust support in the kernel.
 

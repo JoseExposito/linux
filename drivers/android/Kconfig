@@ -23,7 +23,6 @@ config ANDROID_BINDER_IPC
 config ANDROID_BINDER_IPC_RUST
 	bool "Android Binder IPC Driver in Rust"
 	depends on MMU && RUST
-	default n
 	help
 	  Implementation of the Binder IPC in Rust.
 
