@@ -1812,7 +1812,7 @@ rustfmtcheck: rustfmt
 
 # IDE support targets
 PHONY += rust-analyzer
-rust-analyzer: prepare
+rust-analyzer:
 	$(Q)$(MAKE) $(build)=rust $@
 
 # Misc
