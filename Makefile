@@ -1793,12 +1793,12 @@ rustavailable:
 #
 # Using the singular to avoid running afoul of `no-dot-config-targets`.
 PHONY += rustdoc
-rustdoc: prepare0
+rustdoc: prepare
 	$(Q)$(MAKE) $(build)=rust $@
 
 # Testing target
 PHONY += rusttest
-rusttest: prepare0
+rusttest: prepare
 	$(Q)$(MAKE) $(build)=rust $@
 
 # Formatting targets
@@ -1823,7 +1823,7 @@ rustfmtcheck: rustfmt
 
 # IDE support targets
 PHONY += rust-analyzer
-rust-analyzer: prepare0
+rust-analyzer:
 	$(Q)$(MAKE) $(build)=rust $@
 
 # Misc
