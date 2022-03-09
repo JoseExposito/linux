@@ -231,7 +231,6 @@ fn main() {
     }
 
     ts.push("emit-debug-gdb-scripts", false);
-    ts.push("env", "gnu");
     ts.push("frame-pointer", "may-omit");
     ts.push("function-sections", false);
     ts.push("position-independent-executables", true);
