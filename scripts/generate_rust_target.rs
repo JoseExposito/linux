@@ -156,7 +156,6 @@ fn main() {
         ts.push("crt-static-respected", true);
         ts.push("features", "+strict-align,+v6");
         ts.push("has-elf-tls", true);
-        ts.push("has-rpath", true);
         ts.push("llvm-target", "arm-unknown-linux-gnueabi");
         ts.push("max-atomic-width", 64);
         ts.push("target-family", "unix");
