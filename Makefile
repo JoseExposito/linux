@@ -556,6 +556,7 @@ KBUILD_RUSTFLAGS := $(rust_common_flags) \
 		    -Cpanic=abort -Cembed-bitcode=n -Clto=n \
 		    -Cforce-unwind-tables=n -Ccodegen-units=1 \
 		    -Csymbol-mangling-version=v0 \
+		    -Crelocation-model=static \
 		    -Dclippy::float_arithmetic
 
 KBUILD_AFLAGS_KERNEL :=

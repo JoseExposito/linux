@@ -228,7 +228,6 @@ fn main() {
     ts.push("frame-pointer", "may-omit");
     ts.push("function-sections", false);
     ts.push("position-independent-executables", true);
-    ts.push("relocation-model", "static");
     ts.push(
         "stack-probes",
         vec![("kind".to_string(), Value::String("none".to_string()))],
