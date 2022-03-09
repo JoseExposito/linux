@@ -158,7 +158,6 @@ fn main() {
         ts.push("has-elf-tls", true);
         ts.push("llvm-target", "arm-unknown-linux-gnueabi");
         ts.push("max-atomic-width", 64);
-        ts.push("target-family", "unix");
         ts.push("target-mcount", "\\u0001__gnu_mcount_nc");
         ts.push("target-pointer-width", "32");
     } else if cfg.has("ARM64") {
@@ -182,7 +181,6 @@ fn main() {
         ts.push("features", "-altivec,-vsx,-hard-float");
         ts.push("llvm-target", "powerpc64le-elf");
         ts.push("max-atomic-width", 64);
-        ts.push("target-family", "unix");
         ts.push("target-mcount", "_mcount");
         ts.push("target-pointer-width", "64");
     } else if cfg.has("RISCV") {
