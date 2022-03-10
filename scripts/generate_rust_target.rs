@@ -210,7 +210,6 @@ fn main() {
         ts.push("target-c-int-width", "32");
     } else if cfg.has("X86") {
         ts.push("arch", "x86_64");
-        ts.push("code-model", "kernel");
         ts.push("cpu", "x86-64");
         ts.push(
             "data-layout",
