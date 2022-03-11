@@ -51,8 +51,7 @@ alloc-cfgs = \
 quiet_cmd_rustdoc = RUSTDOC $(if $(rustdoc_host),H, ) $<
       cmd_rustdoc = \
 	OBJTREE=$(abspath $(objtree)) \
-	$(RUSTDOC) $(if $(rustdoc_host),,$(rust_cross_flags)) \
-		$(filter-out -Cpanic=abort, $(rust_flags)) \
+	$(RUSTDOC) $(if $(rustdoc_host),$(rust_common_flags),$(rust_flags)) \
 		$(rustc_target_flags) -L $(objtree)/rust \
 		--output $(objtree)/rust/doc --crate-name $(subst rustdoc-,,$@) \
 		@$(objtree)/include/generated/rustc_cfg $<
@@ -106,7 +105,8 @@ rustdoc-kernel: $(srctree)/rust/kernel/lib.rs rustdoc-core \
 quiet_cmd_rustc_test_library = RUSTC TL $<
       cmd_rustc_test_library = \
 	OBJTREE=$(abspath $(objtree)) \
-	$(RUSTC) $(filter-out --sysroot=%, $(filter-out -Cpanic=abort, $(rust_flags))) \
+	$(RUSTC) $(rust_common_flags) \
+		@$(objtree)/include/generated/rustc_cfg \
 		$(rustc_target_flags) --crate-type $(if $(rustc_test_library_proc),proc-macro,rlib) \
 		--out-dir $(objtree)/rust/test/ --cfg testlib \
 		--sysroot $(objtree)/rust/test/sysroot \
@@ -123,7 +123,8 @@ rusttestlib-macros: $(srctree)/rust/macros/lib.rs rusttest-prepare FORCE
 quiet_cmd_rustdoc_test = RUSTDOC T $<
       cmd_rustdoc_test = \
 	OBJTREE=$(abspath $(objtree)) \
-	$(RUSTDOC) --test $(filter-out --sysroot=%, $(filter-out -Cpanic=abort, $(rust_flags))) \
+	$(RUSTDOC) --test $(rust_common_flags) \
+		@$(objtree)/include/generated/rustc_cfg \
 		$(rustc_target_flags) $(rustdoc_test_target_flags) \
 		--sysroot $(objtree)/rust/test/sysroot $(rustdoc_test_quiet) \
 		-L $(objtree)/rust/test \
@@ -135,7 +136,8 @@ quiet_cmd_rustdoc_test = RUSTDOC T $<
 quiet_cmd_rustc_test = RUSTC T  $<
       cmd_rustc_test = \
 	OBJTREE=$(abspath $(objtree)) \
-	$(RUSTC) --test $(filter-out --sysroot=%, $(filter-out -Cpanic=abort, $(rust_flags))) \
+	$(RUSTC) --test $(rust_common_flags) \
+		@$(objtree)/include/generated/rustc_cfg \
 		$(rustc_target_flags) --out-dir $(objtree)/rust/test \
 		--sysroot $(objtree)/rust/test/sysroot \
 		-L $(objtree)/rust/test/ --crate-name $(subst rusttest-,,$@) $<; \
@@ -305,13 +307,10 @@ $(objtree)/rust/exports_alloc_generated.h: $(objtree)/rust/alloc.o FORCE
 $(objtree)/rust/exports_kernel_generated.h: $(objtree)/rust/kernel.o FORCE
 	$(call if_changed,exports)
 
-# `-Cpanic=unwind -Cforce-unwind-tables=y` overrides `rust_flags` in order to
-# avoid the https://github.com/rust-lang/rust/issues/82320 rustc crash.
 quiet_cmd_rustc_procmacro = $(RUSTC_OR_CLIPPY_QUIET) P $@
       cmd_rustc_procmacro = \
-	$(RUSTC_OR_CLIPPY) $(rust_flags) \
+	$(RUSTC_OR_CLIPPY) $(rust_common_flags) \
 		--emit=dep-info,link --extern proc_macro \
-		-Cpanic=unwind -Cforce-unwind-tables=y \
 		--crate-type proc-macro --out-dir $(objtree)/rust/ \
 		--crate-name $(patsubst lib%.so,%,$(notdir $@)) $<; \
 	mv $(objtree)/rust/$(patsubst lib%.so,%,$(notdir $@)).d $(depfile); \
@@ -328,7 +327,7 @@ quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L 
       cmd_rustc_library = \
 	OBJTREE=$(abspath $(objtree)) \
 	$(if $(skip_clippy),$(RUSTC),$(RUSTC_OR_CLIPPY)) \
-		$(filter-out $(skip_flags),$(rust_flags) $(rust_cross_flags) $(rustc_target_flags)) \
+		$(filter-out $(skip_flags),$(rust_flags) $(rustc_target_flags)) \
 		--emit=dep-info,obj,metadata \
 		--crate-type rlib --out-dir $(objtree)/rust/ -L $(objtree)/rust/ \
 		--crate-name $(patsubst %.o,%,$(notdir $@)) $<; \
