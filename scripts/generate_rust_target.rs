@@ -19,11 +19,9 @@ enum Value {
     Boolean(bool),
     Number(i32),
     String(String),
-    Array(Array),
     Object(Object),
 }
 
-type Array = Vec<Value>;
 type Object = Vec<(String, Value)>;
 
 /// Minimal "almost JSON" generator (e.g. no `null`s, no escaping), enough
@@ -34,16 +32,6 @@ impl Display for Value {
             Value::Boolean(boolean) => write!(formatter, "{}", boolean),
             Value::Number(number) => write!(formatter, "{}", number),
             Value::String(string) => write!(formatter, "\"{}\"", string),
-            Value::Array(array) => {
-                formatter.write_str("[")?;
-                if let [ref rest @ .., ref last] = array[..] {
-                    for value in rest {
-                        write!(formatter, "{},", value)?;
-                    }
-                    write!(formatter, "{}", last)?;
-                }
-                formatter.write_str("]")
-            }
             Value::Object(object) => {
                 formatter.write_str("{")?;
                 if let [ref rest @ .., ref last] = object[..] {
