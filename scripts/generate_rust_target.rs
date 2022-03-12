@@ -238,9 +238,5 @@ fn main() {
         ts.push("target-endian", "big");
     }
 
-    if !cfg.has("ARM") {
-        ts.push("relro-level", "full");
-    }
-
     println!("{}", ts);
 }
