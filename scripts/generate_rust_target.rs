@@ -187,14 +187,12 @@ fn main() {
             ts.push("cpu", "generic-rv64");
             ts.push("data-layout", "e-m:e-p:64:64-i64:64-i128:128-n64-S128");
             ts.push("llvm-target", "riscv64");
-            ts.push("max-atomic-width", 64);
             ts.push("target-pointer-width", "64");
         } else {
             ts.push("arch", "riscv32");
             ts.push("cpu", "generic-rv32");
             ts.push("data-layout", "e-m:e-p:32:32-i64:64-n32-S128");
             ts.push("llvm-target", "riscv32");
-            ts.push("max-atomic-width", 32);
             ts.push("target-pointer-width", "32");
         }
         ts.push("code-model", "medium");
@@ -212,7 +210,6 @@ fn main() {
             "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128",
         );
         ts.push("llvm-target", "x86_64-elf");
-        ts.push("max-atomic-width", 64);
         ts.push("target-pointer-width", "64");
     } else {
         panic!("Unsupported architecture");
