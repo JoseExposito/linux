@@ -212,7 +212,6 @@ fn main() {
 
     ts.push("emit-debug-gdb-scripts", false);
     ts.push("frame-pointer", "may-omit");
-    ts.push("function-sections", false);
     ts.push(
         "stack-probes",
         vec![("kind".to_string(), Value::String("none".to_string()))],
