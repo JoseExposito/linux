@@ -36,9 +36,9 @@ impl Display for Value {
                 formatter.write_str("{")?;
                 if let [ref rest @ .., ref last] = object[..] {
                     for (key, value) in rest {
-                        write!(formatter, "\"{}\":{},", key, value)?;
+                        write!(formatter, "\"{}\": {},", key, value)?;
                     }
-                    write!(formatter, "\"{}\":{}", last.0, last.1)?;
+                    write!(formatter, "\"{}\": {}", last.0, last.1)?;
                 }
                 formatter.write_str("}")
             }
@@ -94,9 +94,9 @@ impl Display for TargetSpec {
         formatter.write_str("{\n")?;
         if let [ref rest @ .., ref last] = self.0[..] {
             for (key, value) in rest {
-                write!(formatter, "\"{}\":{},\n", key, value)?;
+                write!(formatter, "    \"{}\": {},\n", key, value)?;
             }
-            write!(formatter, "\"{}\":{}\n", last.0, last.1)?;
+            write!(formatter, "    \"{}\": {}\n", last.0, last.1)?;
         }
         formatter.write_str("}")
     }
