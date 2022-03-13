@@ -156,7 +156,7 @@ fn main() {
         ts.push("crt-static-respected", true);
         ts.push("features", "+strict-align,+v6");
         ts.push("has-elf-tls", true);
-        ts.push("llvm-target", "arm-unknown-linux-gnueabi");
+        ts.push("llvm-target", "arm-linux-gnueabi");
         ts.push("max-atomic-width", 64);
         ts.push("target-mcount", "\\u0001__gnu_mcount_nc");
         ts.push("target-pointer-width", "32");
@@ -168,7 +168,7 @@ fn main() {
         );
         ts.push("disable-redzone", true);
         ts.push("features", "+strict-align,+neon,+fp-armv8");
-        ts.push("llvm-target", "aarch64-unknown-none");
+        ts.push("llvm-target", "aarch64-linux-gnu");
         ts.push("max-atomic-width", 128);
         ts.push("target-pointer-width", "64");
     } else if cfg.has("PPC") {
@@ -177,7 +177,7 @@ fn main() {
         ts.push("cpu", "ppc64le");
         ts.push("data-layout", "e-m:e-i64:64-n32:64");
         ts.push("features", "-altivec,-vsx,-hard-float");
-        ts.push("llvm-target", "powerpc64le-elf");
+        ts.push("llvm-target", "powerpc64le-linux-gnu");
         ts.push("max-atomic-width", 64);
         ts.push("target-mcount", "_mcount");
         ts.push("target-pointer-width", "64");
@@ -186,13 +186,13 @@ fn main() {
             ts.push("arch", "riscv64");
             ts.push("cpu", "generic-rv64");
             ts.push("data-layout", "e-m:e-p:64:64-i64:64-i128:128-n64-S128");
-            ts.push("llvm-target", "riscv64");
+            ts.push("llvm-target", "riscv64-linux-gnu");
             ts.push("target-pointer-width", "64");
         } else {
             ts.push("arch", "riscv32");
             ts.push("cpu", "generic-rv32");
             ts.push("data-layout", "e-m:e-p:32:32-i64:64-n32-S128");
-            ts.push("llvm-target", "riscv32");
+            ts.push("llvm-target", "riscv32-linux-gnu");
             ts.push("target-pointer-width", "32");
         }
         ts.push("code-model", "medium");
@@ -209,7 +209,7 @@ fn main() {
             "data-layout",
             "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128",
         );
-        ts.push("llvm-target", "x86_64-elf");
+        ts.push("llvm-target", "x86_64-linux-gnu");
         ts.push("target-pointer-width", "64");
     } else {
         panic!("Unsupported architecture");
