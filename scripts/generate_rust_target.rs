@@ -5,7 +5,8 @@
 //! To configure a target from scratch, a JSON-encoded file has to be passed
 //! to `rustc` (introduced in [RFC 131]). These options and the file itself are
 //! unstable. Eventually, `rustc` should provide a way to do this in a stable
-//! manner. For instance, via command-line arguments.
+//! manner. For instance, via command-line arguments. Therefore, this file
+//! should avoid using keys which can be set via `-C` or `-Z` options.
 //!
 //! [RFC 131]: https://rust-lang.github.io/rfcs/0131-target-specification.html
 
@@ -24,8 +25,8 @@ enum Value {
 
 type Object = Vec<(String, Value)>;
 
-/// Minimal "almost JSON" generator (e.g. no `null`s, no escaping), enough
-/// for this purpose.
+/// Minimal "almost JSON" generator (e.g. no `null`s, no arrays, no escaping),
+/// enough for this purpose.
 impl Display for Value {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> Result {
         match self {
@@ -135,7 +136,7 @@ impl KernelConfig {
     ///
     /// The argument must be passed without the `CONFIG_` prefix.
     /// This avoids repetition and it also avoids `fixdep` making us
-    /// depending on it.
+    /// depend on it.
     fn has(&self, option: &str) -> bool {
         let option = "CONFIG_".to_owned() + option;
         self.0.contains_key(&option)
@@ -215,8 +216,8 @@ fn main() {
         vec![("kind".to_string(), Value::String("none".to_string()))],
     );
 
-    // Everything else is LE, whether `CPU_LITTLE_ENDIAN`
-    // is declared or not (e.g. x86).
+    // Everything else is LE, whether `CPU_LITTLE_ENDIAN` is declared or not
+    // (e.g. x86). It is also `rustc`'s default.
     if cfg.has("CPU_BIG_ENDIAN") {
         ts.push("target-endian", "big");
     }
