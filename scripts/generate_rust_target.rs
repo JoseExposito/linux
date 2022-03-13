@@ -173,7 +173,6 @@ fn main() {
     } else if cfg.has("PPC") {
         ts.push("arch", "powerpc64");
         ts.push("code-model", "large");
-        ts.push("cpu", "ppc64le");
         ts.push("data-layout", "e-m:e-i64:64-n32:64");
         ts.push("features", "-altivec,-vsx,-hard-float");
         ts.push("llvm-target", "powerpc64le-linux-gnu");
@@ -183,13 +182,11 @@ fn main() {
     } else if cfg.has("RISCV") {
         if cfg.has("64BIT") {
             ts.push("arch", "riscv64");
-            ts.push("cpu", "generic-rv64");
             ts.push("data-layout", "e-m:e-p:64:64-i64:64-i128:128-n64-S128");
             ts.push("llvm-target", "riscv64-linux-gnu");
             ts.push("target-pointer-width", "64");
         } else {
             ts.push("arch", "riscv32");
-            ts.push("cpu", "generic-rv32");
             ts.push("data-layout", "e-m:e-p:32:32-i64:64-n32-S128");
             ts.push("llvm-target", "riscv32-linux-gnu");
             ts.push("target-pointer-width", "32");
@@ -203,7 +200,6 @@ fn main() {
         ts.push("features", features);
     } else if cfg.has("X86") {
         ts.push("arch", "x86_64");
-        ts.push("cpu", "x86-64");
         ts.push(
             "data-layout",
             "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128",
