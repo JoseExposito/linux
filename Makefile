@@ -445,19 +445,19 @@ export KBUILD_USERLDFLAGS :=
 
 # These flags apply to all Rust code in the tree, including the kernel and
 # host programs.
-rust_common_flags := --edition=2021 \
-		     -Zbinary_dep_depinfo=y \
-		     -Dunsafe_op_in_unsafe_fn -Drust_2018_idioms \
-		     -Dunreachable_pub -Dnon_ascii_idents \
-		     -Wmissing_docs \
-		     -Drustdoc::missing_crate_level_docs \
-		     -Dclippy::correctness -Dclippy::style \
-		     -Dclippy::suspicious -Dclippy::complexity \
-		     -Dclippy::perf \
-		     -Dclippy::let_unit_value -Dclippy::mut_mut \
-		     -Dclippy::needless_bitwise_bool \
-		     -Dclippy::needless_continue \
-		     -Wclippy::dbg_macro
+export rust_common_flags := --edition=2021 \
+			    -Zbinary_dep_depinfo=y \
+			    -Dunsafe_op_in_unsafe_fn -Drust_2018_idioms \
+			    -Dunreachable_pub -Dnon_ascii_idents \
+			    -Wmissing_docs \
+			    -Drustdoc::missing_crate_level_docs \
+			    -Dclippy::correctness -Dclippy::style \
+			    -Dclippy::suspicious -Dclippy::complexity \
+			    -Dclippy::perf \
+			    -Dclippy::let_unit_value -Dclippy::mut_mut \
+			    -Dclippy::needless_bitwise_bool \
+			    -Dclippy::needless_continue \
+			    -Wclippy::dbg_macro
 
 KBUILD_HOSTCFLAGS   := $(KBUILD_USERCFLAGS) $(HOST_LFS_CFLAGS) $(HOSTCFLAGS)
 KBUILD_HOSTCXXFLAGS := -Wall -O2 $(HOST_LFS_CFLAGS) $(HOSTCXXFLAGS)
@@ -552,6 +552,7 @@ KBUILD_CFLAGS   := -Wall -Wundef -Werror=strict-prototypes -Wno-trigraphs \
 		   -std=gnu89
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_RUSTFLAGS := $(rust_common_flags) \
+		    --target=$(objtree)/rust/target.json \
 		    -Cpanic=abort -Cembed-bitcode=n -Clto=n -Crpath=n \
 		    -Cforce-unwind-tables=n -Ccodegen-units=1 \
 		    -Csymbol-mangling-version=v0 \
