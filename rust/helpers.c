@@ -507,6 +507,12 @@ const struct of_device_id *rust_helper_of_match_device(
 }
 EXPORT_SYMBOL_GPL(rust_helper_of_match_device);
 
+void rust_helper_init_completion(struct completion *c)
+{
+	init_completion(c);
+}
+EXPORT_SYMBOL_GPL(rust_helper_init_completion);
+
 /*
  * We use `bindgen`'s `--size_t-is-usize` option to bind the C `size_t` type
  * as the Rust `usize` type, so we can use it in contexts where Rust
