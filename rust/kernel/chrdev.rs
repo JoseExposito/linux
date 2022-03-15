@@ -15,7 +15,7 @@ use core::pin::Pin;
 
 use crate::bindings;
 use crate::c_types;
-use crate::error::{Error, Result};
+use crate::error::{code::*, Error, Result};
 use crate::file;
 use crate::str::CStr;
 
@@ -36,7 +36,7 @@ impl Cdev {
         // SAFETY: FFI call.
         let cdev = unsafe { bindings::cdev_alloc() };
         if cdev.is_null() {
-            return Err(Error::ENOMEM);
+            return Err(ENOMEM);
         }
         // SAFETY: `cdev` is valid and non-null since `cdev_alloc()`
         // returned a valid pointer which was null-checked.
@@ -163,7 +163,7 @@ impl<const N: usize> Registration<{ N }> {
 
         let mut inner = this.inner.as_mut().unwrap();
         if inner.used == N {
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         // SAFETY: The adapter doesn't retrieve any state yet, so it's compatible with any

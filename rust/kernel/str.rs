@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use core::fmt::{self, Write};
 use core::ops::{self, Deref, Index};
 
-use crate::{bindings, c_types, Error};
+use crate::{bindings, c_types, error::code::*, Error};
 
 /// Byte string without UTF-8 validity guarantee.
 ///
@@ -44,10 +44,10 @@ pub enum CStrConvertError {
     NotNulTerminated,
 }
 
-impl From<CStrConvertError> for crate::Error {
+impl From<CStrConvertError> for Error {
     #[inline]
-    fn from(_: CStrConvertError) -> crate::Error {
-        crate::Error::EINVAL
+    fn from(_: CStrConvertError) -> Error {
+        EINVAL
     }
 }
 
@@ -566,7 +566,7 @@ impl CString {
         // so `f.bytes_written() - 1` doesn't underflow.
         let ptr = unsafe { bindings::memchr(buf.as_ptr().cast(), 0, (f.bytes_written() - 1) as _) };
         if !ptr.is_null() {
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         // INVARIANT: We wrote the `NUL` terminator and checked above that no other `NUL` bytes

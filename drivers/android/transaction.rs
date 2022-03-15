@@ -173,7 +173,7 @@ impl Transaction {
 
         // If the list is non-empty, prepare the buffer.
         if !file_list.is_empty() {
-            let alloc = self.to.buffer_get(self.data_address).ok_or(Error::ESRCH)?;
+            let alloc = self.to.buffer_get(self.data_address).ok_or(ESRCH)?;
             let cleanup = ScopeGuard::new(|| {
                 self.free_allocation.store(false, Ordering::Relaxed);
             });

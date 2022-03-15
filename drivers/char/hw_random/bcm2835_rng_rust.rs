@@ -55,7 +55,7 @@ impl platform::Driver for RngDriver {
         )?;
 
         data.registrations()
-            .ok_or(Error::ENXIO)?
+            .ok_or(ENXIO)?
             .as_pinned_mut()
             .register(fmt!("rust_hwrng"), ())?;
         Ok(data.into())

@@ -5,7 +5,7 @@
 //! Each bus/subsystem is expected to implement [`DriverOps`], which allows drivers to register
 //! using the [`Registration`] class.
 
-use crate::{str::CStr, sync::Ref, Error, KernelModule, Result, ThisModule};
+use crate::{error::code::*, str::CStr, sync::Ref, KernelModule, Result, ThisModule};
 use alloc::boxed::Box;
 use core::{cell::UnsafeCell, marker::PhantomData, ops::Deref, pin::Pin};
 
@@ -80,7 +80,7 @@ impl<T: DriverOps> Registration<T> {
         let this = unsafe { self.get_unchecked_mut() };
         if this.is_registered {
             // Already registered.
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         // SAFETY: `concrete_reg` was initialised via its default constructor. It is only freed

@@ -8,7 +8,7 @@
 use crate::{
     bindings, c_types,
     cred::CredentialRef,
-    error::{from_kernel_result, Error, Result},
+    error::{code::*, from_kernel_result, Error, Result},
     io_buffer::{IoBufferReader, IoBufferWriter},
     iov_iter::IovIter,
     mm,
@@ -36,7 +36,7 @@ impl File {
         // SAFETY: FFI call, there are no requirements on `fd`.
         let ptr = unsafe { bindings::fget(fd) };
         if ptr.is_null() {
-            return Err(Error::EBADF);
+            return Err(EBADF);
         }
 
         // INVARIANTS: We checked that `ptr` is non-null, so it is valid. `fget` increments the ref
@@ -368,7 +368,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
                 bindings::SEEK_SET => SeekFrom::Start(offset.try_into()?),
                 bindings::SEEK_CUR => SeekFrom::Current(offset),
                 bindings::SEEK_END => SeekFrom::End(offset),
-                _ => return Err(Error::EINVAL),
+                _ => return Err(EINVAL),
             };
             // SAFETY: `private_data` was initialised by `open_callback` with a value returned by
             // `T::Data::into_pointer`. `T::Data::from_pointer` is only called by the
@@ -636,7 +636,7 @@ pub trait IoctlHandler: Sync {
 
     /// Handles ioctls defined with the `_IO` macro, that is, with no buffer as argument.
     fn pure(_this: Self::Target<'_>, _file: &File, _cmd: u32, _arg: usize) -> Result<i32> {
-        Err(Error::EINVAL)
+        Err(EINVAL)
     }
 
     /// Handles ioctls defined with the `_IOR` macro, that is, with an output buffer provided as
@@ -647,7 +647,7 @@ pub trait IoctlHandler: Sync {
         _cmd: u32,
         _writer: &mut UserSlicePtrWriter,
     ) -> Result<i32> {
-        Err(Error::EINVAL)
+        Err(EINVAL)
     }
 
     /// Handles ioctls defined with the `_IOW` macro, that is, with an input buffer provided as
@@ -658,7 +658,7 @@ pub trait IoctlHandler: Sync {
         _cmd: u32,
         _reader: &mut UserSlicePtrReader,
     ) -> Result<i32> {
-        Err(Error::EINVAL)
+        Err(EINVAL)
     }
 
     /// Handles ioctls defined with the `_IOWR` macro, that is, with a buffer for both input and
@@ -669,7 +669,7 @@ pub trait IoctlHandler: Sync {
         _cmd: u32,
         _data: UserSlicePtr,
     ) -> Result<i32> {
-        Err(Error::EINVAL)
+        Err(EINVAL)
     }
 }
 
@@ -714,13 +714,13 @@ impl IoctlCommand {
             return T::pure(handler, file, self.cmd, self.arg);
         }
 
-        let data = self.user_slice.take().ok_or(Error::EINVAL)?;
+        let data = self.user_slice.take().ok_or(EINVAL)?;
         const READ_WRITE: u32 = bindings::_IOC_READ | bindings::_IOC_WRITE;
         match dir {
             bindings::_IOC_WRITE => T::write(handler, file, self.cmd, &mut data.reader()),
             bindings::_IOC_READ => T::read(handler, file, self.cmd, &mut data.writer()),
             READ_WRITE => T::read_write(handler, file, self.cmd, data),
-            _ => Err(Error::EINVAL),
+            _ => Err(EINVAL),
         }
     }
 
@@ -787,7 +787,7 @@ pub trait Operations {
         _writer: &mut impl IoBufferWriter,
         _offset: u64,
     ) -> Result<usize> {
-        Err(Error::EINVAL)
+        Err(EINVAL)
     }
 
     /// Writes data from the caller's buffer to this file.
@@ -799,7 +799,7 @@ pub trait Operations {
         _reader: &mut impl IoBufferReader,
         _offset: u64,
     ) -> Result<usize> {
-        Err(Error::EINVAL)
+        Err(EINVAL)
     }
 
     /// Changes the position of the file.
@@ -810,7 +810,7 @@ pub trait Operations {
         _file: &File,
         _offset: SeekFrom,
     ) -> Result<u64> {
-        Err(Error::EINVAL)
+        Err(EINVAL)
     }
 
     /// Performs IO control operations that are specific to the file.
@@ -821,7 +821,7 @@ pub trait Operations {
         _file: &File,
         _cmd: &mut IoctlCommand,
     ) -> Result<i32> {
-        Err(Error::ENOTTY)
+        Err(ENOTTY)
     }
 
     /// Performs 32-bit IO control operations on that are specific to the file on 64-bit kernels.
@@ -832,7 +832,7 @@ pub trait Operations {
         _file: &File,
         _cmd: &mut IoctlCommand,
     ) -> Result<i32> {
-        Err(Error::ENOTTY)
+        Err(ENOTTY)
     }
 
     /// Syncs pending changes to this file.
@@ -845,7 +845,7 @@ pub trait Operations {
         _end: u64,
         _datasync: bool,
     ) -> Result<u32> {
-        Err(Error::EINVAL)
+        Err(EINVAL)
     }
 
     /// Maps areas of the caller's virtual memory with device/file memory.
@@ -856,7 +856,7 @@ pub trait Operations {
         _file: &File,
         _vma: &mut mm::virt::Area,
     ) -> Result {
-        Err(Error::EINVAL)
+        Err(EINVAL)
     }
 
     /// Checks the state of the file and optionally registers for notification when the state

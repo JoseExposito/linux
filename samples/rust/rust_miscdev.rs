@@ -78,7 +78,7 @@ impl file::Operations for Token {
             // Wait until we are allowed to decrement the token count or a signal arrives.
             while inner.token_count == 0 {
                 if shared.state_changed.wait(&mut inner) {
-                    return Err(Error::EINTR);
+                    return Err(EINTR);
                 }
             }
 
@@ -106,7 +106,7 @@ impl file::Operations for Token {
             // Wait until we are allowed to increment the token count or a signal arrives.
             while inner.token_count == MAX_TOKENS {
                 if shared.state_changed.wait(&mut inner) {
-                    return Err(Error::EINTR);
+                    return Err(EINTR);
                 }
             }
 

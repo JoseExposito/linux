@@ -47,7 +47,7 @@ impl Context {
     pub(crate) fn set_manager_node(&self, node_ref: NodeRef) -> Result {
         let mut manager = self.manager.lock();
         if manager.node.is_some() {
-            return Err(Error::EBUSY);
+            return Err(EBUSY);
         }
         security::binder_set_context_mgr(&node_ref.node.owner.cred)?;
 
@@ -55,7 +55,7 @@ impl Context {
         let caller_uid = bindings::kuid_t::default();
         if let Some(ref uid) = manager.uid {
             if uid.val != caller_uid.val {
-                return Err(Error::EPERM);
+                return Err(EPERM);
             }
         }
 

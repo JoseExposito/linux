@@ -53,7 +53,7 @@ impl FileState {
         let mut inner = self.shared.inner.lock();
         while inner.count == 0 {
             if self.shared.changed.wait(&mut inner) {
-                return Err(Error::EINTR);
+                return Err(EINTR);
             }
         }
         inner.count -= 1;
@@ -155,7 +155,7 @@ impl IoctlHandler for FileState {
                 writer.write(&this.read_count.load(Ordering::Relaxed))?;
                 Ok(0)
             }
-            _ => Err(Error::EINVAL),
+            _ => Err(EINVAL),
         }
     }
 
@@ -165,7 +165,7 @@ impl IoctlHandler for FileState {
                 this.read_count.store(reader.read()?, Ordering::Relaxed);
                 Ok(0)
             }
-            _ => Err(Error::EINVAL),
+            _ => Err(EINVAL),
         }
     }
 }

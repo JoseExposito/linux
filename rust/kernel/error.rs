@@ -15,30 +15,17 @@ use core::fmt;
 use core::num::TryFromIntError;
 use core::str::{self, Utf8Error};
 
-macro_rules! declare_err {
-    ($err:tt) => {
-        pub const $err: Self = Error(-(bindings::$err as i32));
-    };
-    ($err:tt, $($doc:expr),+) => {
-        $(
-        #[doc = $doc]
-        )*
-        pub const $err: Self = Error(-(bindings::$err as i32));
-    };
-}
+/// Contains the C-compatible error codes.
+pub mod code {
+    macro_rules! declare_err {
+        ($err:tt $(,)? $($doc:expr),+) => {
+            $(
+            #[doc = $doc]
+            )*
+            pub const $err: super::Error = super::Error(-(crate::bindings::$err as i32));
+        };
+    }
 
-/// Generic integer kernel error.
-///
-/// The kernel defines a set of integer generic error codes based on C and
-/// POSIX ones. These codes may have a more specific meaning in some contexts.
-///
-/// # Invariants
-///
-/// The value is a valid `errno` (i.e. `>= -MAX_ERRNO && < 0`).
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Error(c_types::c_int);
-
-impl Error {
     declare_err!(EPERM, "Operation not permitted.");
 
     declare_err!(ENOENT, "No such file or directory.");
@@ -118,10 +105,10 @@ impl Error {
         "Invalid system call number.",
         "",
         "This error code is special: arch syscall entry code will return",
-        "[`Self::ENOSYS`] if users try to call a syscall that doesn't exist.",
+        "[`ENOSYS`] if users try to call a syscall that doesn't exist.",
         "To keep failures of syscalls that really do exist distinguishable from",
         "failures due to attempts to use a nonexistent syscall, syscall",
-        "implementations should refrain from returning [`Self::ENOSYS`]."
+        "implementations should refrain from returning [`ENOSYS`]."
     );
 
     declare_err!(ENOTEMPTY, "Directory not empty.");
@@ -317,7 +304,20 @@ impl Error {
     declare_err!(ERESTARTSYS, "Restart the system call.");
 
     declare_err!(ENOTSUPP, "Operation is not supported.");
+}
 
+/// Generic integer kernel error.
+///
+/// The kernel defines a set of integer generic error codes based on C and
+/// POSIX ones. These codes may have a more specific meaning in some contexts.
+///
+/// # Invariants
+///
+/// The value is a valid `errno` (i.e. `>= -MAX_ERRNO && < 0`).
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Error(c_types::c_int);
+
+impl Error {
     /// Creates an [`Error`] from a kernel error code.
     ///
     /// It is a bug to pass an out-of-range `errno`. `EINVAL` would
@@ -329,7 +329,7 @@ impl Error {
                 "attempted to create `Error` with out of range `errno`: {}",
                 errno
             );
-            return Error::EINVAL;
+            return code::EINVAL;
         }
 
         // INVARIANT: The check above ensures the type invariant
@@ -392,31 +392,31 @@ impl fmt::Debug for Error {
 
 impl From<TryFromIntError> for Error {
     fn from(_: TryFromIntError) -> Error {
-        Error::EINVAL
+        code::EINVAL
     }
 }
 
 impl From<Utf8Error> for Error {
     fn from(_: Utf8Error) -> Error {
-        Error::EINVAL
+        code::EINVAL
     }
 }
 
 impl From<TryReserveError> for Error {
     fn from(_: TryReserveError) -> Error {
-        Error::ENOMEM
+        code::ENOMEM
     }
 }
 
 impl From<LayoutError> for Error {
     fn from(_: LayoutError) -> Error {
-        Error::ENOMEM
+        code::ENOMEM
     }
 }
 
 impl From<core::fmt::Error> for Error {
     fn from(_: core::fmt::Error) -> Error {
-        Error::EINVAL
+        code::EINVAL
     }
 }
 
@@ -444,7 +444,7 @@ pub type Result<T = ()> = core::result::Result<T, Error>;
 
 impl From<AllocError> for Error {
     fn from(_: AllocError) -> Error {
-        Error::ENOMEM
+        code::ENOMEM
     }
 }
 

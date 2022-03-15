@@ -7,8 +7,8 @@
 use alloc::{boxed::Box, slice::from_raw_parts_mut};
 
 use crate::{
-    bindings, c_types, error::from_kernel_result, str::CString, to_result, types::PointerWrapper,
-    Error, Result, ScopeGuard,
+    bindings, c_types, error::code::*, error::from_kernel_result, str::CString, to_result,
+    types::PointerWrapper, Result, ScopeGuard,
 };
 
 use core::{cell::UnsafeCell, fmt, marker::PhantomData, pin::Pin};
@@ -23,7 +23,7 @@ pub trait Operations {
 
     /// Initialization callback, can be left undefined.
     fn init(_data: <Self::Data as PointerWrapper>::Borrowed<'_>) -> Result {
-        Err(Error::EINVAL)
+        Err(EINVAL)
     }
 
     /// Cleanup callback, can be left undefined.
@@ -85,7 +85,7 @@ impl<T: Operations> Registration<T> {
         let this = unsafe { self.get_unchecked_mut() };
 
         if this.registered {
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         let data_pointer = data.into_pointer();

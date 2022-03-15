@@ -4,7 +4,7 @@
 //!
 //! C header: [`include/linux/moduleparam.h`](../../../include/linux/moduleparam.h)
 
-use crate::error::from_kernel_result;
+use crate::error::{code::*, from_kernel_result};
 use crate::str::{CStr, Formatter};
 use core::fmt::Write;
 
@@ -80,7 +80,7 @@ pub trait ModuleParam: core::fmt::Display + core::marker::Sized {
                 let _ = unsafe { core::ptr::replace(old_value, new_value) };
                 0
             }
-            None => crate::error::Error::EINVAL.to_kernel_errno(),
+            None => EINVAL.to_kernel_errno(),
         }
     }
 

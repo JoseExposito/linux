@@ -15,7 +15,7 @@
 //!
 //! [`Arc`]: https://doc.rust-lang.org/std/sync/struct.Arc.html
 
-use crate::{bindings, Error, Opaque, Result};
+use crate::{bindings, error::code::*, Error, Opaque, Result};
 use alloc::{
     alloc::{alloc, dealloc},
     vec::Vec,
@@ -81,7 +81,7 @@ impl<T> Ref<T> {
         // SAFETY: The layout size is guaranteed to be non-zero because `RefInner` contains the
         // reference count.
         let inner = NonNull::new(unsafe { alloc(layout) })
-            .ok_or(Error::ENOMEM)?
+            .ok_or(ENOMEM)?
             .cast::<RefInner<T>>();
 
         // INVARIANT: The refcount is initialised to a non-zero value.
@@ -271,7 +271,7 @@ impl<T> TryFrom<Vec<T>> for Ref<[T]> {
             .pad_to_align();
         // SAFETY: The layout size is guaranteed to be non-zero because `RefInner` contains the
         // reference count.
-        let ptr = NonNull::new(unsafe { alloc(layout) }).ok_or(Error::ENOMEM)?;
+        let ptr = NonNull::new(unsafe { alloc(layout) }).ok_or(ENOMEM)?;
         let inner =
             core::ptr::slice_from_raw_parts_mut(ptr.as_ptr() as _, v.len()) as *mut RefInner<[T]>;
 

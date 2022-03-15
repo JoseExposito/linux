@@ -50,7 +50,7 @@ pub mod clk;
 pub mod cred;
 pub mod device;
 pub mod driver;
-mod error;
+pub mod error;
 pub mod file;
 pub mod gpio;
 pub mod hwrng;

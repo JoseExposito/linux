@@ -7,7 +7,7 @@
 //! Reference: <https://www.kernel.org/doc/html/latest/driver-api/misc_devices.html>
 
 use crate::bindings;
-use crate::error::{Error, Result};
+use crate::error::{code::*, Error, Result};
 use crate::file;
 use crate::{device, str::CStr, str::CString, KernelModule, ThisModule};
 use alloc::boxed::Box;
@@ -157,7 +157,7 @@ impl<T: file::Operations> Registration<T> {
         let this = unsafe { self.get_unchecked_mut() };
         if this.registered {
             // Already registered.
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         let name = CString::try_from_fmt(name)?;
