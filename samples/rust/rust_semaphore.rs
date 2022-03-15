@@ -63,7 +63,7 @@ impl FileState {
 }
 
 impl FileOperations for FileState {
-    type Wrapper = Box<Self>;
+    type Data = Box<Self>;
     type OpenData = Ref<Semaphore>;
 
     declare_file_operations!(read, write, ioctl);

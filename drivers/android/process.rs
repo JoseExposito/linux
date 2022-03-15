@@ -806,16 +806,16 @@ impl IoctlHandler for Process {
 }
 
 impl FileOperations for Process {
-    type Wrapper = Ref<Self>;
+    type Data = Ref<Self>;
     type OpenData = Ref<Context>;
 
     kernel::declare_file_operations!(ioctl, compat_ioctl, mmap, poll);
 
-    fn open(ctx: &Ref<Context>, file: &File) -> Result<Self::Wrapper> {
+    fn open(ctx: &Ref<Context>, file: &File) -> Result<Self::Data> {
         Self::new(ctx.clone(), file.cred().clone())
     }
 
-    fn release(obj: Self::Wrapper, _file: &File) {
+    fn release(obj: Self::Data, _file: &File) {
         // Mark this process as dead. We'll do the same for the threads later.
         obj.inner.lock().is_dead = true;
 

@@ -53,12 +53,12 @@ impl SharedState {
 
 struct Token;
 impl FileOperations for Token {
-    type Wrapper = Ref<SharedState>;
+    type Data = Ref<SharedState>;
     type OpenData = Ref<SharedState>;
 
     kernel::declare_file_operations!(read, write);
 
-    fn open(shared: &Ref<SharedState>, _file: &File) -> Result<Self::Wrapper> {
+    fn open(shared: &Ref<SharedState>, _file: &File) -> Result<Self::Data> {
         Ok(shared.clone())
     }
 
