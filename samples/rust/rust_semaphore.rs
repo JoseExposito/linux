@@ -16,8 +16,7 @@
 use core::sync::atomic::{AtomicU64, Ordering};
 use kernel::{
     condvar_init, declare_file_operations,
-    file::File,
-    file_operations::{FileOperations, IoctlCommand, IoctlHandler},
+    file::{self, File, IoctlCommand, IoctlHandler},
     io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev::Registration,
     mutex_init,
@@ -54,7 +53,7 @@ impl FileState {
         let mut inner = self.shared.inner.lock();
         while inner.count == 0 {
             if self.shared.changed.wait(&mut inner) {
-                return Err(Error::EINTR);
+                return Err(EINTR);
             }
         }
         inner.count -= 1;
@@ -62,7 +61,7 @@ impl FileState {
     }
 }
 
-impl FileOperations for FileState {
+impl file::Operations for FileState {
     type Data = Box<Self>;
     type OpenData = Ref<Semaphore>;
 
@@ -156,7 +155,7 @@ impl IoctlHandler for FileState {
                 writer.write(&this.read_count.load(Ordering::Relaxed))?;
                 Ok(0)
             }
-            _ => Err(Error::EINVAL),
+            _ => Err(EINVAL),
         }
     }
 
@@ -166,7 +165,7 @@ impl IoctlHandler for FileState {
                 this.read_count.store(reader.read()?, Ordering::Relaxed);
                 Ok(0)
             }
-            _ => Err(Error::EINVAL),
+            _ => Err(EINVAL),
         }
     }
 }

@@ -4,8 +4,7 @@
 
 use kernel::prelude::*;
 use kernel::{
-    file::File,
-    file_operations::FileOperations,
+    file::{self, File},
     io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev,
     sync::{CondVar, Mutex, Ref, RefBorrow, UniqueRef},
@@ -52,7 +51,7 @@ impl SharedState {
 }
 
 struct Token;
-impl FileOperations for Token {
+impl file::Operations for Token {
     type Data = Ref<SharedState>;
     type OpenData = Ref<SharedState>;
 
@@ -79,7 +78,7 @@ impl FileOperations for Token {
             // Wait until we are allowed to decrement the token count or a signal arrives.
             while inner.token_count == 0 {
                 if shared.state_changed.wait(&mut inner) {
-                    return Err(Error::EINTR);
+                    return Err(EINTR);
                 }
             }
 
@@ -107,7 +106,7 @@ impl FileOperations for Token {
             // Wait until we are allowed to increment the token count or a signal arrives.
             while inner.token_count == MAX_TOKENS {
                 if shared.state_changed.wait(&mut inner) {
-                    return Err(Error::EINTR);
+                    return Err(EINTR);
                 }
             }
 

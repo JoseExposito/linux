@@ -6,7 +6,7 @@
 
 use crate::{
     bindings,
-    error::Error,
+    error::code::*,
     io_buffer::{IoBufferReader, IoBufferWriter},
     Result,
 };
@@ -47,7 +47,7 @@ impl IoBufferWriter for IovIter {
             // SAFETY: `IovIter::ptr` is guaranteed to be valid by the type invariants.
             let written = unsafe { bindings::iov_iter_zero(len, self.ptr) };
             if written == 0 {
-                return Err(Error::EFAULT);
+                return Err(EFAULT);
             }
 
             len -= written;
@@ -58,7 +58,7 @@ impl IoBufferWriter for IovIter {
     unsafe fn write_raw(&mut self, data: *const u8, len: usize) -> Result {
         let res = unsafe { bindings::copy_to_iter(data as _, len, self.ptr) };
         if res != len {
-            Err(Error::EFAULT)
+            Err(EFAULT)
         } else {
             Ok(())
         }
@@ -73,7 +73,7 @@ impl IoBufferReader for IovIter {
     unsafe fn read_raw(&mut self, out: *mut u8, len: usize) -> Result {
         let res = unsafe { bindings::copy_from_iter(out as _, len, self.ptr) };
         if res != len {
-            Err(Error::EFAULT)
+            Err(EFAULT)
         } else {
             Ok(())
         }

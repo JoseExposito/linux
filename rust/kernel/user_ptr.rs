@@ -6,7 +6,7 @@
 
 use crate::{
     bindings, c_types,
-    error::Error,
+    error::code::*,
     io_buffer::{IoBufferReader, IoBufferWriter},
     Result,
 };
@@ -112,11 +112,11 @@ impl IoBufferReader for UserSlicePtrReader {
     /// The output buffer must be valid.
     unsafe fn read_raw(&mut self, out: *mut u8, len: usize) -> Result {
         if len > self.1 || len > u32::MAX as usize {
-            return Err(Error::EFAULT);
+            return Err(EFAULT);
         }
         let res = unsafe { bindings::copy_from_user(out as _, self.0, len as _) };
         if res != 0 {
-            return Err(Error::EFAULT);
+            return Err(EFAULT);
         }
         // Since this is not a pointer to a valid object in our program,
         // we cannot use `add`, which has C-style rules for defined
@@ -140,7 +140,7 @@ impl IoBufferWriter for UserSlicePtrWriter {
     fn clear(&mut self, mut len: usize) -> Result {
         let mut ret = Ok(());
         if len > self.1 {
-            ret = Err(Error::EFAULT);
+            ret = Err(EFAULT);
             len = self.1;
         }
 
@@ -148,7 +148,7 @@ impl IoBufferWriter for UserSlicePtrWriter {
         // bounds in the check above.
         let left = unsafe { bindings::clear_user(self.0, len as _) } as usize;
         if left != 0 {
-            ret = Err(Error::EFAULT);
+            ret = Err(EFAULT);
             len -= left;
         }
 
@@ -159,11 +159,11 @@ impl IoBufferWriter for UserSlicePtrWriter {
 
     unsafe fn write_raw(&mut self, data: *const u8, len: usize) -> Result {
         if len > self.1 || len > u32::MAX as usize {
-            return Err(Error::EFAULT);
+            return Err(EFAULT);
         }
         let res = unsafe { bindings::copy_to_user(self.0, data as _, len as _) };
         if res != 0 {
-            return Err(Error::EFAULT);
+            return Err(EFAULT);
         }
         // Since this is not a pointer to a valid object in our program,
         // we cannot use `add`, which has C-style rules for defined

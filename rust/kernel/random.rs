@@ -6,16 +6,16 @@
 
 use core::convert::TryInto;
 
-use crate::{bindings, c_types, error};
+use crate::{bindings, c_types, error::code::*, Error, Result};
 
 /// Fills a byte slice with random bytes generated from the kernel's CSPRNG.
 ///
 /// Ensures that the CSPRNG has been seeded before generating any random bytes,
 /// and will block until it is ready.
-pub fn getrandom(dest: &mut [u8]) -> error::Result {
+pub fn getrandom(dest: &mut [u8]) -> Result {
     let res = unsafe { bindings::wait_for_random_bytes() };
     if res != 0 {
-        return Err(error::Error::from_kernel_errno(res));
+        return Err(Error::from_kernel_errno(res));
     }
 
     unsafe {
@@ -30,9 +30,9 @@ pub fn getrandom(dest: &mut [u8]) -> error::Result {
 /// Fills a byte slice with random bytes generated from the kernel's CSPRNG.
 ///
 /// If the CSPRNG is not yet seeded, returns an `Err(EAGAIN)` immediately.
-pub fn getrandom_nonblock(dest: &mut [u8]) -> error::Result {
+pub fn getrandom_nonblock(dest: &mut [u8]) -> Result {
     if !unsafe { bindings::rng_is_initialized() } {
-        return Err(error::Error::EAGAIN);
+        return Err(EAGAIN);
     }
     getrandom(dest)
 }

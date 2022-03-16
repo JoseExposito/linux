@@ -5,7 +5,8 @@
 //! C header: [`include/linux/gpio/driver.h`](../../../../include/linux/gpio/driver.h)
 
 use crate::{
-    bindings, c_types, device, error::from_kernel_result, types::PointerWrapper, Error, Result,
+    bindings, c_types, device, error::code::*, error::from_kernel_result, types::PointerWrapper,
+    Error, Result,
 };
 use core::{
     cell::UnsafeCell,
@@ -41,7 +42,7 @@ pub trait Chip {
         _data: <Self::Data as PointerWrapper>::Borrowed<'_>,
         _offset: u32,
     ) -> Result<LineDirection> {
-        Err(Error::ENOTSUPP)
+        Err(ENOTSUPP)
     }
 
     /// Configures the direction as input of the given gpio line.
@@ -49,7 +50,7 @@ pub trait Chip {
         _data: <Self::Data as PointerWrapper>::Borrowed<'_>,
         _offset: u32,
     ) -> Result {
-        Err(Error::EIO)
+        Err(EIO)
     }
 
     /// Configures the direction as output of the given gpio line.
@@ -60,12 +61,12 @@ pub trait Chip {
         _offset: u32,
         _value: bool,
     ) -> Result {
-        Err(Error::ENOTSUPP)
+        Err(ENOTSUPP)
     }
 
     /// Returns the current value of the given gpio line.
     fn get(_data: <Self::Data as PointerWrapper>::Borrowed<'_>, _offset: u32) -> Result<bool> {
-        Err(Error::EIO)
+        Err(EIO)
     }
 
     /// Sets the value of the given gpio line.
@@ -149,7 +150,7 @@ impl<T: Chip> Registration<T> {
     ) -> Result {
         if self.parent.is_some() {
             // Already registered.
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         // SAFETY: We never move out of `this`.
@@ -349,7 +350,7 @@ mod irqchip {
         ) -> Result {
             if self.reg.parent.is_some() {
                 // Already registered.
-                return Err(Error::EINVAL);
+                return Err(EINVAL);
             }
 
             // SAFETY: We never move out of `this`.
