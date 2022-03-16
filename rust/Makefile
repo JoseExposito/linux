@@ -137,8 +137,7 @@ quiet_cmd_rustdoc_test = RUSTDOC T $<
 		$(rustc_target_flags) $(rustdoc_test_target_flags) \
 		--sysroot $(objtree)/$(obj)/test/sysroot $(rustdoc_test_quiet) \
 		-L$(objtree)/$(obj)/test --output $(objtree)/$(obj)/doc \
-		--crate-name $(subst rusttest-,,$@) \
-		@$(objtree)/include/generated/rustc_cfg $<
+		--crate-name $(subst rusttest-,,$@) $<
 
 # We cannot use `-Zpanic-abort-tests` because some tests are dynamic,
 # so for the moment we skip `-Cpanic=abort`.
