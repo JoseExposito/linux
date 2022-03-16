@@ -147,6 +147,7 @@ fn main() {
     let cfg = KernelConfig::from_stdin();
     let mut ts = TargetSpec::new();
 
+    // `llvm-target`s are taken from `scripts/Makefile.clang`.
     if cfg.has("ARM") {
         ts.push("arch", "arm");
         ts.push(
