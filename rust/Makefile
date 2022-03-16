@@ -247,7 +247,7 @@ bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-fno-inline-functions-called-once \
 	--param=% --param asan-%
 
-# Derived from `scripts/Makefile.clang`
+# Derived from `scripts/Makefile.clang`.
 BINDGEN_TARGET_arm	:= arm-linux-gnueabi
 BINDGEN_TARGET_arm64	:= aarch64-linux-gnu
 BINDGEN_TARGET_powerpc	:= powerpc64le-linux-gnu
