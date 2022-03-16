@@ -52,8 +52,8 @@ quiet_cmd_rustdoc = RUSTDOC $(if $(rustdoc_host),H, ) $<
       cmd_rustdoc = \
 	OBJTREE=$(abspath $(objtree)) \
 	$(RUSTDOC) $(if $(rustdoc_host),$(rust_common_flags),$(rust_flags)) \
-		$(rustc_target_flags) -L $(objtree)/rust \
-		--output $(objtree)/rust/doc --crate-name $(subst rustdoc-,,$@) \
+		$(rustc_target_flags) -L$(objtree)/$(obj) \
+		--output $(objtree)/$(obj)/doc --crate-name $(subst rustdoc-,,$@) \
 		@$(objtree)/include/generated/rustc_cfg $<
 
 # The `html_logo_url` and `html_favicon_url` forms of the `doc` attribute
@@ -68,8 +68,8 @@ quiet_cmd_rustdoc = RUSTDOC $(if $(rustdoc_host),H, ) $<
 # command-like flags to solve the issue. Meanwhile, we use the non-custom case
 # and then retouch the generated files.
 rustdoc: rustdoc-core rustdoc-macros rustdoc-compiler_builtins rustdoc-alloc rustdoc-kernel
-	$(Q)cp $(srctree)/Documentation/rust/logo.svg $(objtree)/rust/doc
-	$(Q)find $(objtree)/rust/doc -name '*.html' -type f -print0 | xargs -0 sed -Ei \
+	$(Q)cp $(srctree)/Documentation/rust/logo.svg $(objtree)/$(obj)/doc
+	$(Q)find $(objtree)/$(obj)/doc -name '*.html' -type f -print0 | xargs -0 sed -Ei \
 		-e 's:rust-logo\.png:logo.svg:g' \
 		-e 's:favicon\.svg:logo.svg:g' \
 		-e 's:<link rel="alternate icon" type="image/png" href="[./]*favicon-(16x16|32x32)\.png">::g'
@@ -95,7 +95,7 @@ rustdoc-alloc: $(src)/alloc/lib.rs rustdoc-core \
 
 rustdoc-kernel: private rustc_target_flags = --extern alloc \
     --extern build_error \
-    --extern macros=$(objtree)/rust/libmacros.so
+    --extern macros=$(objtree)/$(obj)/libmacros.so
 rustdoc-kernel: $(src)/kernel/lib.rs rustdoc-core \
     rustdoc-macros rustdoc-compiler_builtins rustdoc-alloc \
     $(obj)/libmacros.so $(obj)/bindings_generated.rs \
@@ -108,9 +108,9 @@ quiet_cmd_rustc_test_library = RUSTC TL $<
 	$(RUSTC) $(rust_common_flags) \
 		@$(objtree)/include/generated/rustc_cfg \
 		$(rustc_target_flags) --crate-type $(if $(rustc_test_library_proc),proc-macro,rlib) \
-		--out-dir $(objtree)/rust/test/ --cfg testlib \
-		--sysroot $(objtree)/rust/test/sysroot \
-		-L $(objtree)/rust/test/ --crate-name $(subst rusttest-,,$(subst rusttestlib-,,$@)) $<
+		--out-dir $(objtree)/$(obj)/test --cfg testlib \
+		--sysroot $(objtree)/$(obj)/test/sysroot \
+		-L$(objtree)/$(obj)/test --crate-name $(subst rusttest-,,$(subst rusttestlib-,,$@)) $<
 
 rusttestlib-build_error: $(src)/build_error.rs rusttest-prepare FORCE
 	$(call if_changed,rustc_test_library)
@@ -126,9 +126,9 @@ quiet_cmd_rustdoc_test = RUSTDOC T $<
 	$(RUSTDOC) --test $(rust_common_flags) \
 		@$(objtree)/include/generated/rustc_cfg \
 		$(rustc_target_flags) $(rustdoc_test_target_flags) \
-		--sysroot $(objtree)/rust/test/sysroot $(rustdoc_test_quiet) \
-		-L $(objtree)/rust/test \
-		--output $(objtree)/rust/doc --crate-name $(subst rusttest-,,$@) \
+		--sysroot $(objtree)/$(obj)/test/sysroot $(rustdoc_test_quiet) \
+		-L$(objtree)/$(obj)/test \
+		--output $(objtree)/$(obj)/doc --crate-name $(subst rusttest-,,$@) \
 		@$(objtree)/include/generated/rustc_cfg $<
 
 # We cannot use `-Zpanic-abort-tests` because some tests are dynamic,
@@ -138,10 +138,10 @@ quiet_cmd_rustc_test = RUSTC T  $<
 	OBJTREE=$(abspath $(objtree)) \
 	$(RUSTC) --test $(rust_common_flags) \
 		@$(objtree)/include/generated/rustc_cfg \
-		$(rustc_target_flags) --out-dir $(objtree)/rust/test \
-		--sysroot $(objtree)/rust/test/sysroot \
-		-L $(objtree)/rust/test/ --crate-name $(subst rusttest-,,$@) $<; \
-	$(objtree)/rust/test/$(subst rusttest-,,$@) $(rust_test_quiet) \
+		$(rustc_target_flags) --out-dir $(objtree)/$(obj)/test \
+		--sysroot $(objtree)/$(obj)/test/sysroot \
+		-L$(objtree)/$(obj)/test --crate-name $(subst rusttest-,,$@) $<; \
+	$(objtree)/$(obj)/test/$(subst rusttest-,,$@) $(rust_test_quiet) \
 		$(rustc_test_run_flags)
 
 rusttest: rusttest-macros rusttest-kernel
@@ -175,22 +175,22 @@ rusttest: rusttest-macros rusttest-kernel
 #     `-Zbuild-std` and related hacks are not needed.
 quiet_cmd_rustsysroot = RUSTSYSROOT
       cmd_rustsysroot = \
-	rm -rf $(objtree)/rust/test; \
-	mkdir -p $(objtree)/rust/test; \
-	cp -a $(rustc_sysroot) $(objtree)/rust/test/sysroot; \
-	cp -r $(srctree)/rust/alloc/* \
-		$(objtree)/rust/test/sysroot/lib/rustlib/src/rust/library/alloc/src; \
-	echo '\#!/bin/sh' > $(objtree)/rust/test/rustc_sysroot; \
-	echo "$(RUSTC) --sysroot=$(abspath $(objtree)/rust/test/sysroot) \"\$$@\"" \
-		>> $(objtree)/rust/test/rustc_sysroot; \
-	chmod u+x $(objtree)/rust/test/rustc_sysroot; \
-	$(CARGO) -q new $(objtree)/rust/test/dummy; \
-	RUSTC=$(objtree)/rust/test/rustc_sysroot $(CARGO) $(cargo_quiet) \
+	rm -rf $(objtree)/$(obj)/test; \
+	mkdir -p $(objtree)/$(obj)/test; \
+	cp -a $(rustc_sysroot) $(objtree)/$(obj)/test/sysroot; \
+	cp -r $(srctree)/$(src)/alloc/* \
+		$(objtree)/$(obj)/test/sysroot/lib/rustlib/src/rust/library/alloc/src; \
+	echo '\#!/bin/sh' > $(objtree)/$(obj)/test/rustc_sysroot; \
+	echo "$(RUSTC) --sysroot=$(abspath $(objtree)/$(obj)/test/sysroot) \"\$$@\"" \
+		>> $(objtree)/$(obj)/test/rustc_sysroot; \
+	chmod u+x $(objtree)/$(obj)/test/rustc_sysroot; \
+	$(CARGO) -q new $(objtree)/$(obj)/test/dummy; \
+	RUSTC=$(objtree)/$(obj)/test/rustc_sysroot $(CARGO) $(cargo_quiet) \
 		test -Zbuild-std --target $(rustc_host_target) \
-		--manifest-path $(objtree)/rust/test/dummy/Cargo.toml; \
-	rm $(objtree)/rust/test/sysroot/lib/rustlib/$(rustc_host_target)/lib/*; \
-	cp $(objtree)/rust/test/dummy/target/$(rustc_host_target)/debug/deps/* \
-		$(objtree)/rust/test/sysroot/lib/rustlib/$(rustc_host_target)/lib
+		--manifest-path $(objtree)/$(obj)/test/dummy/Cargo.toml; \
+	rm $(objtree)/$(obj)/test/sysroot/lib/rustlib/$(rustc_host_target)/lib/*; \
+	cp $(objtree)/$(obj)/test/dummy/target/$(rustc_host_target)/debug/deps/* \
+		$(objtree)/$(obj)/test/sysroot/lib/rustlib/$(rustc_host_target)/lib
 
 rusttest-prepare: FORCE
 	$(call if_changed,rustsysroot)
@@ -273,7 +273,7 @@ quiet_cmd_bindgen = BINDGEN $@
 		$(bindgen_target_cflags) $(bindgen_target_extra)
 
 $(obj)/bindings_generated.rs: private bindgen_target_flags = \
-    $(shell grep -v '^\#\|^$$' $(srctree)/rust/bindgen_parameters)
+    $(shell grep -v '^\#\|^$$' $(srctree)/$(src)/bindgen_parameters)
 $(obj)/bindings_generated.rs: $(src)/kernel/bindings_helper.h \
     $(src)/bindgen_parameters FORCE
 	$(call if_changed_dep,bindgen)
@@ -285,7 +285,7 @@ $(obj)/bindings_generated.rs: $(src)/kernel/bindings_helper.h \
 $(obj)/bindings_helpers_generated.rs: private bindgen_target_flags = \
     --blacklist-type '.*' --whitelist-var '' --whitelist-function 'rust_helper_.*'
 $(obj)/bindings_helpers_generated.rs: private bindgen_target_cflags = \
-    -I$(objtree)/rust/ -Wno-missing-prototypes -Wno-missing-declarations
+    -I$(objtree)/$(obj) -Wno-missing-prototypes -Wno-missing-declarations
 $(obj)/bindings_helpers_generated.rs: private bindgen_target_extra = ; \
     sed -Ei 's/pub fn rust_helper_([a-zA-Z0-9_]*)/#[link_name="rust_helper_\1"]\n    pub fn \1/g' $@
 $(obj)/bindings_helpers_generated.rs: $(src)/helpers.c FORCE
@@ -311,9 +311,9 @@ quiet_cmd_rustc_procmacro = $(RUSTC_OR_CLIPPY_QUIET) P $@
       cmd_rustc_procmacro = \
 	$(RUSTC_OR_CLIPPY) $(rust_common_flags) \
 		--emit=dep-info,link --extern proc_macro \
-		--crate-type proc-macro --out-dir $(objtree)/rust/ \
+		--crate-type proc-macro --out-dir $(objtree)/$(obj) \
 		--crate-name $(patsubst lib%.so,%,$(notdir $@)) $<; \
-	mv $(objtree)/rust/$(patsubst lib%.so,%,$(notdir $@)).d $(depfile); \
+	mv $(objtree)/$(obj)/$(patsubst lib%.so,%,$(notdir $@)).d $(depfile); \
 	sed -i '/^\#/d' $(depfile)
 
 # Procedural macros can only be used with the `rustc` that compiled it.
@@ -329,9 +329,9 @@ quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L 
 	$(if $(skip_clippy),$(RUSTC),$(RUSTC_OR_CLIPPY)) \
 		$(filter-out $(skip_flags),$(rust_flags) $(rustc_target_flags)) \
 		--emit=dep-info,obj,metadata \
-		--crate-type rlib --out-dir $(objtree)/rust/ -L $(objtree)/rust/ \
+		--crate-type rlib --out-dir $(objtree)/$(obj) -L$(objtree)/$(obj) \
 		--crate-name $(patsubst %.o,%,$(notdir $@)) $<; \
-	mv $(objtree)/rust/$(patsubst %.o,%,$(notdir $@)).d $(depfile); \
+	mv $(objtree)/$(obj)/$(patsubst %.o,%,$(notdir $@)).d $(depfile); \
 	sed -i '/^\#/d' $(depfile) \
 	$(if $(rustc_objcopy),;$(OBJCOPY) $(rustc_objcopy) $@)
 
@@ -341,7 +341,8 @@ rustc_host_target := $(shell $(RUSTC) --version --verbose | grep -F 'host: ' | c
 RUST_LIB_SRC ?= $(rustc_sysroot)/lib/rustlib/src/rust/library
 
 rust-analyzer:
-	$(Q)$(srctree)/scripts/generate_rust_analyzer.py $(srctree) $(objtree) $(RUST_LIB_SRC) > $(objtree)/rust-project.json
+	$(Q)$(srctree)/scripts/generate_rust_analyzer.py $(srctree) $(objtree) \
+		$(RUST_LIB_SRC) > $(objtree)/rust-project.json
 
 $(obj)/compiler_builtins.o: private rustc_objcopy = -w -W '__*'
 $(obj)/compiler_builtins.o: $(src)/compiler_builtins.rs \
