@@ -29,6 +29,11 @@ obj-$(CONFIG_RUST) += exports.o
 # Avoids running `$(RUSTC)` for the sysroot when it may not be available.
 ifdef CONFIG_RUST
 
+# `$(rust_flags)` is passed in case the user added `--sysroot`.
+rustc_sysroot := $(shell $(RUSTC) $(rust_flags) --print sysroot)
+rustc_host_target := $(shell $(RUSTC) --version --verbose | grep -F 'host: ' | cut -d' ' -f2)
+RUST_LIB_SRC ?= $(rustc_sysroot)/lib/rustlib/src/rust/library
+
 ifeq ($(quiet),silent_)
 cargo_quiet=-q
 rust_test_quiet=-q
@@ -52,8 +57,9 @@ quiet_cmd_rustdoc = RUSTDOC $(if $(rustdoc_host),H, ) $<
       cmd_rustdoc = \
 	OBJTREE=$(abspath $(objtree)) \
 	$(RUSTDOC) $(if $(rustdoc_host),$(rust_common_flags),$(rust_flags)) \
-		$(rustc_target_flags) -L $(objtree)/rust \
-		--output $(objtree)/rust/doc --crate-name $(subst rustdoc-,,$@) \
+		$(rustc_target_flags) -L$(objtree)/$(obj) \
+		--output $(objtree)/$(obj)/doc \
+		--crate-name $(subst rustdoc-,,$@) \
 		@$(objtree)/include/generated/rustc_cfg $<
 
 # The `html_logo_url` and `html_favicon_url` forms of the `doc` attribute
@@ -67,9 +73,10 @@ quiet_cmd_rustdoc = RUSTDOC $(if $(rustdoc_host),H, ) $<
 # The https://github.com/rust-lang/rfcs/pull/3226 RFC suggests two new
 # command-like flags to solve the issue. Meanwhile, we use the non-custom case
 # and then retouch the generated files.
-rustdoc: rustdoc-core rustdoc-macros rustdoc-compiler_builtins rustdoc-alloc rustdoc-kernel
-	$(Q)cp $(srctree)/Documentation/rust/logo.svg $(objtree)/rust/doc
-	$(Q)find $(objtree)/rust/doc -name '*.html' -type f -print0 | xargs -0 sed -Ei \
+rustdoc: rustdoc-core rustdoc-macros rustdoc-compiler_builtins \
+    rustdoc-alloc rustdoc-kernel
+	$(Q)cp $(srctree)/Documentation/rust/logo.svg $(objtree)/$(obj)/doc
+	$(Q)find $(objtree)/$(obj)/doc -name '*.html' -type f -print0 | xargs -0 sed -Ei \
 		-e 's:rust-logo\.png:logo.svg:g' \
 		-e 's:favicon\.svg:logo.svg:g' \
 		-e 's:<link rel="alternate icon" type="image/png" href="[./]*favicon-(16x16|32x32)\.png">::g'
@@ -77,10 +84,14 @@ rustdoc: rustdoc-core rustdoc-macros rustdoc-compiler_builtins rustdoc-alloc rus
 rustdoc-macros: private rustdoc_host = yes
 rustdoc-macros: private rustc_target_flags = --crate-type proc-macro \
     --extern proc_macro
-rustdoc-macros: $(srctree)/rust/macros/lib.rs FORCE
+rustdoc-macros: $(src)/macros/lib.rs FORCE
 	$(call if_changed,rustdoc)
 
-rustdoc-compiler_builtins: $(srctree)/rust/compiler_builtins.rs rustdoc-core FORCE
+rustdoc-core: private rustc_target_flags = $(core-cfgs)
+rustdoc-core: $(RUST_LIB_SRC)/core/src/lib.rs FORCE
+	$(call if_changed,rustdoc)
+
+rustdoc-compiler_builtins: $(src)/compiler_builtins.rs rustdoc-core FORCE
 	$(call if_changed,rustdoc)
 
 # We need to allow `rustdoc::broken_intra_doc_links` because some
@@ -89,35 +100,33 @@ rustdoc-compiler_builtins: $(srctree)/rust/compiler_builtins.rs rustdoc-core FOR
 # due to things that are "configured out" vs. entirely non-existing ones.
 rustdoc-alloc: private rustc_target_flags = $(alloc-cfgs) \
     -Arustdoc::broken_intra_doc_links
-rustdoc-alloc: $(srctree)/rust/alloc/lib.rs rustdoc-core \
-    rustdoc-compiler_builtins FORCE
+rustdoc-alloc: $(src)/alloc/lib.rs rustdoc-core rustdoc-compiler_builtins FORCE
 	$(call if_changed,rustdoc)
 
 rustdoc-kernel: private rustc_target_flags = --extern alloc \
-    --extern build_error \
-    --extern macros=$(objtree)/rust/libmacros.so
-rustdoc-kernel: $(srctree)/rust/kernel/lib.rs rustdoc-core \
-    rustdoc-macros rustdoc-compiler_builtins rustdoc-alloc \
-    $(objtree)/rust/libmacros.so $(objtree)/rust/bindings_generated.rs \
-    $(objtree)/rust/bindings_helpers_generated.rs FORCE
+    --extern build_error --extern macros=$(objtree)/$(obj)/libmacros.so
+rustdoc-kernel: $(src)/kernel/lib.rs rustdoc-core rustdoc-macros \
+    rustdoc-compiler_builtins rustdoc-alloc $(obj)/libmacros.so \
+    $(obj)/bindings_generated.rs $(obj)/bindings_helpers_generated.rs FORCE
 	$(call if_changed,rustdoc)
 
 quiet_cmd_rustc_test_library = RUSTC TL $<
       cmd_rustc_test_library = \
 	OBJTREE=$(abspath $(objtree)) \
 	$(RUSTC) $(rust_common_flags) \
-		@$(objtree)/include/generated/rustc_cfg \
-		$(rustc_target_flags) --crate-type $(if $(rustc_test_library_proc),proc-macro,rlib) \
-		--out-dir $(objtree)/rust/test/ --cfg testlib \
-		--sysroot $(objtree)/rust/test/sysroot \
-		-L $(objtree)/rust/test/ --crate-name $(subst rusttest-,,$(subst rusttestlib-,,$@)) $<
+		@$(objtree)/include/generated/rustc_cfg $(rustc_target_flags) \
+		--crate-type $(if $(rustc_test_library_proc),proc-macro,rlib) \
+		--out-dir $(objtree)/$(obj)/test --cfg testlib \
+		--sysroot $(objtree)/$(obj)/test/sysroot \
+		-L$(objtree)/$(obj)/test \
+		--crate-name $(subst rusttest-,,$(subst rusttestlib-,,$@)) $<
 
-rusttestlib-build_error: $(srctree)/rust/build_error.rs rusttest-prepare FORCE
+rusttestlib-build_error: $(src)/build_error.rs rusttest-prepare FORCE
 	$(call if_changed,rustc_test_library)
 
 rusttestlib-macros: private rustc_target_flags = --extern proc_macro
 rusttestlib-macros: private rustc_test_library_proc = yes
-rusttestlib-macros: $(srctree)/rust/macros/lib.rs rusttest-prepare FORCE
+rusttestlib-macros: $(src)/macros/lib.rs rusttest-prepare FORCE
 	$(call if_changed,rustc_test_library)
 
 quiet_cmd_rustdoc_test = RUSTDOC T $<
@@ -126,10 +135,9 @@ quiet_cmd_rustdoc_test = RUSTDOC T $<
 	$(RUSTDOC) --test $(rust_common_flags) \
 		@$(objtree)/include/generated/rustc_cfg \
 		$(rustc_target_flags) $(rustdoc_test_target_flags) \
-		--sysroot $(objtree)/rust/test/sysroot $(rustdoc_test_quiet) \
-		-L $(objtree)/rust/test \
-		--output $(objtree)/rust/doc --crate-name $(subst rusttest-,,$@) \
-		@$(objtree)/include/generated/rustc_cfg $<
+		--sysroot $(objtree)/$(obj)/test/sysroot $(rustdoc_test_quiet) \
+		-L$(objtree)/$(obj)/test --output $(objtree)/$(obj)/doc \
+		--crate-name $(subst rusttest-,,$@) $<
 
 # We cannot use `-Zpanic-abort-tests` because some tests are dynamic,
 # so for the moment we skip `-Cpanic=abort`.
@@ -138,10 +146,11 @@ quiet_cmd_rustc_test = RUSTC T  $<
 	OBJTREE=$(abspath $(objtree)) \
 	$(RUSTC) --test $(rust_common_flags) \
 		@$(objtree)/include/generated/rustc_cfg \
-		$(rustc_target_flags) --out-dir $(objtree)/rust/test \
-		--sysroot $(objtree)/rust/test/sysroot \
-		-L $(objtree)/rust/test/ --crate-name $(subst rusttest-,,$@) $<; \
-	$(objtree)/rust/test/$(subst rusttest-,,$@) $(rust_test_quiet) \
+		$(rustc_target_flags) --out-dir $(objtree)/$(obj)/test \
+		--sysroot $(objtree)/$(obj)/test/sysroot \
+		-L$(objtree)/$(obj)/test \
+		--crate-name $(subst rusttest-,,$@) $<; \
+	$(objtree)/$(obj)/test/$(subst rusttest-,,$@) $(rust_test_quiet) \
 		$(rustc_test_run_flags)
 
 rusttest: rusttest-macros rusttest-kernel
@@ -175,37 +184,36 @@ rusttest: rusttest-macros rusttest-kernel
 #     `-Zbuild-std` and related hacks are not needed.
 quiet_cmd_rustsysroot = RUSTSYSROOT
       cmd_rustsysroot = \
-	rm -rf $(objtree)/rust/test; \
-	mkdir -p $(objtree)/rust/test; \
-	cp -a $(rustc_sysroot) $(objtree)/rust/test/sysroot; \
-	cp -r $(srctree)/rust/alloc/* \
-		$(objtree)/rust/test/sysroot/lib/rustlib/src/rust/library/alloc/src; \
-	echo '\#!/bin/sh' > $(objtree)/rust/test/rustc_sysroot; \
-	echo "$(RUSTC) --sysroot=$(abspath $(objtree)/rust/test/sysroot) \"\$$@\"" \
-		>> $(objtree)/rust/test/rustc_sysroot; \
-	chmod u+x $(objtree)/rust/test/rustc_sysroot; \
-	$(CARGO) -q new $(objtree)/rust/test/dummy; \
-	RUSTC=$(objtree)/rust/test/rustc_sysroot $(CARGO) $(cargo_quiet) \
+	rm -rf $(objtree)/$(obj)/test; \
+	mkdir -p $(objtree)/$(obj)/test; \
+	cp -a $(rustc_sysroot) $(objtree)/$(obj)/test/sysroot; \
+	cp -r $(srctree)/$(src)/alloc/* \
+		$(objtree)/$(obj)/test/sysroot/lib/rustlib/src/rust/library/alloc/src; \
+	echo '\#!/bin/sh' > $(objtree)/$(obj)/test/rustc_sysroot; \
+	echo "$(RUSTC) --sysroot=$(abspath $(objtree)/$(obj)/test/sysroot) \"\$$@\"" \
+		>> $(objtree)/$(obj)/test/rustc_sysroot; \
+	chmod u+x $(objtree)/$(obj)/test/rustc_sysroot; \
+	$(CARGO) -q new $(objtree)/$(obj)/test/dummy; \
+	RUSTC=$(objtree)/$(obj)/test/rustc_sysroot $(CARGO) $(cargo_quiet) \
 		test -Zbuild-std --target $(rustc_host_target) \
-		--manifest-path $(objtree)/rust/test/dummy/Cargo.toml; \
-	rm $(objtree)/rust/test/sysroot/lib/rustlib/$(rustc_host_target)/lib/*; \
-	cp $(objtree)/rust/test/dummy/target/$(rustc_host_target)/debug/deps/* \
-		$(objtree)/rust/test/sysroot/lib/rustlib/$(rustc_host_target)/lib
+		--manifest-path $(objtree)/$(obj)/test/dummy/Cargo.toml; \
+	rm $(objtree)/$(obj)/test/sysroot/lib/rustlib/$(rustc_host_target)/lib/*; \
+	cp $(objtree)/$(obj)/test/dummy/target/$(rustc_host_target)/debug/deps/* \
+		$(objtree)/$(obj)/test/sysroot/lib/rustlib/$(rustc_host_target)/lib
 
 rusttest-prepare: FORCE
 	$(call if_changed,rustsysroot)
 
 rusttest-macros: private rustc_target_flags = --extern proc_macro
 rusttest-macros: private rustdoc_test_target_flags = --crate-type proc-macro
-rusttest-macros: $(srctree)/rust/macros/lib.rs rusttest-prepare FORCE
+rusttest-macros: $(src)/macros/lib.rs rusttest-prepare FORCE
 	$(call if_changed,rustc_test)
 	$(call if_changed,rustdoc_test)
 
 rusttest-kernel: private rustc_target_flags = --extern alloc \
     --extern build_error --extern macros
-rusttest-kernel: private rustc_test_run_flags = \
-    --skip bindgen_test_layout_
-rusttest-kernel: $(srctree)/rust/kernel/lib.rs rusttest-prepare \
+rusttest-kernel: private rustc_test_run_flags = --skip bindgen_test_layout_
+rusttest-kernel: $(src)/kernel/lib.rs rusttest-prepare \
     rusttestlib-build_error rusttestlib-macros FORCE
 	$(call if_changed,rustc_test)
 	$(call if_changed,rustc_test_library)
@@ -213,7 +221,7 @@ rusttest-kernel: $(srctree)/rust/kernel/lib.rs rusttest-prepare \
 
 filechk_rust_target = $(objtree)/scripts/generate_rust_target < $<
 
-$(objtree)/rust/target.json: $(objtree)/include/config/auto.conf FORCE
+$(obj)/target.json: $(objtree)/include/config/auto.conf FORCE
 	$(call filechk,rust_target)
 
 ifdef CONFIG_CC_IS_CLANG
@@ -227,8 +235,8 @@ else
 # if we end up using one of those structs).
 bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-mskip-rax-setup -mgeneral-regs-only -msign-return-address=% \
-	-mindirect-branch=thunk-extern -mindirect-branch-register -mrecord-mcount \
-	-mabi=lp64 -mstack-protector-guard% -mtraceback=no \
+	-mindirect-branch=thunk-extern -mindirect-branch-register \
+	-mrecord-mcount -mabi=lp64 -mstack-protector-guard% -mtraceback=no \
 	-mno-pointers-to-nested-functions -mno-string -mno-strict-align \
 	-mstrict-align \
 	-fconserve-stack -falign-jumps=% -falign-loops=% \
@@ -239,7 +247,7 @@ bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-fno-inline-functions-called-once \
 	--param=% --param asan-%
 
-# Derived from `scripts/Makefile.clang`
+# Derived from `scripts/Makefile.clang`.
 BINDGEN_TARGET_arm	:= arm-linux-gnueabi
 BINDGEN_TARGET_arm64	:= aarch64-linux-gnu
 BINDGEN_TARGET_powerpc	:= powerpc64le-linux-gnu
@@ -272,23 +280,24 @@ quiet_cmd_bindgen = BINDGEN $@
 		--size_t-is-usize -o $@ -- $(bindgen_c_flags_final) -DMODULE \
 		$(bindgen_target_cflags) $(bindgen_target_extra)
 
-$(objtree)/rust/bindings_generated.rs: private bindgen_target_flags = \
-    $(shell grep -v '^\#\|^$$' $(srctree)/rust/bindgen_parameters)
-$(objtree)/rust/bindings_generated.rs: $(srctree)/rust/kernel/bindings_helper.h \
-    $(srctree)/rust/bindgen_parameters FORCE
+$(obj)/bindings_generated.rs: private bindgen_target_flags = \
+    $(shell grep -v '^\#\|^$$' $(srctree)/$(src)/bindgen_parameters)
+$(obj)/bindings_generated.rs: $(src)/kernel/bindings_helper.h \
+    $(src)/bindgen_parameters FORCE
 	$(call if_changed_dep,bindgen)
 
 # See `CFLAGS_REMOVE_helpers.o` above. In addition, Clang on C does not warn
 # with `-Wmissing-declarations` (unlike GCC), so it is not strictly needed here
 # given it is `libclang`; but for consistency, future Clang changes and/or
 # a potential future GCC backend for `bindgen`, we disable it too.
-$(objtree)/rust/bindings_helpers_generated.rs: private bindgen_target_flags = \
-    --blacklist-type '.*' --whitelist-var '' --whitelist-function 'rust_helper_.*'
-$(objtree)/rust/bindings_helpers_generated.rs: private bindgen_target_cflags = \
-    -I$(objtree)/rust/ -Wno-missing-prototypes -Wno-missing-declarations
-$(objtree)/rust/bindings_helpers_generated.rs: private bindgen_target_extra = ; \
+$(obj)/bindings_helpers_generated.rs: private bindgen_target_flags = \
+    --blacklist-type '.*' --whitelist-var '' \
+    --whitelist-function 'rust_helper_.*'
+$(obj)/bindings_helpers_generated.rs: private bindgen_target_cflags = \
+    -I$(objtree)/$(obj) -Wno-missing-prototypes -Wno-missing-declarations
+$(obj)/bindings_helpers_generated.rs: private bindgen_target_extra = ; \
     sed -Ei 's/pub fn rust_helper_([a-zA-Z0-9_]*)/#[link_name="rust_helper_\1"]\n    pub fn \1/g' $@
-$(objtree)/rust/bindings_helpers_generated.rs: $(srctree)/rust/helpers.c FORCE
+$(obj)/bindings_helpers_generated.rs: $(src)/helpers.c FORCE
 	$(call if_changed_dep,bindgen)
 
 quiet_cmd_exports = EXPORTS $@
@@ -298,29 +307,28 @@ quiet_cmd_exports = EXPORTS $@
 		| xargs -Isymbol \
 		echo 'EXPORT_SYMBOL_RUST_GPL(symbol);' > $@
 
-$(objtree)/rust/exports_core_generated.h: $(objtree)/rust/core.o FORCE
+$(obj)/exports_core_generated.h: $(obj)/core.o FORCE
 	$(call if_changed,exports)
 
-$(objtree)/rust/exports_alloc_generated.h: $(objtree)/rust/alloc.o FORCE
+$(obj)/exports_alloc_generated.h: $(obj)/alloc.o FORCE
 	$(call if_changed,exports)
 
-$(objtree)/rust/exports_kernel_generated.h: $(objtree)/rust/kernel.o FORCE
+$(obj)/exports_kernel_generated.h: $(obj)/kernel.o FORCE
 	$(call if_changed,exports)
 
 quiet_cmd_rustc_procmacro = $(RUSTC_OR_CLIPPY_QUIET) P $@
       cmd_rustc_procmacro = \
 	$(RUSTC_OR_CLIPPY) $(rust_common_flags) \
 		--emit=dep-info,link --extern proc_macro \
-		--crate-type proc-macro --out-dir $(objtree)/rust/ \
+		--crate-type proc-macro --out-dir $(objtree)/$(obj) \
 		--crate-name $(patsubst lib%.so,%,$(notdir $@)) $<; \
-	mv $(objtree)/rust/$(patsubst lib%.so,%,$(notdir $@)).d $(depfile); \
+	mv $(objtree)/$(obj)/$(patsubst lib%.so,%,$(notdir $@)).d $(depfile); \
 	sed -i '/^\#/d' $(depfile)
 
 # Procedural macros can only be used with the `rustc` that compiled it.
 # Therefore, to get `libmacros.so` automatically recompiled when the compiler
 # version changes, we add `core.o` as a dependency (even if it is not needed).
-$(objtree)/rust/libmacros.so: $(srctree)/rust/macros/lib.rs \
-	$(objtree)/rust/core.o FORCE
+$(obj)/libmacros.so: $(src)/macros/lib.rs $(obj)/core.o FORCE
 	$(call if_changed_dep,rustc_procmacro)
 
 quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L $@
@@ -328,55 +336,41 @@ quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L 
 	OBJTREE=$(abspath $(objtree)) \
 	$(if $(skip_clippy),$(RUSTC),$(RUSTC_OR_CLIPPY)) \
 		$(filter-out $(skip_flags),$(rust_flags) $(rustc_target_flags)) \
-		--emit=dep-info,obj,metadata \
-		--crate-type rlib --out-dir $(objtree)/rust/ -L $(objtree)/rust/ \
+		--emit=dep-info,obj,metadata --crate-type rlib \
+		--out-dir $(objtree)/$(obj) -L$(objtree)/$(obj) \
 		--crate-name $(patsubst %.o,%,$(notdir $@)) $<; \
-	mv $(objtree)/rust/$(patsubst %.o,%,$(notdir $@)).d $(depfile); \
+	mv $(objtree)/$(obj)/$(patsubst %.o,%,$(notdir $@)).d $(depfile); \
 	sed -i '/^\#/d' $(depfile) \
 	$(if $(rustc_objcopy),;$(OBJCOPY) $(rustc_objcopy) $@)
 
-# `$(rust_flags)` is passed in case the user added `--sysroot`.
-rustc_sysroot := $(shell $(RUSTC) $(rust_flags) --print sysroot)
-rustc_host_target := $(shell $(RUSTC) --version --verbose | grep -F 'host: ' | cut -d' ' -f2)
-RUST_LIB_SRC ?= $(rustc_sysroot)/lib/rustlib/src/rust/library
-
 rust-analyzer:
-	$(Q)$(srctree)/scripts/generate_rust_analyzer.py $(srctree) $(objtree) $(RUST_LIB_SRC) > $(objtree)/rust-project.json
+	$(Q)$(srctree)/scripts/generate_rust_analyzer.py $(srctree) $(objtree) \
+		$(RUST_LIB_SRC) > $(objtree)/rust-project.json
 
-$(objtree)/rust/compiler_builtins.o: private rustc_objcopy = -w -W '__*'
-$(objtree)/rust/compiler_builtins.o: $(srctree)/rust/compiler_builtins.rs \
-    $(objtree)/rust/core.o FORCE
+$(obj)/core.o: private skip_clippy = 1
+$(obj)/core.o: private skip_flags = -Dunreachable_pub --edition=2021
+$(obj)/core.o: private rustc_target_flags = $(core-cfgs) --edition=2018
+$(obj)/core.o: $(RUST_LIB_SRC)/core/src/lib.rs $(obj)/target.json FORCE
 	$(call if_changed_dep,rustc_library)
 
-$(objtree)/rust/alloc.o: private skip_clippy = 1
-$(objtree)/rust/alloc.o: private skip_flags = -Dunreachable_pub
-$(objtree)/rust/alloc.o: private rustc_target_flags = $(alloc-cfgs)
-$(objtree)/rust/alloc.o: $(srctree)/rust/alloc/lib.rs \
-    $(objtree)/rust/compiler_builtins.o FORCE
+$(obj)/compiler_builtins.o: private rustc_objcopy = -w -W '__*'
+$(obj)/compiler_builtins.o: $(src)/compiler_builtins.rs $(obj)/core.o FORCE
 	$(call if_changed_dep,rustc_library)
 
-$(objtree)/rust/build_error.o: $(srctree)/rust/build_error.rs \
-    $(objtree)/rust/compiler_builtins.o FORCE
+$(obj)/alloc.o: private skip_clippy = 1
+$(obj)/alloc.o: private skip_flags = -Dunreachable_pub
+$(obj)/alloc.o: private rustc_target_flags = $(alloc-cfgs)
+$(obj)/alloc.o: $(src)/alloc/lib.rs $(obj)/compiler_builtins.o FORCE
 	$(call if_changed_dep,rustc_library)
 
-$(objtree)/rust/kernel.o: private rustc_target_flags = --extern alloc \
-    --extern build_error \
-    --extern macros
-$(objtree)/rust/kernel.o: $(srctree)/rust/kernel/lib.rs $(objtree)/rust/alloc.o \
-    $(objtree)/rust/build_error.o \
-    $(objtree)/rust/libmacros.so $(objtree)/rust/bindings_generated.rs \
-    $(objtree)/rust/bindings_helpers_generated.rs FORCE
+$(obj)/build_error.o: $(src)/build_error.rs $(obj)/compiler_builtins.o FORCE
 	$(call if_changed_dep,rustc_library)
 
-$(objtree)/rust/core.o: private skip_clippy = 1
-$(objtree)/rust/core.o: private skip_flags = -Dunreachable_pub --edition=2021
-$(objtree)/rust/core.o: private rustc_target_flags = $(core-cfgs) --edition=2018
-$(objtree)/rust/core.o: $(RUST_LIB_SRC)/core/src/lib.rs \
-    $(objtree)/rust/target.json FORCE
+$(obj)/kernel.o: private rustc_target_flags = --extern alloc \
+    --extern build_error --extern macros
+$(obj)/kernel.o: $(src)/kernel/lib.rs $(obj)/alloc.o $(obj)/build_error.o \
+    $(obj)/libmacros.so $(obj)/bindings_generated.rs \
+    $(obj)/bindings_helpers_generated.rs FORCE
 	$(call if_changed_dep,rustc_library)
-
-rustdoc-core: private rustc_target_flags = $(core-cfgs)
-rustdoc-core: $(RUST_LIB_SRC)/core/src/lib.rs FORCE
-	$(call if_changed,rustdoc)
 
 endif # CONFIG_RUST
