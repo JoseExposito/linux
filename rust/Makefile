@@ -29,6 +29,11 @@ obj-$(CONFIG_RUST) += exports.o
 # Avoids running `$(RUSTC)` for the sysroot when it may not be available.
 ifdef CONFIG_RUST
 
+# `$(rust_flags)` is passed in case the user added `--sysroot`.
+rustc_sysroot := $(shell $(RUSTC) $(rust_flags) --print sysroot)
+rustc_host_target := $(shell $(RUSTC) --version --verbose | grep -F 'host: ' | cut -d' ' -f2)
+RUST_LIB_SRC ?= $(rustc_sysroot)/lib/rustlib/src/rust/library
+
 ifeq ($(quiet),silent_)
 cargo_quiet=-q
 rust_test_quiet=-q
@@ -78,6 +83,10 @@ rustdoc-macros: private rustdoc_host = yes
 rustdoc-macros: private rustc_target_flags = --crate-type proc-macro \
     --extern proc_macro
 rustdoc-macros: $(src)/macros/lib.rs FORCE
+	$(call if_changed,rustdoc)
+
+rustdoc-core: private rustc_target_flags = $(core-cfgs)
+rustdoc-core: $(RUST_LIB_SRC)/core/src/lib.rs FORCE
 	$(call if_changed,rustdoc)
 
 rustdoc-compiler_builtins: $(src)/compiler_builtins.rs rustdoc-core FORCE
@@ -335,14 +344,16 @@ quiet_cmd_rustc_library = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) L 
 	sed -i '/^\#/d' $(depfile) \
 	$(if $(rustc_objcopy),;$(OBJCOPY) $(rustc_objcopy) $@)
 
-# `$(rust_flags)` is passed in case the user added `--sysroot`.
-rustc_sysroot := $(shell $(RUSTC) $(rust_flags) --print sysroot)
-rustc_host_target := $(shell $(RUSTC) --version --verbose | grep -F 'host: ' | cut -d' ' -f2)
-RUST_LIB_SRC ?= $(rustc_sysroot)/lib/rustlib/src/rust/library
-
 rust-analyzer:
 	$(Q)$(srctree)/scripts/generate_rust_analyzer.py $(srctree) $(objtree) \
 		$(RUST_LIB_SRC) > $(objtree)/rust-project.json
+
+$(obj)/core.o: private skip_clippy = 1
+$(obj)/core.o: private skip_flags = -Dunreachable_pub --edition=2021
+$(obj)/core.o: private rustc_target_flags = $(core-cfgs) --edition=2018
+$(obj)/core.o: $(RUST_LIB_SRC)/core/src/lib.rs \
+    $(obj)/target.json FORCE
+	$(call if_changed_dep,rustc_library)
 
 $(obj)/compiler_builtins.o: private rustc_objcopy = -w -W '__*'
 $(obj)/compiler_builtins.o: $(src)/compiler_builtins.rs \
@@ -368,16 +379,5 @@ $(obj)/kernel.o: $(src)/kernel/lib.rs $(obj)/alloc.o \
     $(obj)/libmacros.so $(obj)/bindings_generated.rs \
     $(obj)/bindings_helpers_generated.rs FORCE
 	$(call if_changed_dep,rustc_library)
-
-$(obj)/core.o: private skip_clippy = 1
-$(obj)/core.o: private skip_flags = -Dunreachable_pub --edition=2021
-$(obj)/core.o: private rustc_target_flags = $(core-cfgs) --edition=2018
-$(obj)/core.o: $(RUST_LIB_SRC)/core/src/lib.rs \
-    $(obj)/target.json FORCE
-	$(call if_changed_dep,rustc_library)
-
-rustdoc-core: private rustc_target_flags = $(core-cfgs)
-rustdoc-core: $(RUST_LIB_SRC)/core/src/lib.rs FORCE
-	$(call if_changed,rustdoc)
 
 endif # CONFIG_RUST
