@@ -187,6 +187,45 @@ impl<const SIZE: usize> IoMem<SIZE> {
         crate::build_assert!(Self::offset_ok::<T>(offset), "IoMem offset overflow");
     }
 
+    /// Copy memory block from an i/o memory by filling the specified buffer with it.
+    ///
+    /// # Examples
+    /// ```
+    /// # use kernel::prelude::*;
+    /// use kernel::io_mem::{self, IoMem, Resource};
+    ///
+    /// fn test(res: Resource) -> Result {
+    ///     // Create an i/o memory block of at least 100 bytes.
+    ///     let mem = unsafe { IoMem::<100>::try_new(res) }?;
+    ///
+    ///     let mut buffer: [u8; 32] = [0; 32];
+    ///
+    ///     // Memcpy 16 bytes from an offset 10 of i/o memory block into the buffer.
+    ///     mem.try_memcpy_fromio(&mut buffer[..16], 10)?;
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn try_memcpy_fromio(&self, buffer: &mut [u8], offset: usize) -> Result {
+        if !Self::offset_ok_of_val(offset, buffer) {
+            return Err(EINVAL);
+        }
+
+        let ptr = self.ptr.wrapping_add(offset);
+
+        // SAFETY:
+        //   - The type invariants guarantee that `ptr` is a valid pointer.
+        //   - The bounds of `buffer` are checked with a call to `offset_ok_of_val()`.
+        unsafe {
+            bindings::memcpy_fromio(
+                buffer.as_mut_ptr() as *mut _,
+                ptr as *const _,
+                buffer.len() as _,
+            )
+        };
+        Ok(())
+    }
+
     define_read!(readb, try_readb, u8);
     define_read!(readw, try_readw, u16);
     define_read!(readl, try_readl, u32);
