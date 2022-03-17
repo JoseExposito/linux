@@ -16821,7 +16821,6 @@ T:	git https://github.com/Rust-for-Linux/linux.git rust-next
 F:	rust/
 F:	samples/rust/
 F:	Documentation/rust/
-F:	lib/rust.h
 F:	scripts/*rust*
 K:	\b(?i:rust)\b
 
