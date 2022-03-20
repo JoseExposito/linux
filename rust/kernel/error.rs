@@ -420,6 +420,12 @@ impl From<core::fmt::Error> for Error {
     }
 }
 
+impl From<core::convert::Infallible> for Error {
+    fn from(e: core::convert::Infallible) -> Error {
+        match e {}
+    }
+}
+
 /// A [`Result`] with an [`Error`] error type.
 ///
 /// To be used as the return type for functions that may fail.
