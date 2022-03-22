@@ -15,51 +15,62 @@ use crate::{
     sync::CondVar,
     types::PointerWrapper,
     user_ptr::{UserSlicePtr, UserSlicePtrReader, UserSlicePtrWriter},
+    ARef, AlwaysRefCounted,
 };
 use core::convert::{TryFrom, TryInto};
-use core::{marker, mem, mem::ManuallyDrop, ops::Deref, ptr};
+use core::{cell::UnsafeCell, marker, mem, ptr};
 
 /// Wraps the kernel's `struct file`.
 ///
 /// # Invariants
 ///
-/// The pointer `File::ptr` is non-null and valid. Its reference count is also non-zero.
-pub struct File {
-    pub(crate) ptr: *mut bindings::file,
-}
+/// Instances of this type are always ref-counted, that is, a call to `get_file` ensures that the
+/// allocation remains valid at least until the matching call to `fput`.
+#[repr(transparent)]
+pub struct File(pub(crate) UnsafeCell<bindings::file>);
 
+// TODO: Accessing fields of `struct file` through the pointer is UB because other threads may be
+// writing to them. However, this is how the C code currently operates: naked reads and writes to
+// fields. Even if we used relaxed atomics on the Rust side, we can't force this on the C side.
 impl File {
     /// Constructs a new [`struct file`] wrapper from a file descriptor.
     ///
     /// The file descriptor belongs to the current process.
-    pub fn from_fd(fd: u32) -> Result<Self> {
+    pub fn from_fd(fd: u32) -> Result<ARef<Self>> {
         // SAFETY: FFI call, there are no requirements on `fd`.
-        let ptr = unsafe { bindings::fget(fd) };
-        if ptr.is_null() {
-            return Err(EBADF);
-        }
+        let ptr = ptr::NonNull::new(unsafe { bindings::fget(fd) }).ok_or(EBADF)?;
 
-        // INVARIANTS: We checked that `ptr` is non-null, so it is valid. `fget` increments the ref
-        // count before returning.
-        Ok(Self { ptr })
+        // SAFETY: `fget` increments the refcount before returning.
+        Ok(unsafe { ARef::from_raw(ptr.cast()) })
+    }
+
+    /// Creates a reference to a [`File`] from a valid pointer.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `ptr` is valid and remains valid for the lifetime of the
+    /// returned [`File`] instance.
+    pub(crate) unsafe fn from_ptr<'a>(ptr: *const bindings::file) -> &'a File {
+        // SAFETY: The safety requirements guarantee the validity of the dereference, while the
+        // `File` type being transparent makes the cast ok.
+        unsafe { &*ptr.cast() }
     }
 
     /// Returns the current seek/cursor/pointer position (`struct file::f_pos`).
     pub fn pos(&self) -> u64 {
-        // SAFETY: `File::ptr` is guaranteed to be valid by the type invariants.
-        unsafe { (*self.ptr).f_pos as u64 }
+        // SAFETY: The file is valid because the shared reference guarantees a nonzero refcount.
+        unsafe { core::ptr::addr_of!((*self.0.get()).f_pos).read() as _ }
     }
 
     /// Returns whether the file is in blocking mode.
     pub fn is_blocking(&self) -> bool {
-        // SAFETY: `File::ptr` is guaranteed to be valid by the type invariants.
-        unsafe { (*self.ptr).f_flags & bindings::O_NONBLOCK == 0 }
+        self.flags() & bindings::O_NONBLOCK == 0
     }
 
     /// Returns the credentials of the task that originally opened the file.
     pub fn cred(&self) -> CredentialRef<'_> {
-        // SAFETY: `File::ptr` is guaranteed to be valid by the type invariants.
-        let ptr = unsafe { (*self.ptr).f_cred };
+        // SAFETY: The file is valid because the shared reference guarantees a nonzero refcount.
+        let ptr = unsafe { core::ptr::addr_of!((*self.0.get()).f_cred).read() };
         // SAFETY: The lifetimes of `self` and `CredentialRef` are tied, so it is guaranteed that
         // the credential pointer remains valid (because the file is still alive, and it doesn't
         // change over the lifetime of a file).
@@ -68,45 +79,21 @@ impl File {
 
     /// Returns the flags associated with the file.
     pub fn flags(&self) -> u32 {
-        // SAFETY: `File::ptr` is guaranteed to be valid by the type invariants.
-        unsafe { (*self.ptr).f_flags }
+        // SAFETY: The file is valid because the shared reference guarantees a nonzero refcount.
+        unsafe { core::ptr::addr_of!((*self.0.get()).f_flags).read() }
     }
 }
 
-impl Drop for File {
-    fn drop(&mut self) {
-        // SAFETY: The type invariants guarantee that `File::ptr` has a non-zero reference count.
-        unsafe { bindings::fput(self.ptr) };
+// SAFETY: The type invariants guarantee that `File` is always ref-counted.
+unsafe impl AlwaysRefCounted for File {
+    fn inc_ref(&self) {
+        // SAFETY: The existence of a shared reference means that the refcount is nonzero.
+        unsafe { bindings::get_file(self.0.get()) };
     }
-}
 
-/// A wrapper for [`File`] that doesn't automatically decrement the refcount when dropped.
-///
-/// We need the wrapper because [`ManuallyDrop`] alone would allow callers to call
-/// [`ManuallyDrop::into_inner`]. This would allow an unsafe sequence to be triggered without
-/// `unsafe` blocks because it would trigger an unbalanced call to `fput`.
-///
-/// # Invariants
-///
-/// The wrapped [`File`] remains valid for the lifetime of the object.
-pub(crate) struct FileRef(ManuallyDrop<File>);
-
-impl FileRef {
-    /// Constructs a new [`struct file`] wrapper that doesn't change its reference count.
-    ///
-    /// # Safety
-    ///
-    /// The pointer `ptr` must be non-null and valid for the lifetime of the object.
-    pub(crate) unsafe fn from_ptr(ptr: *mut bindings::file) -> Self {
-        Self(ManuallyDrop::new(File { ptr }))
-    }
-}
-
-impl Deref for FileRef {
-    type Target = File;
-
-    fn deref(&self) -> &Self::Target {
-        self.0.deref()
+    unsafe fn dec_ref(obj: ptr::NonNull<Self>) {
+        // SAFETY: The safety requirements guarantee that the refcount is nonzero.
+        unsafe { bindings::fput(obj.cast().as_ptr()) }
     }
 }
 
@@ -138,10 +125,10 @@ impl FileDescriptorReservation {
     /// Commits the reservation.
     ///
     /// The previously reserved file descriptor is bound to `file`.
-    pub fn commit(self, file: File) {
+    pub fn commit(self, file: ARef<File>) {
         // SAFETY: `self.fd` was previously returned by `get_unused_fd_flags`, and `file.ptr` is
         // guaranteed to have an owned ref count by its type invariants.
-        unsafe { bindings::fd_install(self.fd, file.ptr) };
+        unsafe { bindings::fd_install(self.fd, file.0.get()) };
 
         // `fd_install` consumes both the file descriptor and the file reference, so we cannot run
         // the destructors.
@@ -196,7 +183,7 @@ impl PollTable {
         let table = unsafe { &*self.ptr };
         if let Some(proc) = table._qproc {
             // SAFETY: All pointers are known to be valid.
-            unsafe { proc(file.ptr as _, cv.wait_list.get(), self.ptr) }
+            unsafe { proc(file.0.get() as _, cv.wait_list.get(), self.ptr) }
         }
     }
 }
@@ -238,10 +225,10 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // SAFETY: The C contract guarantees that `file` is valid. Additionally,
             // `fileref` never outlives this function, so it is guaranteed to be
             // valid.
-            let fileref = unsafe { FileRef::from_ptr(file) };
+            let fileref = unsafe { File::from_ptr(file) };
             // SAFETY: `arg` was previously returned by `A::convert` and must
             // be a valid non-null pointer.
-            let ptr = T::open(unsafe { &*arg }, &fileref)?.into_pointer();
+            let ptr = T::open(unsafe { &*arg }, fileref)?.into_pointer();
             // SAFETY: The C contract guarantees that `private_data` is available
             // for implementers of the file operations (no other C code accesses
             // it), so we know that there are no concurrent threads/CPUs accessing
@@ -269,7 +256,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
             let read = T::read(
                 f,
-                unsafe { &FileRef::from_ptr(file) },
+                unsafe { File::from_ptr(file) },
                 &mut data,
                 unsafe { *offset }.try_into()?,
             )?;
@@ -293,7 +280,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // function is running.
             let f = unsafe { T::Data::borrow((*file).private_data) };
             let read =
-                T::read(f, unsafe { &FileRef::from_ptr(file) }, &mut iter, offset.try_into()?)?;
+                T::read(f, unsafe { File::from_ptr(file) }, &mut iter, offset.try_into()?)?;
             unsafe { (*iocb).ki_pos += bindings::loff_t::try_from(read).unwrap() };
             Ok(read as _)
         }
@@ -317,7 +304,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
             let written = T::write(
                 f,
-                unsafe { &FileRef::from_ptr(file) },
+                unsafe { File::from_ptr(file) },
                 &mut data,
                 unsafe { *offset }.try_into()?
             )?;
@@ -341,7 +328,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // function is running.
             let f = unsafe { T::Data::borrow((*file).private_data) };
             let written =
-                T::write(f, unsafe { &FileRef::from_ptr(file) }, &mut iter, offset.try_into()?)?;
+                T::write(f, unsafe { File::from_ptr(file) }, &mut iter, offset.try_into()?)?;
             unsafe { (*iocb).ki_pos += bindings::loff_t::try_from(written).unwrap() };
             Ok(written as _)
         }
@@ -353,7 +340,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
     ) -> c_types::c_int {
         let ptr = mem::replace(unsafe { &mut (*file).private_data }, ptr::null_mut());
         T::release(unsafe { T::Data::from_pointer(ptr as _) }, unsafe {
-            &FileRef::from_ptr(file)
+            File::from_ptr(file)
         });
         0
     }
@@ -376,7 +363,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // references to `file` have been released, so we know it can't be called while this
             // function is running.
             let f = unsafe { T::Data::borrow((*file).private_data) };
-            let off = T::seek(f, unsafe { &FileRef::from_ptr(file) }, off)?;
+            let off = T::seek(f, unsafe { File::from_ptr(file) }, off)?;
             Ok(off as bindings::loff_t)
         }
     }
@@ -394,7 +381,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // function is running.
             let f = unsafe { T::Data::borrow((*file).private_data) };
             let mut cmd = IoctlCommand::new(cmd as _, arg as _);
-            let ret = T::ioctl(f, unsafe { &FileRef::from_ptr(file) }, &mut cmd)?;
+            let ret = T::ioctl(f, unsafe { File::from_ptr(file) }, &mut cmd)?;
             Ok(ret as _)
         }
     }
@@ -412,7 +399,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // function is running.
             let f = unsafe { T::Data::borrow((*file).private_data) };
             let mut cmd = IoctlCommand::new(cmd as _, arg as _);
-            let ret = T::compat_ioctl(f, unsafe { &FileRef::from_ptr(file) }, &mut cmd)?;
+            let ret = T::compat_ioctl(f, unsafe { File::from_ptr(file) }, &mut cmd)?;
             Ok(ret as _)
         }
     }
@@ -435,7 +422,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
 
             // SAFETY: The C API guarantees that `file` is valid for the duration of this call,
             // which is longer than the lifetime of the file reference.
-            T::mmap(f, unsafe { &FileRef::from_ptr(file) }, &mut area)?;
+            T::mmap(f, unsafe { File::from_ptr(file) }, &mut area)?;
             Ok(0)
         }
     }
@@ -456,7 +443,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // references to `file` have been released, so we know it can't be called while this
             // function is running.
             let f = unsafe { T::Data::borrow((*file).private_data) };
-            let res = T::fsync(f, unsafe { &FileRef::from_ptr(file) }, start, end, datasync)?;
+            let res = T::fsync(f, unsafe { File::from_ptr(file) }, start, end, datasync)?;
             Ok(res.try_into().unwrap())
         }
     }
@@ -470,7 +457,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
         // callback, which the C API guarantees that will be called only when all references to
         // `file` have been released, so we know it can't be called while this function is running.
         let f = unsafe { T::Data::borrow((*file).private_data) };
-        match T::poll(f, unsafe { &FileRef::from_ptr(file) }, unsafe {
+        match T::poll(f, unsafe { File::from_ptr(file) }, unsafe {
             &PollTable::from_ptr(wait)
         }) {
             Ok(v) => v,
