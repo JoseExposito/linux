@@ -7,7 +7,7 @@
 
 use crate::{
     bindings, c_types,
-    cred::CredentialRef,
+    cred::Credential,
     error::{code::*, from_kernel_result, Error, Result},
     io_buffer::{IoBufferReader, IoBufferWriter},
     iov_iter::IovIter,
@@ -68,13 +68,13 @@ impl File {
     }
 
     /// Returns the credentials of the task that originally opened the file.
-    pub fn cred(&self) -> CredentialRef<'_> {
+    pub fn cred(&self) -> &Credential {
         // SAFETY: The file is valid because the shared reference guarantees a nonzero refcount.
         let ptr = unsafe { core::ptr::addr_of!((*self.0.get()).f_cred).read() };
-        // SAFETY: The lifetimes of `self` and `CredentialRef` are tied, so it is guaranteed that
+        // SAFETY: The lifetimes of `self` and `Credential` are tied, so it is guaranteed that
         // the credential pointer remains valid (because the file is still alive, and it doesn't
         // change over the lifetime of a file).
-        unsafe { CredentialRef::from_ptr(ptr) }
+        unsafe { Credential::from_ptr(ptr) }
     }
 
     /// Returns the flags associated with the file.
