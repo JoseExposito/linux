@@ -31,6 +31,7 @@ mod mutex;
 mod revocable_mutex;
 mod rwsem;
 mod seqlock;
+pub mod smutex;
 mod spinlock;
 
 pub use arc::{Ref, RefBorrow, UniqueRef};
