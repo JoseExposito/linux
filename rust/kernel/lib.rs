@@ -57,6 +57,8 @@ pub mod hwrng;
 pub mod irq;
 pub mod miscdev;
 pub mod mm;
+#[cfg(CONFIG_NET)]
+pub mod net;
 pub mod pages;
 pub mod power;
 pub mod revocable;
