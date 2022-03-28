@@ -106,7 +106,7 @@ struct RustSemaphore {
     _dev: Pin<Box<Registration<FileState>>>,
 }
 
-impl KernelModule for RustSemaphore {
+impl kernel::Module for RustSemaphore {
     fn init(name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust semaphore sample (init)\n");
 

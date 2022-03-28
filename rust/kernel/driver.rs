@@ -5,7 +5,7 @@
 //! Each bus/subsystem is expected to implement [`DriverOps`], which allows drivers to register
 //! using the [`Registration`] class.
 
-use crate::{error::code::*, str::CStr, sync::Ref, KernelModule, Result, ThisModule};
+use crate::{error::code::*, str::CStr, sync::Ref, Result, ThisModule};
 use alloc::boxed::Box;
 use core::{cell::UnsafeCell, marker::PhantomData, ops::Deref, pin::Pin};
 
@@ -415,7 +415,7 @@ pub struct Module<T: DriverOps> {
     _driver: Pin<Box<Registration<T>>>,
 }
 
-impl<T: DriverOps> KernelModule for Module<T> {
+impl<T: DriverOps> crate::Module for Module<T> {
     fn init(name: &'static CStr, module: &'static ThisModule) -> Result<Self> {
         Ok(Self {
             _driver: Registration::new_pinned(name, module)?,

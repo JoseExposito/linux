@@ -41,7 +41,7 @@ module! {
 
 struct RustModuleParameters;
 
-impl KernelModule for RustModuleParameters {
+impl kernel::Module for RustModuleParameters {
     fn init(_name: &'static CStr, module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust module parameters sample (init)\n");
 

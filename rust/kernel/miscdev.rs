@@ -9,7 +9,7 @@
 use crate::bindings;
 use crate::error::{code::*, Error, Result};
 use crate::file;
-use crate::{device, str::CStr, str::CString, KernelModule, ThisModule};
+use crate::{device, str::CStr, str::CString, ThisModule};
 use alloc::boxed::Box;
 use core::marker::PhantomPinned;
 use core::{fmt, mem::MaybeUninit, pin::Pin};
@@ -242,7 +242,7 @@ pub struct Module<T: file::Operations<OpenData = ()>> {
     _dev: Pin<Box<Registration<T>>>,
 }
 
-impl<T: file::Operations<OpenData = ()>> KernelModule for Module<T> {
+impl<T: file::Operations<OpenData = ()>> crate::Module for Module<T> {
     fn init(name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         Ok(Self {
             _dev: Registration::new_pinned(crate::fmt!("{name}"), ())?,

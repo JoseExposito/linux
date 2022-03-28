@@ -27,7 +27,7 @@ struct RustChrdev {
     _dev: Pin<Box<chrdev::Registration<2>>>,
 }
 
-impl KernelModule for RustChrdev {
+impl kernel::Module for RustChrdev {
     fn init(name: &'static CStr, module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust character device sample (init)\n");
 
