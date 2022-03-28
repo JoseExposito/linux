@@ -32,5 +32,5 @@ pub fn binder_transfer_binder(from: &Credential, to: &Credential) -> Result {
 pub fn binder_transfer_file(from: &Credential, to: &Credential, file: &File) -> Result {
     // SAFETY: By the `Credential` invariants, `from.ptr` and `to.ptr` are valid. Similarly, by the
     // `File` invariants, `file.ptr` is also valid.
-    to_result(|| unsafe { bindings::security_binder_transfer_file(from.ptr, to.ptr, file.ptr) })
+    to_result(|| unsafe { bindings::security_binder_transfer_file(from.ptr, to.ptr, file.0.get()) })
 }

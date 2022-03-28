@@ -398,6 +398,12 @@ int rust_helper_security_binder_transfer_file(const struct cred *from,
 }
 EXPORT_SYMBOL_GPL(rust_helper_security_binder_transfer_file);
 
+struct file *rust_helper_get_file(struct file *f)
+{
+	return get_file(f);
+}
+EXPORT_SYMBOL_GPL(rust_helper_get_file);
+
 void rust_helper_rcu_read_lock(void)
 {
 	rcu_read_lock();
