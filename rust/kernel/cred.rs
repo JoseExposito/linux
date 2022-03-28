@@ -6,68 +6,41 @@
 //!
 //! Reference: <https://www.kernel.org/doc/html/latest/security/credentials.html>
 
-use crate::bindings;
-use core::{marker::PhantomData, mem::ManuallyDrop, ops::Deref};
+use crate::{bindings, AlwaysRefCounted};
+use core::cell::UnsafeCell;
 
 /// Wraps the kernel's `struct cred`.
 ///
 /// # Invariants
 ///
-/// The pointer `Credential::ptr` is non-null and valid. Its reference count is also non-zero.
-pub struct Credential {
-    pub(crate) ptr: *const bindings::cred,
-}
+/// Instances of this type are always ref-counted, that is, a call to `get_cred` ensures that the
+/// allocation remains valid at least until the matching call to `put_cred`.
+#[repr(transparent)]
+pub struct Credential(pub(crate) UnsafeCell<bindings::cred>);
 
-impl Clone for Credential {
-    fn clone(&self) -> Self {
-        // SAFETY: The type invariants guarantee that `self.ptr` has a non-zero reference count.
-        let ptr = unsafe { bindings::get_cred(self.ptr) };
-
-        // INVARIANT: We incremented the reference count to account for the new `Credential` being
-        // created.
-        Self { ptr }
-    }
-}
-
-impl Drop for Credential {
-    fn drop(&mut self) {
-        // SAFETY: The type invariants guarantee that `ptr` has a non-zero reference count.
-        unsafe { bindings::put_cred(self.ptr) };
-    }
-}
-
-/// A wrapper for [`Credential`] that doesn't automatically decrement the refcount when dropped.
-///
-/// We need the wrapper because [`ManuallyDrop`] alone would allow callers to call
-/// [`ManuallyDrop::into_inner`]. This would allow an unsafe sequence to be triggered without
-/// `unsafe` blocks because it would trigger an unbalanced call to `put_cred`.
-///
-/// # Invariants
-///
-/// The wrapped [`Credential`] remains valid for the lifetime of the object.
-pub struct CredentialRef<'a> {
-    cred: ManuallyDrop<Credential>,
-    _p: PhantomData<&'a ()>,
-}
-
-impl CredentialRef<'_> {
-    /// Constructs a new [`struct cred`] wrapper that doesn't change its reference count.
+impl Credential {
+    /// Creates a reference to a [`Credential`] from a valid pointer.
     ///
     /// # Safety
     ///
-    /// The pointer `ptr` must be non-null and valid for the lifetime of the object.
-    pub(crate) unsafe fn from_ptr(ptr: *const bindings::cred) -> Self {
-        Self {
-            cred: ManuallyDrop::new(Credential { ptr }),
-            _p: PhantomData,
-        }
+    /// The caller must ensure that `ptr` is valid and remains valid for the lifetime of the
+    /// returned [`Credential`] reference.
+    pub(crate) unsafe fn from_ptr<'a>(ptr: *const bindings::cred) -> &'a Self {
+        // SAFETY: The safety requirements guarantee the validity of the dereference, while the
+        // `Credential` type being transparent makes the cast ok.
+        unsafe { &*ptr.cast() }
     }
 }
 
-impl Deref for CredentialRef<'_> {
-    type Target = Credential;
+// SAFETY: The type invariants guarantee that `Credential` is always ref-counted.
+unsafe impl AlwaysRefCounted for Credential {
+    fn inc_ref(&self) {
+        // SAFETY: The existence of a shared reference means that the refcount is nonzero.
+        unsafe { bindings::get_cred(self.0.get()) };
+    }
 
-    fn deref(&self) -> &Self::Target {
-        self.cred.deref()
+    unsafe fn dec_ref(obj: core::ptr::NonNull<Self>) {
+        // SAFETY: The safety requirements guarantee that the refcount is nonzero.
+        unsafe { bindings::put_cred(obj.cast().as_ptr()) };
     }
 }

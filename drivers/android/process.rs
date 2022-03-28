@@ -247,7 +247,7 @@ pub(crate) struct Process {
     pub(crate) task: Task,
 
     // Credential associated with file when `Process` is created.
-    pub(crate) cred: Credential,
+    pub(crate) cred: ARef<Credential>,
 
     // TODO: For now this a mutex because we have allocations in RangeAllocator while holding the
     // lock. We may want to split up the process state at some point to use a spin lock for the
@@ -265,7 +265,7 @@ unsafe impl Send for Process {}
 unsafe impl Sync for Process {}
 
 impl Process {
-    fn new(ctx: Ref<Context>, cred: Credential) -> Result<Ref<Self>> {
+    fn new(ctx: Ref<Context>, cred: ARef<Credential>) -> Result<Ref<Self>> {
         let mut process = Pin::from(UniqueRef::try_new(Self {
             ctx,
             cred,
@@ -811,7 +811,7 @@ impl file::Operations for Process {
     kernel::declare_file_operations!(ioctl, compat_ioctl, mmap, poll);
 
     fn open(ctx: &Ref<Context>, file: &File) -> Result<Self::Data> {
-        Self::new(ctx.clone(), file.cred().clone())
+        Self::new(ctx.clone(), file.cred().into())
     }
 
     fn release(obj: Self::Data, _file: &File) {
