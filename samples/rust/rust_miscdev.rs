@@ -124,7 +124,7 @@ struct RustMiscdev {
     _dev: Pin<Box<miscdev::Registration<Token>>>,
 }
 
-impl KernelModule for RustMiscdev {
+impl kernel::Module for RustMiscdev {
     fn init(name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust miscellaneous device sample (init)\n");
 

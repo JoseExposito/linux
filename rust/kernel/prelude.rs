@@ -31,6 +31,6 @@ pub use super::module_amba_driver;
 
 pub use super::static_assert;
 
-pub use super::{error::code::*, Error, KernelModule, Result};
+pub use super::{error::code::*, Error, Result};
 
 pub use super::{str::CStr, ARef, ThisModule};

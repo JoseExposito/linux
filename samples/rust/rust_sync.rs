@@ -23,7 +23,7 @@ kernel::init_static_sync! {
 
 struct RustSync;
 
-impl KernelModule for RustSync {
+impl kernel::Module for RustSync {
     fn init(_name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust synchronisation primitives sample (init)\n");
 

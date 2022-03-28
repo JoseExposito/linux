@@ -14,7 +14,7 @@ module! {
 
 struct RustStackProbing;
 
-impl KernelModule for RustStackProbing {
+impl kernel::Module for RustStackProbing {
     fn init(_name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust stack probing sample (init)\n");
 

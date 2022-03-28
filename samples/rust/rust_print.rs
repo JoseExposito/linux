@@ -15,7 +15,7 @@ module! {
 
 struct RustPrint;
 
-impl KernelModule for RustPrint {
+impl kernel::Module for RustPrint {
     fn init(_name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust printing macros sample (init)\n");
 

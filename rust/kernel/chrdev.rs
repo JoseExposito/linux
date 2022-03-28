@@ -100,7 +100,7 @@ impl<const N: usize> Registration<{ N }> {
     ///
     /// This associated function is intended to be used when you need to avoid
     /// a memory allocation, e.g. when the [`Registration`] is a member of
-    /// a bigger structure inside your [`crate::KernelModule`] instance. If you
+    /// a bigger structure inside your [`crate::Module`] instance. If you
     /// are going to pin the registration right away, call
     /// [`Self::new_pinned()`] instead.
     pub fn new(

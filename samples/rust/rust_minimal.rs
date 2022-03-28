@@ -16,7 +16,7 @@ struct RustMinimal {
     message: String,
 }
 
-impl KernelModule for RustMinimal {
+impl kernel::Module for RustMinimal {
     fn init(_name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust minimal sample (init)\n");
         pr_info!("Am I built-in? {}\n", !cfg!(MODULE));
