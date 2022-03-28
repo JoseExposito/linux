@@ -558,6 +558,12 @@ void rust_helper_put_net(struct net *net)
 }
 EXPORT_SYMBOL_GPL(rust_helper_put_net);
 
+unsigned int rust_helper_NF_QUEUE_NR(unsigned int n)
+{
+	return NF_QUEUE_NR(n);
+}
+EXPORT_SYMBOL_GPL(rust_helper_NF_QUEUE_NR);
+
 /*
  * We use `bindgen`'s `--size_t-is-usize` option to bind the C `size_t` type
  * as the Rust `usize` type, so we can use it in contexts where Rust

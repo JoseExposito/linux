@@ -9,6 +9,9 @@
 use crate::{bindings, str::CStr, ARef, AlwaysRefCounted};
 use core::{cell::UnsafeCell, ptr::NonNull};
 
+#[cfg(CONFIG_NETFILTER)]
+pub mod filter;
+
 /// Wraps the kernel's `struct net_device`.
 #[repr(transparent)]
 pub struct Device(UnsafeCell<bindings::net_device>);
@@ -68,7 +71,7 @@ impl SkBuff {
     /// # Safety
     ///
     /// The caller must ensure that `ptr` is valid and remains valid for the lifetime of the
-    /// returned [`SkbBuff`] instance.
+    /// returned [`SkBuff`] instance.
     pub unsafe fn from_ptr<'a>(ptr: *const bindings::sk_buff) -> &'a SkBuff {
         // SAFETY: The safety requirements guarantee the validity of the dereference, while the
         // `SkBuff` type being transparent makes the cast ok.
