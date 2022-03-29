@@ -10,7 +10,7 @@ use kernel::{
     irq::{self, ExtraResult, IrqData, LockedIrqData},
     power,
     prelude::*,
-    sync::{Ref, RefBorrow, SpinLock},
+    sync::{RawSpinLock, Ref, RefBorrow},
 };
 
 const GPIODIR: usize = 0x400;
@@ -41,7 +41,7 @@ struct PL061DataInner {
 
 struct PL061Data {
     dev: device::Device,
-    inner: SpinLock<PL061DataInner>,
+    inner: RawSpinLock<PL061DataInner>,
 }
 
 struct PL061Resources {
@@ -283,15 +283,15 @@ impl amba::Driver for PL061Device {
             },
             PL061Data {
                 dev: device::Device::from_dev(dev),
-                // SAFETY: We call `spinlock_init` below.
-                inner: unsafe { SpinLock::new(PL061DataInner::default()) },
+                // SAFETY: We call `rawspinlock_init` below.
+                inner: unsafe { RawSpinLock::new(PL061DataInner::default()) },
             },
             "PL061::Registrations"
         )?;
 
         // SAFETY: General part of the data is pinned when `data` is.
         let gen_inner = unsafe { data.as_mut().map_unchecked_mut(|d| &mut (**d).inner) };
-        kernel::spinlock_init!(gen_inner, "PL061Data::inner");
+        kernel::rawspinlock_init!(gen_inner, "PL061Data::inner");
 
         let data = Ref::<DeviceData>::from(data);
 
