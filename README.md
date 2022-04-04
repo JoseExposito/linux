@@ -73,6 +73,7 @@ Upstream code is saved in `upstream-*` branches to easily rebase and generate pa
 | [upstream-drm-misc-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-fixes) | git remote add drm-misc git://anongit.freedesktop.org/drm/drm-misc | git pull --rebase drm-misc drm-misc-fixes |
 | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | git remote add drm-misc git://anongit.freedesktop.org/drm/drm-misc | git pull --rebase drm-misc drm-misc-next |
 | [upstream-rpi-5.10.y](https://github.com/JoseExposito/linux/tree/upstream-rpi-5.10.y) | git remote add rpi https://github.com/raspberrypi/linux.git | git pull --rebase rpi rpi-5.10.y |
+| [upstream-rpi-5.15.y](https://github.com/JoseExposito/linux/tree/upstream-rpi-5.15.y) | git remote add rpi https://github.com/raspberrypi/linux.git | git pull --rebase rpi rpi-5.15.y |
 
 Depending on the subsystem, the maintainer could have its own tree. For example, to modify the Magic
 Mouse/Trackpad driver:
