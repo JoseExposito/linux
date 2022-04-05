@@ -228,6 +228,44 @@ void rust_helper_spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags)
 }
 EXPORT_SYMBOL_GPL(rust_helper_spin_unlock_irqrestore);
 
+void rust_helper__raw_spin_lock_init(raw_spinlock_t *lock, const char *name,
+				     struct lock_class_key *key)
+{
+#ifdef CONFIG_DEBUG_SPINLOCK
+	_raw_spin_lock_init(lock, name, key);
+#else
+	raw_spin_lock_init(lock);
+#endif
+}
+EXPORT_SYMBOL_GPL(rust_helper__raw_spin_lock_init);
+
+void rust_helper_raw_spin_lock(raw_spinlock_t *lock)
+{
+	raw_spin_lock(lock);
+}
+EXPORT_SYMBOL_GPL(rust_helper_raw_spin_lock);
+
+void rust_helper_raw_spin_unlock(raw_spinlock_t *lock)
+{
+	raw_spin_unlock(lock);
+}
+EXPORT_SYMBOL_GPL(rust_helper_raw_spin_unlock);
+
+unsigned long rust_helper_raw_spin_lock_irqsave(raw_spinlock_t *lock)
+{
+	unsigned long flags;
+	raw_spin_lock_irqsave(lock, flags);
+	return flags;
+}
+EXPORT_SYMBOL_GPL(rust_helper_raw_spin_lock_irqsave);
+
+void rust_helper_raw_spin_unlock_irqrestore(raw_spinlock_t *lock,
+					    unsigned long flags)
+{
+	raw_spin_unlock_irqrestore(lock, flags);
+}
+EXPORT_SYMBOL_GPL(rust_helper_raw_spin_unlock_irqrestore);
+
 void rust_helper_init_wait(struct wait_queue_entry *wq_entry)
 {
 	init_wait(wq_entry);
