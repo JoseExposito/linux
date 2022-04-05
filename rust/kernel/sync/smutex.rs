@@ -46,7 +46,7 @@
 //! When the waiter queue is non-empty, unlocking the mutex always results in the first waiter being
 //! popped form the queue and awakened.
 
-use super::{mutex::EmptyGuardContext, CreatableLock, Guard, Lock};
+use super::{mutex::EmptyGuardContext, Guard, Lock, LockFactory, LockIniter};
 use crate::{bindings, str::CStr, Opaque};
 use core::sync::atomic::{AtomicUsize, Ordering};
 use core::{cell::UnsafeCell, pin::Pin};
@@ -134,13 +134,15 @@ impl<T: ?Sized> Mutex<T> {
     }
 }
 
-impl<T> CreatableLock for Mutex<T> {
-    type CreateArgType = T;
+impl<T> LockFactory for Mutex<T> {
+    type LockedType<U> = Mutex<U>;
 
-    unsafe fn new_lock(data: Self::CreateArgType) -> Self {
-        Self::new(data)
+    unsafe fn new_lock<U>(data: U) -> Mutex<U> {
+        Mutex::new(data)
     }
+}
 
+impl<T> LockIniter for Mutex<T> {
     unsafe fn init_lock(
         self: Pin<&mut Self>,
         _name: &'static CStr,

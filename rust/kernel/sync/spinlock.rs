@@ -6,7 +6,7 @@
 //!
 //! See <https://www.kernel.org/doc/Documentation/locking/spinlocks.txt>.
 
-use super::{mutex::EmptyGuardContext, CreatableLock, Guard, Lock, LockInfo, WriteLock};
+use super::{mutex::EmptyGuardContext, Guard, Lock, LockFactory, LockInfo, LockIniter, WriteLock};
 use crate::{bindings, c_types, str::CStr, Opaque, True};
 use core::{cell::UnsafeCell, marker::PhantomPinned, pin::Pin};
 
@@ -125,14 +125,16 @@ impl<T: ?Sized> SpinLock<T> {
     }
 }
 
-impl<T> CreatableLock for SpinLock<T> {
-    type CreateArgType = T;
+impl<T> LockFactory for SpinLock<T> {
+    type LockedType<U> = SpinLock<U>;
 
-    unsafe fn new_lock(data: Self::CreateArgType) -> Self {
+    unsafe fn new_lock<U>(data: U) -> SpinLock<U> {
         // SAFETY: The safety requirements of `new_lock` also require that `init_lock` be called.
-        unsafe { Self::new(data) }
+        unsafe { SpinLock::new(data) }
     }
+}
 
+impl<T> LockIniter for SpinLock<T> {
     unsafe fn init_lock(
         self: Pin<&mut Self>,
         name: &'static CStr,
@@ -294,14 +296,16 @@ impl<T: ?Sized> RawSpinLock<T> {
     }
 }
 
-impl<T> CreatableLock for RawSpinLock<T> {
-    type CreateArgType = T;
+impl<T> LockFactory for RawSpinLock<T> {
+    type LockedType<U> = RawSpinLock<U>;
 
-    unsafe fn new_lock(data: Self::CreateArgType) -> Self {
+    unsafe fn new_lock<U>(data: U) -> RawSpinLock<U> {
         // SAFETY: The safety requirements of `new_lock` also require that `init_lock` be called.
-        unsafe { Self::new(data) }
+        unsafe { RawSpinLock::new(data) }
     }
+}
 
+impl<T> LockIniter for RawSpinLock<T> {
     unsafe fn init_lock(
         self: Pin<&mut Self>,
         name: &'static CStr,

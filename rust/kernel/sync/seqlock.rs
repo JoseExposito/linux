@@ -3,17 +3,17 @@
 //! A kernel sequential lock (seqlock).
 //!
 //! This module allows Rust code to use the sequential locks based on the kernel's `seqcount_t` and
-//! any locks implementing the [`CreatableLock`] trait.
+//! any locks implementing the [`LockFactory`] trait.
 //!
 //! See <https://www.kernel.org/doc/Documentation/locking/seqlock.rst>.
 
-use super::{CreatableLock, Guard, Lock, NeedsLockClass, ReadLock};
+use super::{Guard, Lock, LockFactory, LockIniter, NeedsLockClass, ReadLock};
 use crate::{bindings, str::CStr, Opaque};
 use core::{cell::UnsafeCell, marker::PhantomPinned, ops::Deref, pin::Pin};
 
 /// Exposes sequential locks backed by the kernel's `seqcount_t`.
 ///
-/// The write-side critical section is protected by a lock implementing the `CreatableLock` trait.
+/// The write-side critical section is protected by a lock implementing the [`LockFactory`] trait.
 ///
 /// # Examples
 ///
@@ -52,7 +52,7 @@ use core::{cell::UnsafeCell, marker::PhantomPinned, ops::Deref, pin::Pin};
 ///     guard.b.store(b + 1, Ordering::Relaxed);
 /// }
 /// ```
-pub struct SeqLock<L: CreatableLock + Lock + ?Sized> {
+pub struct SeqLock<L: Lock + ?Sized> {
     _p: PhantomPinned,
     count: Opaque<bindings::seqcount>,
     write_lock: L,
@@ -61,21 +61,22 @@ pub struct SeqLock<L: CreatableLock + Lock + ?Sized> {
 // SAFETY: `SeqLock` can be transferred across thread boundaries iff the data it protects and the
 // underlying lock can.
 #[allow(clippy::non_send_fields_in_send_ty)]
-unsafe impl<L: CreatableLock + Lock + Send> Send for SeqLock<L> where L::Inner: Send {}
+unsafe impl<L: Lock + Send> Send for SeqLock<L> where L::Inner: Send {}
 
 // SAFETY: `SeqLock` allows concurrent access to the data it protects by both readers and writers,
 // so it requires that the data it protects be `Sync`, as well as the underlying lock.
-unsafe impl<L: CreatableLock + Lock + Sync> Sync for SeqLock<L> where L::Inner: Sync {}
+unsafe impl<L: Lock + Sync> Sync for SeqLock<L> where L::Inner: Sync {}
 
-impl<L: CreatableLock + Lock> SeqLock<L> {
+impl<L: Lock> SeqLock<L> {
     /// Constructs a new instance of [`SeqLock`].
     ///
     /// # Safety
     ///
     /// The caller must call [`SeqLock::init`] before using the seqlock.
-    pub unsafe fn new(data: L::CreateArgType) -> Self
+    pub unsafe fn new(data: L::Inner) -> Self
     where
-        L::CreateArgType: Sized,
+        L: LockFactory<LockedType<L::Inner> = L>,
+        L::Inner: Sized,
     {
         Self {
             _p: PhantomPinned,
@@ -87,7 +88,7 @@ impl<L: CreatableLock + Lock> SeqLock<L> {
     }
 }
 
-impl<L: CreatableLock + Lock + ?Sized> SeqLock<L> {
+impl<L: Lock + ?Sized> SeqLock<L> {
     /// Accesses the protected data in read mode.
     ///
     /// Readers and writers are allowed to run concurrently, so callers must check if they need to
@@ -129,7 +130,7 @@ impl<L: CreatableLock + Lock + ?Sized> SeqLock<L> {
     }
 }
 
-impl<L: CreatableLock + Lock + ?Sized> NeedsLockClass for SeqLock<L> {
+impl<L: LockIniter + Lock + ?Sized> NeedsLockClass for SeqLock<L> {
     unsafe fn init(
         mut self: Pin<&mut Self>,
         name: &'static CStr,
@@ -146,7 +147,7 @@ impl<L: CreatableLock + Lock + ?Sized> NeedsLockClass for SeqLock<L> {
 }
 
 // SAFETY: The underlying lock ensures mutual exclusion.
-unsafe impl<L: CreatableLock + Lock + ?Sized> Lock<ReadLock> for SeqLock<L> {
+unsafe impl<L: Lock + ?Sized> Lock<ReadLock> for SeqLock<L> {
     type Inner = L::Inner;
     type GuardContext = L::GuardContext;
 
@@ -176,12 +177,12 @@ unsafe impl<L: CreatableLock + Lock + ?Sized> Lock<ReadLock> for SeqLock<L> {
 }
 
 /// Allows read-side access to data protected by a sequential lock.
-pub struct SeqLockReadGuard<'a, L: CreatableLock + Lock + ?Sized> {
+pub struct SeqLockReadGuard<'a, L: Lock + ?Sized> {
     lock: &'a SeqLock<L>,
     start_count: u32,
 }
 
-impl<L: CreatableLock + Lock + ?Sized> SeqLockReadGuard<'_, L> {
+impl<L: Lock + ?Sized> SeqLockReadGuard<'_, L> {
     /// Determine if the callers needs to retry reading values.
     ///
     /// It returns `true` when a concurrent writer ran between the guard being created and
@@ -192,7 +193,7 @@ impl<L: CreatableLock + Lock + ?Sized> SeqLockReadGuard<'_, L> {
     }
 }
 
-impl<L: CreatableLock + Lock + ?Sized> Deref for SeqLockReadGuard<'_, L> {
+impl<L: Lock + ?Sized> Deref for SeqLockReadGuard<'_, L> {
     type Target = L::Inner;
 
     fn deref(&self) -> &Self::Target {

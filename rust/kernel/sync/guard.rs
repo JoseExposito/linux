@@ -128,19 +128,22 @@ pub unsafe trait Lock<I: LockInfo = WriteLock> {
     fn locked_data(&self) -> &core::cell::UnsafeCell<Self::Inner>;
 }
 
-/// A generic mutual exclusion primitive that can be instantiated generically.
-pub trait CreatableLock {
-    /// The type of the argument passed to [`CreatableLock::new_lock`].
-    type CreateArgType: ?Sized;
+/// A creator of instances of a mutual exclusion (lock) primitive.
+pub trait LockFactory {
+    /// The parametrised type of the mutual exclusion primitive that can be created by this factory.
+    type LockedType<T>;
 
-    /// Constructs a new instance of the lock.
+    /// Constructs a new instance of the mutual exclusion primitive.
     ///
     /// # Safety
     ///
-    /// The caller must call [`CreatableLock::init_lock`] before using the lock.
-    unsafe fn new_lock(data: Self::CreateArgType) -> Self;
+    /// The caller must call [`LockIniter::init_lock`] before using the lock.
+    unsafe fn new_lock<T>(data: T) -> Self::LockedType<T>;
+}
 
-    /// Initialises the lock type instance so that it can be safely used.
+/// A lock that can be initialised with a single lock class key.
+pub trait LockIniter {
+    /// Initialises the lock instance so that it can be safely used.
     ///
     /// # Safety
     ///
@@ -153,7 +156,7 @@ pub trait CreatableLock {
     );
 }
 
-impl<L: CreatableLock> NeedsLockClass for L {
+impl<L: LockIniter> NeedsLockClass for L {
     unsafe fn init(
         self: Pin<&mut Self>,
         name: &'static CStr,
