@@ -6,7 +6,7 @@
 //!
 //! C header: [`include/linux/rwsem.h`](../../../../include/linux/rwsem.h)
 
-use super::{mutex::EmptyGuardContext, CreatableLock, Guard, Lock, ReadLock};
+use super::{mutex::EmptyGuardContext, Guard, Lock, LockFactory, LockIniter, ReadLock};
 use crate::{bindings, str::CStr, Opaque};
 use core::{cell::UnsafeCell, marker::PhantomPinned, pin::Pin};
 
@@ -85,14 +85,16 @@ impl<T: ?Sized> RwSemaphore<T> {
     }
 }
 
-impl<T> CreatableLock for RwSemaphore<T> {
-    type CreateArgType = T;
+impl<T> LockFactory for RwSemaphore<T> {
+    type LockedType<U> = RwSemaphore<U>;
 
-    unsafe fn new_lock(data: Self::CreateArgType) -> Self {
+    unsafe fn new_lock<U>(data: U) -> RwSemaphore<U> {
         // SAFETY: The safety requirements of `new_lock` also require that `init_lock` be called.
-        unsafe { Self::new(data) }
+        unsafe { RwSemaphore::new(data) }
     }
+}
 
+impl<T> LockIniter for RwSemaphore<T> {
     unsafe fn init_lock(
         self: Pin<&mut Self>,
         name: &'static CStr,

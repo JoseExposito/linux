@@ -4,7 +4,7 @@
 //!
 //! This module allows Rust code to use the kernel's [`struct mutex`].
 
-use super::{CreatableLock, Guard, Lock};
+use super::{Guard, Lock, LockFactory, LockIniter};
 use crate::{bindings, str::CStr, Opaque};
 use core::{cell::UnsafeCell, marker::PhantomPinned, pin::Pin};
 
@@ -72,14 +72,16 @@ impl<T: ?Sized> Mutex<T> {
     }
 }
 
-impl<T> CreatableLock for Mutex<T> {
-    type CreateArgType = T;
+impl<T> LockFactory for Mutex<T> {
+    type LockedType<U> = Mutex<U>;
 
-    unsafe fn new_lock(data: Self::CreateArgType) -> Self {
+    unsafe fn new_lock<U>(data: U) -> Mutex<U> {
         // SAFETY: The safety requirements of `new_lock` also require that `init_lock` be called.
-        unsafe { Self::new(data) }
+        unsafe { Mutex::new(data) }
     }
+}
 
+impl<T> LockIniter for Mutex<T> {
     unsafe fn init_lock(
         self: Pin<&mut Self>,
         name: &'static CStr,
