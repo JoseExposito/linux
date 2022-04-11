@@ -348,8 +348,8 @@ rust-analyzer:
 		$(RUST_LIB_SRC) > $(objtree)/rust-project.json
 
 $(obj)/core.o: private skip_clippy = 1
-$(obj)/core.o: private skip_flags = -Dunreachable_pub --edition=2021
-$(obj)/core.o: private rustc_target_flags = $(core-cfgs) --edition=2018
+$(obj)/core.o: private skip_flags = -Dunreachable_pub
+$(obj)/core.o: private rustc_target_flags = $(core-cfgs)
 $(obj)/core.o: $(RUST_LIB_SRC)/core/src/lib.rs $(obj)/target.json FORCE
 	$(call if_changed_dep,rustc_library)
 

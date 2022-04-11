@@ -22,7 +22,6 @@
 #![feature(const_trait_impl)]
 #![feature(doc_cfg)]
 #![feature(generic_associated_types)]
-#![feature(maybe_uninit_extra)]
 #![feature(ptr_metadata)]
 #![feature(receiver_trait)]
 #![feature(coerce_unsized)]
