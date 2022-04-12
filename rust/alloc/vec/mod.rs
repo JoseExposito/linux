@@ -1901,7 +1901,7 @@ impl<T, A: Allocator> Vec<T, A> {
     #[stable(feature = "kernel", since = "1.0.0")]
     pub fn try_push(&mut self, value: T) -> Result<(), TryReserveError> {
         if self.len == self.buf.capacity() {
-            self.try_reserve(1)?;
+            self.buf.try_reserve_for_push(self.len)?;
         }
         unsafe {
             let end = self.as_mut_ptr().add(self.len);
