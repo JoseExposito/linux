@@ -1525,9 +1525,12 @@ impl<T, A: Allocator> Vec<T, A> {
     ///
     /// Note: Because this shifts over the remaining elements, it has a
     /// worst-case performance of *O*(*n*). If you don't need the order of elements
-    /// to be preserved, use [`swap_remove`] instead.
+    /// to be preserved, use [`swap_remove`] instead. If you'd like to remove
+    /// elements from the beginning of the `Vec`, consider using
+    /// [`VecDeque::pop_front`] instead.
     ///
     /// [`swap_remove`]: Vec::swap_remove
+    /// [`VecDeque::pop_front`]: crate::collections::VecDeque::pop_front
     ///
     /// # Panics
     ///
@@ -1898,7 +1901,7 @@ impl<T, A: Allocator> Vec<T, A> {
     #[stable(feature = "kernel", since = "1.0.0")]
     pub fn try_push(&mut self, value: T) -> Result<(), TryReserveError> {
         if self.len == self.buf.capacity() {
-            self.try_reserve(1)?;
+            self.buf.try_reserve_for_push(self.len)?;
         }
         unsafe {
             let end = self.as_mut_ptr().add(self.len);
@@ -1910,6 +1913,11 @@ impl<T, A: Allocator> Vec<T, A> {
 
     /// Removes the last element from a vector and returns it, or [`None`] if it
     /// is empty.
+    ///
+    /// If you'd like to pop the first element, consider using
+    /// [`VecDeque::pop_front`] instead.
+    ///
+    /// [`VecDeque::pop_front`]: crate::collections::VecDeque::pop_front
     ///
     /// # Examples
     ///
@@ -1978,18 +1986,23 @@ impl<T, A: Allocator> Vec<T, A> {
         Ok(())
     }
 
-    /// Creates a draining iterator that removes the specified range in the vector
-    /// and yields the removed items.
+    /// Removes the specified range from the vector in bulk, returning all
+    /// removed elements as an iterator. If the iterator is dropped before
+    /// being fully consumed, it drops the remaining removed elements.
     ///
-    /// When the iterator **is** dropped, all elements in the range are removed
-    /// from the vector, even if the iterator was not fully consumed. If the
-    /// iterator **is not** dropped (with [`mem::forget`] for example), it is
-    /// unspecified how many elements are removed.
+    /// The returned iterator keeps a mutable borrow on the vector to optimize
+    /// its implementation.
     ///
     /// # Panics
     ///
     /// Panics if the starting point is greater than the end point or if
     /// the end point is greater than the length of the vector.
+    ///
+    /// # Leaking
+    ///
+    /// If the returned iterator goes out of scope without being dropped (due to
+    /// [`mem::forget`], for example), the vector may have lost and leaked
+    /// elements arbitrarily, including elements outside the range.
     ///
     /// # Examples
     ///
@@ -1999,7 +2012,7 @@ impl<T, A: Allocator> Vec<T, A> {
     /// assert_eq!(v, &[1]);
     /// assert_eq!(u, &[2, 3]);
     ///
-    /// // A full range clears the vector
+    /// // A full range clears the vector, like `clear()` does
     /// v.drain(..);
     /// assert_eq!(v, &[]);
     /// ```
@@ -2230,8 +2243,6 @@ impl<T, A: Allocator> Vec<T, A> {
     /// # Examples
     ///
     /// ```
-    /// #![feature(vec_spare_capacity)]
-    ///
     /// // Allocate vector big enough for 10 elements.
     /// let mut v = Vec::with_capacity(10);
     ///
@@ -2248,7 +2259,7 @@ impl<T, A: Allocator> Vec<T, A> {
     ///
     /// assert_eq!(&v, &[0, 1, 2]);
     /// ```
-    #[unstable(feature = "vec_spare_capacity", issue = "75017")]
+    #[stable(feature = "vec_spare_capacity", since = "1.60.0")]
     #[inline]
     pub fn spare_capacity_mut(&mut self) -> &mut [MaybeUninit<T>] {
         // Note:
@@ -2451,7 +2462,7 @@ impl<T: Clone, A: Allocator> Vec<T, A> {
     /// Tries to clone and append all elements in a slice to the `Vec`.
     ///
     /// Iterates over the slice `other`, clones each element, and then appends
-    /// it to this `Vec`. The `other` vector is traversed in-order.
+    /// it to this `Vec`. The `other` slice is traversed in-order.
     ///
     /// Note that this function is same as [`extend`] except that it is
     /// specialized to work with slices instead. If and when Rust gets
@@ -3207,10 +3218,6 @@ impl<T: Clone> From<&mut [T]> for Vec<T> {
 #[cfg(not(no_global_oom_handling))]
 #[stable(feature = "vec_from_array", since = "1.44.0")]
 impl<T, const N: usize> From<[T; N]> for Vec<T> {
-    #[cfg(not(test))]
-    fn from(s: [T; N]) -> Vec<T> {
-        <[T]>::into_vec(box s)
-    }
     /// Allocate a `Vec<T>` and move `s`'s items into it.
     ///
     /// # Examples
@@ -3218,6 +3225,11 @@ impl<T, const N: usize> From<[T; N]> for Vec<T> {
     /// ```
     /// assert_eq!(Vec::from([1, 2, 3]), vec![1, 2, 3]);
     /// ```
+    #[cfg(not(test))]
+    fn from(s: [T; N]) -> Vec<T> {
+        <[T]>::into_vec(box s)
+    }
+
     #[cfg(test)]
     fn from(s: [T; N]) -> Vec<T> {
         crate::slice::into_vec(box s)
@@ -3311,14 +3323,12 @@ impl<T, A: Allocator, const N: usize> TryFrom<Vec<T, A>> for [T; N] {
     /// # Examples
     ///
     /// ```
-    /// use std::convert::TryInto;
     /// assert_eq!(vec![1, 2, 3].try_into(), Ok([1, 2, 3]));
     /// assert_eq!(<Vec<i32>>::new().try_into(), Ok([]));
     /// ```
     ///
     /// If the length doesn't match, the input comes back in `Err`:
     /// ```
-    /// use std::convert::TryInto;
     /// let r: Result<[i32; 4], _> = (0..10).collect::<Vec<_>>().try_into();
     /// assert_eq!(r, Err(vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]));
     /// ```
@@ -3326,7 +3336,6 @@ impl<T, A: Allocator, const N: usize> TryFrom<Vec<T, A>> for [T; N] {
     /// If you're fine with just getting a prefix of the `Vec<T>`,
     /// you can call [`.truncate(N)`](Vec::truncate) first.
     /// ```
-    /// use std::convert::TryInto;
     /// let mut v = String::from("hello world").into_bytes();
     /// v.sort();
     /// v.truncate(2);

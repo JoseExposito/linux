@@ -110,7 +110,7 @@ impl<T, A: Allocator> RawVec<T, A> {
     //   to round up a request of less than 8 bytes to at least 8 bytes.
     // - 4 if elements are moderate-sized (<= 1 KiB).
     // - 1 otherwise, to avoid wasting too much space for very short Vecs.
-    const MIN_NON_ZERO_CAP: usize = if mem::size_of::<T>() == 1 {
+    pub(crate) const MIN_NON_ZERO_CAP: usize = if mem::size_of::<T>() == 1 {
         8
     } else if mem::size_of::<T>() <= 1024 {
         4
@@ -339,6 +339,12 @@ impl<T, A: Allocator> RawVec<T, A> {
         } else {
             Ok(())
         }
+    }
+
+    /// The same as `reserve_for_push`, but returns on errors instead of panicking or aborting.
+    #[inline(never)]
+    pub fn try_reserve_for_push(&mut self, len: usize) -> Result<(), TryReserveError> {
+        self.grow_amortized(len, 1)
     }
 
     /// Ensures that the buffer contains at least enough space to hold `len +

@@ -16,7 +16,7 @@ pub mod vec_deque;
 #[cfg(not(no_global_oom_handling))]
 #[stable(feature = "rust1", since = "1.0.0")]
 pub mod btree_map {
-    //! A map based on a B-Tree.
+    //! An ordered map based on a B-Tree.
     #[stable(feature = "rust1", since = "1.0.0")]
     pub use super::btree::map::*;
 }
@@ -24,7 +24,7 @@ pub mod btree_map {
 #[cfg(not(no_global_oom_handling))]
 #[stable(feature = "rust1", since = "1.0.0")]
 pub mod btree_set {
-    //! A set based on a B-Tree.
+    //! An ordered set based on a B-Tree.
     #[stable(feature = "rust1", since = "1.0.0")]
     pub use super::btree::set::*;
 }
