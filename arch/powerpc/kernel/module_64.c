@@ -14,6 +14,7 @@
 #include <linux/ftrace.h>
 #include <linux/bug.h>
 #include <linux/uaccess.h>
+#include <linux/kernel.h>
 #include <asm/module.h>
 #include <asm/firmware.h>
 #include <asm/code-patching.h>
@@ -32,20 +33,13 @@
 
 #ifdef PPC64_ELF_ABI_v2
 
-/* An address is simply the address of the function. */
-typedef unsigned long func_desc_t;
-
 static func_desc_t func_desc(unsigned long addr)
 {
-	return addr;
-}
-static unsigned long func_addr(unsigned long addr)
-{
-	return addr;
-}
-static unsigned long stub_func_addr(func_desc_t func)
-{
-	return func;
+	func_desc_t desc = {
+		.addr = addr,
+	};
+
+	return desc;
 }
 
 /* PowerPC64 specific values for the Elf64_Sym st_other field.  */
@@ -63,20 +57,9 @@ static unsigned int local_entry_offset(const Elf64_Sym *sym)
 }
 #else
 
-/* An address is address of the OPD entry, which contains address of fn. */
-typedef struct ppc64_opd_entry func_desc_t;
-
 static func_desc_t func_desc(unsigned long addr)
 {
-	return *(struct ppc64_opd_entry *)addr;
-}
-static unsigned long func_addr(unsigned long addr)
-{
-	return func_desc(addr).funcaddr;
-}
-static unsigned long stub_func_addr(func_desc_t func)
-{
-	return func.funcaddr;
+	return *(struct func_desc *)addr;
 }
 static unsigned int local_entry_offset(const Elf64_Sym *sym)
 {
@@ -92,6 +75,16 @@ void *dereference_module_function_descriptor(struct module *mod, void *ptr)
 	return dereference_function_descriptor(ptr);
 }
 #endif
+
+static unsigned long func_addr(unsigned long addr)
+{
+	return func_desc(addr).addr;
+}
+
+static unsigned long stub_func_addr(func_desc_t func)
+{
+	return func.addr;
+}
 
 #define STUB_MAGIC 0x73747562 /* stub */
 
@@ -187,7 +180,7 @@ static int relacmp(const void *_x, const void *_y)
 static unsigned long get_stubs_size(const Elf64_Ehdr *hdr,
 				    const Elf64_Shdr *sechdrs)
 {
-	/* One extra reloc so it's always 0-funcaddr terminated */
+	/* One extra reloc so it's always 0-addr terminated */
 	unsigned long relocs = 1;
 	unsigned i;
 
@@ -429,7 +422,7 @@ static inline int create_stub(const Elf64_Shdr *sechdrs,
 	if (is_mprofile_ftrace_call(name))
 		return create_ftrace_stub(entry, addr, me);
 
-	for (i = 0; i < sizeof(ppc64_stub_insns) / sizeof(u32); i++) {
+	for (i = 0; i < ARRAY_SIZE(ppc64_stub_insns); i++) {
 		if (patch_instruction(&entry->jump[i],
 				      ppc_inst(ppc64_stub_insns[i])))
 			return 0;
