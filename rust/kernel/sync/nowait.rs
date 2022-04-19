@@ -60,7 +60,7 @@ const CONTENDED: u8 = 2;
 /// }
 /// ```
 ///
-/// The following examples use the [`NoWaitLockGuard::unlock`] to releas the lock and check for
+/// The following examples use the [`NoWaitLockGuard::unlock`] to release the lock and check for
 /// contention.
 ///
 /// ```
