@@ -303,7 +303,7 @@ impl<T, U, V> Data<T, U, V> {
 
     /// Returns the locked registrations if they're still available.
     pub fn registrations(&self) -> Option<RevocableMutexGuard<'_, T>> {
-        self.registrations.try_lock()
+        self.registrations.try_write()
     }
 }
 

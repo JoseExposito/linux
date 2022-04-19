@@ -6,7 +6,7 @@
 //!
 //! C header: [`include/linux/rwsem.h`](../../../../include/linux/rwsem.h)
 
-use super::{mutex::EmptyGuardContext, Guard, Lock, LockFactory, LockIniter, ReadLock};
+use super::{mutex::EmptyGuardContext, Guard, Lock, LockFactory, LockIniter, ReadLock, WriteLock};
 use crate::{bindings, str::CStr, Opaque};
 use core::{cell::UnsafeCell, marker::PhantomPinned, pin::Pin};
 
@@ -149,3 +149,51 @@ unsafe impl<T: ?Sized> Lock<ReadLock> for RwSemaphore<T> {
         &self.data
     }
 }
+
+/// A revocable rw semaphore.
+///
+/// That is, a read/write semaphore to which access can be revoked at runtime. It is a
+/// specialisation of the more generic [`super::revocable::Revocable`].
+///
+/// # Examples
+///
+/// ```
+/// # use kernel::sync::RevocableRwSemaphore;
+/// # use kernel::revocable_init;
+/// # use core::pin::Pin;
+///
+/// struct Example {
+///     a: u32,
+///     b: u32,
+/// }
+///
+/// fn read_sum(v: &RevocableRwSemaphore<Example>) -> Option<u32> {
+///     let guard = v.try_read()?;
+///     Some(guard.a + guard.b)
+/// }
+///
+/// fn add_two(v: &RevocableRwSemaphore<Example>) -> Option<u32> {
+///     let mut guard = v.try_write()?;
+///     guard.a += 2;
+///     guard.b += 2;
+///     Some(guard.a + guard.b)
+/// }
+///
+/// fn example() {
+///     // SAFETY: We call `revocable_init` immediately below.
+///     let mut v = unsafe { RevocableRwSemaphore::new(Example { a: 10, b: 20 }) };
+///     // SAFETY: We never move out of `v`.
+///     let pinned = unsafe { Pin::new_unchecked(&mut v) };
+///     revocable_init!(pinned, "example::v");
+///     assert_eq!(read_sum(&v), Some(30));
+///     assert_eq!(add_two(&v), Some(34));
+///     v.revoke();
+///     assert_eq!(read_sum(&v), None);
+///     assert_eq!(add_two(&v), None);
+/// }
+/// ```
+pub type RevocableRwSemaphore<T> = super::revocable::Revocable<RwSemaphore<()>, T>;
+
+/// A guard for a revocable rw semaphore..
+pub type RevocableRwSemaphoreGuard<'a, T, I = WriteLock> =
+    super::revocable::RevocableGuard<'a, RwSemaphore<()>, T, I>;
