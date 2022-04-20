@@ -119,7 +119,6 @@ struct hdmi_context {
 	struct device			*dev;
 	struct drm_device		*drm_dev;
 	struct drm_connector		connector;
-	bool				dvi_mode;
 	struct delayed_work		hotplug_work;
 	struct cec_notifier		*notifier;
 	const struct hdmi_driver_data	*drv_data;
@@ -811,11 +810,12 @@ static int hdmi_audio_infoframe_apply(struct hdmi_context *hdata)
 static void hdmi_reg_infoframes(struct hdmi_context *hdata)
 {
 	struct drm_display_mode *m = &hdata->encoder.crtc->state->mode;
+	struct drm_display_info *display = &hdata->connector.display_info;
 	union hdmi_infoframe frm;
 	u8 buf[25];
 	int ret;
 
-	if (hdata->dvi_mode) {
+	if (!display->is_hdmi) {
 		hdmi_reg_writeb(hdata, HDMI_AVI_CON,
 				HDMI_AVI_CON_DO_NOT_TRANSMIT);
 		hdmi_reg_writeb(hdata, HDMI_VSI_CON,
@@ -893,9 +893,9 @@ static int hdmi_get_modes(struct drm_connector *connector)
 	if (!edid)
 		return -ENODEV;
 
-	hdata->dvi_mode = !drm_detect_hdmi_monitor(edid);
 	DRM_DEV_DEBUG_KMS(hdata->dev, "%s : width[%d] x height[%d]\n",
-			  (hdata->dvi_mode ? "dvi monitor" : "hdmi monitor"),
+			  (connector->display_info.is_hdmi ? "hdmi monitor" :
+							     "dvi monitor"),
 			  edid->width_cm, edid->height_cm);
 
 	drm_connector_update_edid_property(connector, edid);
@@ -1118,9 +1118,10 @@ static void hdmi_audio_config(struct hdmi_context *hdata)
 
 static void hdmi_audio_control(struct hdmi_context *hdata)
 {
+	struct drm_display_info *display = &hdata->connector.display_info;
 	bool enable = !hdata->audio.mute;
 
-	if (hdata->dvi_mode)
+	if (!display->is_hdmi)
 		return;
 
 	hdmi_reg_writeb(hdata, HDMI_AUI_CON, enable ?
@@ -1143,6 +1144,8 @@ static void hdmi_start(struct hdmi_context *hdata, bool start)
 
 static void hdmi_conf_init(struct hdmi_context *hdata)
 {
+	struct drm_display_info *display = &hdata->connector.display_info;
+
 	/* disable HPD interrupts from HDMI IP block, use GPIO instead */
 	hdmi_reg_writemask(hdata, HDMI_INTC_CON, 0, HDMI_INTC_EN_GLOBAL |
 		HDMI_INTC_EN_HPD_PLUG | HDMI_INTC_EN_HPD_UNPLUG);
@@ -1155,7 +1158,7 @@ static void hdmi_conf_init(struct hdmi_context *hdata)
 	/* disable bluescreen */
 	hdmi_reg_writemask(hdata, HDMI_CON_0, 0, HDMI_BLUE_SCR_EN);
 
-	if (hdata->dvi_mode) {
+	if (!display->is_hdmi) {
 		hdmi_reg_writemask(hdata, HDMI_MODE_SEL,
 				HDMI_MODE_DVI_EN, HDMI_MODE_MASK);
 		hdmi_reg_writeb(hdata, HDMI_CON_2,
