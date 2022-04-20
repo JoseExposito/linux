@@ -266,6 +266,7 @@ static void hdmi_active_area(struct sti_hdmi *hdmi)
 static void hdmi_config(struct sti_hdmi *hdmi)
 {
 	u32 conf;
+	struct drm_display_info *display = &hdmi->drm_connector->display_info;
 
 	DRM_DEBUG_DRIVER("\n");
 
@@ -274,7 +275,7 @@ static void hdmi_config(struct sti_hdmi *hdmi)
 
 	/* Select encryption type and the framing mode */
 	conf |= HDMI_CFG_ESS_NOT_OESS;
-	if (hdmi->hdmi_monitor)
+	if (display->is_hdmi)
 		conf |= HDMI_CFG_HDMI_NOT_DVI;
 
 	/* Set Hsync polarity */
@@ -984,9 +985,9 @@ static int sti_hdmi_connector_get_modes(struct drm_connector *connector)
 	if (!edid)
 		goto fail;
 
-	hdmi->hdmi_monitor = drm_detect_hdmi_monitor(edid);
 	DRM_DEBUG_KMS("%s : %dx%d cm\n",
-		      (hdmi->hdmi_monitor ? "hdmi monitor" : "dvi monitor"),
+		      (connector->display_info.is_hdmi ? "hdmi monitor" :
+							 "dvi monitor"),
 		      edid->width_cm, edid->height_cm);
 	cec_notifier_set_phys_addr_from_edid(hdmi->notifier, edid);
 
