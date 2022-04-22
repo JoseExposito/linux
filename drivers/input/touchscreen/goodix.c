@@ -308,10 +308,8 @@ static struct input_dev *goodix_create_pen_input(struct goodix_ts_data *ts)
 		return NULL;
 
 	input_alloc_absinfo(input);
-	if (!input->absinfo) {
-		input_free_device(input);
+	if (!input->absinfo)
 		return NULL;
-	}
 
 	input->absinfo[ABS_X] = ts->input_dev->absinfo[ABS_MT_POSITION_X];
 	input->absinfo[ABS_Y] = ts->input_dev->absinfo[ABS_MT_POSITION_Y];
@@ -340,10 +338,8 @@ static struct input_dev *goodix_create_pen_input(struct goodix_ts_data *ts)
 		input->id.product = 0x1001;
 	input->id.version = ts->version;
 
-	if (input_register_device(input) != 0) {
-		input_free_device(input);
+	if (input_register_device(input) != 0)
 		return NULL;
-	}
 
 	return input;
 }
