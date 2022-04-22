@@ -2098,7 +2098,6 @@ static int wacom_register_inputs(struct wacom *wacom)
 	error = wacom_setup_pen_input_capabilities(pen_input_dev, wacom_wac);
 	if (error) {
 		/* no pen in use on this interface */
-		input_free_device(pen_input_dev);
 		wacom_wac->pen_input = NULL;
 		pen_input_dev = NULL;
 	} else {
@@ -2110,7 +2109,6 @@ static int wacom_register_inputs(struct wacom *wacom)
 	error = wacom_setup_touch_input_capabilities(touch_input_dev, wacom_wac);
 	if (error) {
 		/* no touch in use on this interface */
-		input_free_device(touch_input_dev);
 		wacom_wac->touch_input = NULL;
 		touch_input_dev = NULL;
 	} else {
@@ -2122,7 +2120,6 @@ static int wacom_register_inputs(struct wacom *wacom)
 	error = wacom_setup_pad_input_capabilities(pad_input_dev, wacom_wac);
 	if (error) {
 		/* no pad in use on this interface */
-		input_free_device(pad_input_dev);
 		wacom_wac->pad_input = NULL;
 		pad_input_dev = NULL;
 	} else {
