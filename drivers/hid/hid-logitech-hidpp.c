@@ -3957,11 +3957,7 @@ static void hidpp_connect_event(struct hidpp_device *hidpp)
 	}
 
 	hidpp_populate_input(hidpp, input);
-
-	ret = input_register_device(input);
-	if (ret)
-		input_free_device(input);
-
+	input_register_device(input);
 	hidpp->delayed_input = input;
 }
 
