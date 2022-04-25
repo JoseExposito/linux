@@ -155,6 +155,14 @@ extern const size_t uclogic_rdesc_v2_frame_dial_size;
 /* Device ID byte offset in v2 frame dial reports */
 #define UCLOGIC_RDESC_V2_FRAME_DIAL_DEV_ID_BYTE	0x4
 
+/* Fixed report descriptor template for (tweaked) Parblo pen reports */
+extern const __u8 uclogic_rdesc_parblo_pen_template_arr[];
+extern const size_t uclogic_rdesc_parblo_pen_template_size;
+
+/* Fixed report descriptor for Parblo A610 PLUS V2 frame */
+extern const __u8 uclogic_rdesc_parblo_a610_plus_v2_frame_arr[];
+extern const size_t uclogic_rdesc_parblo_a610_plus_v2_frame_size;
+
 /* Fixed report descriptor for Ugee EX07 frame */
 extern const __u8 uclogic_rdesc_ugee_ex07_frame_arr[];
 extern const size_t uclogic_rdesc_ugee_ex07_frame_size;

@@ -1003,6 +1003,137 @@ cleanup:
 }
 
 /**
+ * uclogic_probe_interface() - some tablets, like the Parblo A610 PLUS V2 or
+ * the XP-PEN Deco Mini 7, need to be initialized by sending them magic data.
+ *
+ * @hdev:	The HID device of the tablet interface to initialize and get
+ *		parameters from. Cannot be NULL.
+ * @magic_arr:	The magic data that should be sent to probe the interface.
+ *		Cannot be NULL.
+ * @magic_size:	Size of the magic data.
+ * @endpoint:	Endpoint where the magic data should be sent.
+ *
+ * Returns:
+ *	Zero, if successful. A negative errno code on error.
+ */
+static int uclogic_probe_interface(struct hid_device *hdev, u8 *magic_arr,
+				   int magic_size, int endpoint)
+{
+	struct usb_device *udev;
+	unsigned int pipe = 0;
+	int sent;
+	int rc = 0;
+
+	if (!hdev || !magic_arr)
+		return -EINVAL;
+
+	udev = hid_to_usb_dev(hdev);
+	pipe = usb_sndintpipe(udev, endpoint);
+
+	rc = usb_interrupt_msg(udev, pipe, magic_arr, magic_size, &sent, 1000);
+	if (rc || sent != magic_size) {
+		hid_err(hdev, "Interface probing failed: %d\n", rc);
+		return -1;
+	}
+
+	return 0;
+}
+
+/**
+ * uclogic_params_parblo_init() - initialize a Parblo tablet.
+ *
+ * @params:	Parameters to fill in (to be cleaned with
+ *		uclogic_params_cleanup()). Not modified in case of error.
+ *		Cannot be NULL.
+ * @hdev:	The HID device of the tablet interface to initialize and get
+ *		parameters from. Cannot be NULL.
+ * @rdesc_pen_params:	Pen template parameter list.
+ * @rdesc_pen_nparams:	Pen template parameter list number of elements.
+ * @rdesc_frame_arr:	Frame report descriptor.
+ * @rdesc_frame_size:	Frame report descriptor size.
+ *
+ * Returns:
+ *	Zero, if successful. A negative errno code on error.
+ */
+static int uclogic_params_parblo_init(struct uclogic_params *params,
+				      struct hid_device *hdev,
+				      const s32 *rdesc_pen_params,
+				      size_t rdesc_pen_nparams,
+				      const __u8 rdesc_frame_arr[],
+				      const size_t rdesc_frame_size)
+{
+	int rc = 0;
+	struct usb_device *udev;
+	struct usb_interface *iface;
+	__u8 bInterfaceNumber;
+	__u8 *rdesc_pen = NULL;
+	/* The resulting parameters (noop) */
+	struct uclogic_params p = {0, };
+	u8 magic_arr[] = { 0x02, 0xb0, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	int magic_size = sizeof(magic_arr);
+	int endpoint = 0x03;
+
+	if (!params || !hdev) {
+		rc = -EINVAL;
+		goto cleanup;
+	}
+
+	udev = hid_to_usb_dev(hdev);
+	iface = to_usb_interface(hdev->dev.parent);
+	bInterfaceNumber = iface->cur_altsetting->desc.bInterfaceNumber;
+	if (bInterfaceNumber != 2) {
+		uclogic_params_init_invalid(&p);
+		goto output;
+	}
+
+	/*
+	 * Initialize the interface by sending magic data.
+	 * The specific data was discovered by sniffing the Windows driver
+	 * traffic.
+	 */
+	rc = uclogic_probe_interface(hdev, magic_arr, magic_size, endpoint);
+	if (rc) {
+		uclogic_params_init_invalid(&p);
+		goto output;
+	}
+
+	/* Initialize the frame interface */
+	rc = uclogic_params_frame_init_with_desc(&p.frame_list[0],
+						 rdesc_frame_arr,
+						 rdesc_frame_size,
+						 UCLOGIC_RDESC_V1_FRAME_ID);
+	if (rc) {
+		uclogic_params_init_invalid(&p);
+		goto output;
+	}
+
+	/* Initialize the pen interface */
+	rdesc_pen = uclogic_rdesc_template_apply(
+			uclogic_rdesc_parblo_pen_template_arr,
+			uclogic_rdesc_parblo_pen_template_size,
+			rdesc_pen_params, rdesc_pen_nparams);
+	if (!rdesc_pen) {
+		rc = -ENOMEM;
+		goto cleanup;
+	}
+
+	p.pen.desc_ptr = rdesc_pen;
+	p.pen.desc_size = uclogic_rdesc_parblo_pen_template_size;
+	p.pen.id = 0x02;
+	p.pen.subreport_list[0].value = 0xf0;
+	p.pen.subreport_list[0].id = UCLOGIC_RDESC_V1_FRAME_ID;
+
+output:
+	/* Output parameters */
+	memcpy(params, &p, sizeof(*params));
+	memset(&p, 0, sizeof(p));
+	rc = 0;
+cleanup:
+	uclogic_params_cleanup(&p);
+	return rc;
+}
+
+/**
  * uclogic_params_init() - initialize a tablet interface and discover its
  * parameters.
  *
@@ -1025,6 +1156,7 @@ int uclogic_params_init(struct uclogic_params *params,
 	struct usb_interface *iface;
 	__u8 bInterfaceNumber;
 	bool found;
+	s32 desc_params[UCLOGIC_RDESC_PEN_PH_ID_NUM];
 	/* The resulting parameters (noop) */
 	struct uclogic_params p = {0, };
 
@@ -1302,6 +1434,22 @@ int uclogic_params_init(struct uclogic_params *params,
 			uclogic_params_init_invalid(&p);
 		}
 
+		break;
+	case VID_PID(USB_VENDOR_ID_STM_0,
+		     USB_DEVICE_ID_PARBLO_TABLET_A610_PLUS_V2):
+		desc_params[UCLOGIC_RDESC_PEN_PH_ID_X_LM] = 0x65C2;
+		desc_params[UCLOGIC_RDESC_PEN_PH_ID_X_PM] = 0x28C1;
+		desc_params[UCLOGIC_RDESC_PEN_PH_ID_Y_LM] = 0x3E80;
+		desc_params[UCLOGIC_RDESC_PEN_PH_ID_Y_PM] = 0x189B;
+		desc_params[UCLOGIC_RDESC_PEN_PH_ID_PRESSURE_LM] = 0x1FFF;
+
+		rc = uclogic_params_parblo_init(
+			&p, hdev,
+			desc_params, ARRAY_SIZE(desc_params),
+			uclogic_rdesc_parblo_a610_plus_v2_frame_arr,
+			uclogic_rdesc_parblo_a610_plus_v2_frame_size);
+		if (rc != 0)
+			goto cleanup;
 		break;
 	}
 

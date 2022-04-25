@@ -473,6 +473,8 @@ static void uclogic_remove(struct hid_device *hdev)
 }
 
 static const struct hid_device_id uclogic_devices[] = {
+	{ HID_USB_DEVICE(USB_VENDOR_ID_STM_0,
+				USB_DEVICE_ID_PARBLO_TABLET_A610_PLUS_V2) },
 	{ HID_USB_DEVICE(USB_VENDOR_ID_UCLOGIC,
 				USB_DEVICE_ID_UCLOGIC_TABLET_PF1209) },
 	{ HID_USB_DEVICE(USB_VENDOR_ID_UCLOGIC,
