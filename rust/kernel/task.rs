@@ -22,9 +22,7 @@ use core::{marker::PhantomData, mem::ManuallyDrop, ops::Deref};
 /// # use kernel::prelude::*;
 /// use kernel::task::Task;
 ///
-/// # fn test() {
-/// Task::current().pid();
-/// # }
+/// let pid = Task::current().pid();
 /// ```
 ///
 /// Getting the PID of the current process, also zero additional cost:
@@ -33,9 +31,7 @@ use core::{marker::PhantomData, mem::ManuallyDrop, ops::Deref};
 /// # use kernel::prelude::*;
 /// use kernel::task::Task;
 ///
-/// # fn test() {
-/// Task::current().group_leader().pid();
-/// # }
+/// let pid = Task::current().group_leader().pid();
 /// ```
 ///
 /// Getting the current task and storing it in some struct. The reference count is automatically

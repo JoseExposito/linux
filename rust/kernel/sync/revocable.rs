@@ -89,16 +89,14 @@ impl<T> Drop for Inner<T> {
 ///     Some(guard.a + guard.b)
 /// }
 ///
-/// fn example() {
-///     // SAFETY: We call `revocable_init` immediately below.
-///     let mut v = unsafe { Revocable::<Mutex<()>, Example>::new(Example { a: 10, b: 20 }) };
-///     // SAFETY: We never move out of `v`.
-///     let pinned = unsafe { Pin::new_unchecked(&mut v) };
-///     revocable_init!(pinned, "example::v");
-///     assert_eq!(add_two(&v), Some(34));
-///     v.revoke();
-///     assert_eq!(add_two(&v), None);
-/// }
+/// // SAFETY: We call `revocable_init` immediately below.
+/// let mut v = unsafe { Revocable::<Mutex<()>, Example>::new(Example { a: 10, b: 20 }) };
+/// // SAFETY: We never move out of `v`.
+/// let pinned = unsafe { Pin::new_unchecked(&mut v) };
+/// revocable_init!(pinned, "example::v");
+/// assert_eq!(add_two(&v), Some(34));
+/// v.revoke();
+/// assert_eq!(add_two(&v), None);
 /// ```
 pub struct Revocable<F: LockFactory, T> {
     inner: F::LockedType<Inner<T>>,

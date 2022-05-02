@@ -7,17 +7,19 @@
 //!
 //! # Example
 //!
-//! ```no_run
+//! ```
 //! # use kernel::prelude::*;
 //! # use kernel::mutex_init;
 //! # use kernel::sync::Mutex;
 //! # use alloc::boxed::Box;
 //! # use core::pin::Pin;
 //! // SAFETY: `init` is called below.
-//! let mut data = Pin::from(Box::try_new(unsafe { Mutex::new(0) }).unwrap());
+//! let mut data = Pin::from(Box::try_new(unsafe { Mutex::new(10) }).unwrap());
 //! mutex_init!(data.as_mut(), "test::data");
-//! *data.lock() = 10;
-//! pr_info!("{}\n", *data.lock());
+//!
+//! assert_eq!(*data.lock(), 10);
+//! *data.lock() = 20;
+//! assert_eq!(*data.lock(), 20);
 //! ```
 
 use crate::{bindings, str::CStr};

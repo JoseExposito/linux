@@ -15,6 +15,9 @@
 /// fn foo(a: usize) -> usize {
 ///     a.checked_add(1).unwrap_or_else(|| build_error!("overflow"))
 /// }
+///
+/// assert_eq!(foo(usize::MAX - 1), usize::MAX); // OK.
+/// // foo(usize::MAX); // Fails to compile.
 /// ```
 #[macro_export]
 macro_rules! build_error {
@@ -51,7 +54,7 @@ macro_rules! build_error {
 ///
 /// When the condition refers to generic parameters or parameters of an inline function,
 /// [`static_assert!`] cannot be used. Use `build_assert!` in this scenario.
-/// ```no_run
+/// ```
 /// # use kernel::prelude::*;
 /// fn foo<const N: usize>() {
 ///     // `static_assert!(N > 1);` is not allowed

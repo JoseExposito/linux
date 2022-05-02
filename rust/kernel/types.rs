@@ -179,6 +179,9 @@ impl PointerWrapper for () {
 ///
 ///     pr_info!("Do something...\n");
 /// }
+///
+/// # example1(false);
+/// # example1(true);
 /// ```
 ///
 /// In the example below, we want to log the same message on all early exits but a different one on
@@ -198,6 +201,9 @@ impl PointerWrapper for () {
 ///     log.dismiss();
 ///     pr_info!("example2 no early return\n");
 /// }
+///
+/// # example2(false);
+/// # example2(true);
 /// ```
 ///
 /// In the example below, we need a mutable object (the vector) to be accessible within the log
@@ -216,6 +222,9 @@ impl PointerWrapper for () {
 ///     vec.try_push(20u8)?;
 ///     Ok(())
 /// }
+///
+/// # assert_eq!(example3(false), Ok(()));
+/// # assert_eq!(example3(true), Ok(()));
 /// ```
 ///
 /// # Invariants
@@ -447,6 +456,8 @@ define_unsigned_number_traits!(usize);
 ///         pr_info!("{}\n", bit);
 ///     }
 /// }
+///
+/// # print_bits(42);
 /// ```
 #[inline]
 pub fn bits_iter<T>(value: T) -> impl Iterator<Item = u32>
@@ -546,15 +557,13 @@ where
 ///     }
 /// }
 ///
-/// pub(crate) fn test() {
-///     let mut x = MyType::<S1>::new(10);
-///     let mut y = MyType::<S2>::new(20);
+/// let mut x = MyType::<S1>::new(10);
+/// let mut y = MyType::<S2>::new(20);
 ///
-///     x.set_value(30);
+/// x.set_value(30);
 ///
-///     // The code below fails to compile because `S2` is not writable.
-///     // y.set_value(40);
-/// }
+/// // The code below fails to compile because `S2` is not writable.
+/// // y.set_value(40);
 /// ```
 pub unsafe trait Bool {}
 

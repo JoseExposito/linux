@@ -137,16 +137,14 @@ unsafe impl<T: ?Sized> Lock for Mutex<T> {
 ///     Some(guard.a + guard.b)
 /// }
 ///
-/// fn example() {
-///     // SAFETY: We call `revocable_init` immediately below.
-///     let mut v = unsafe { RevocableMutex::new(Example { a: 10, b: 20 }) };
-///     // SAFETY: We never move out of `v`.
-///     let pinned = unsafe { Pin::new_unchecked(&mut v) };
-///     revocable_init!(pinned, "example::v");
-///     assert_eq!(read_sum(&v), Some(30));
-///     v.revoke();
-///     assert_eq!(read_sum(&v), None);
-/// }
+/// // SAFETY: We call `revocable_init` immediately below.
+/// let mut v = unsafe { RevocableMutex::new(Example { a: 10, b: 20 }) };
+/// // SAFETY: We never move out of `v`.
+/// let pinned = unsafe { Pin::new_unchecked(&mut v) };
+/// revocable_init!(pinned, "example::v");
+/// assert_eq!(read_sum(&v), Some(30));
+/// v.revoke();
+/// assert_eq!(read_sum(&v), None);
 /// ```
 pub type RevocableMutex<T> = super::revocable::Revocable<Mutex<()>, T>;
 

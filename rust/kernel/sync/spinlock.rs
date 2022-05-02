@@ -61,15 +61,18 @@ macro_rules! spinlock_init {
 ///     guard.b = 40;
 /// }
 ///
-/// // Initialises a spinlock and calls the example functions.
-/// fn spinlock_example() {
-///     // SAFETY: `spinlock_init` is called below.
-///     let mut value = unsafe { SpinLock::new(Example { a: 1, b: 2 }) };
-///     // SAFETY: We don't move `value`.
-///     kernel::spinlock_init!(unsafe { Pin::new_unchecked(&mut value) }, "value");
-///     lock_example(&value);
-///     lock_irqdisable_example(&value);
-/// }
+/// // Initialises a spinlock.
+/// // SAFETY: `spinlock_init` is called below.
+/// let mut value = unsafe { SpinLock::new(Example { a: 1, b: 2 }) };
+/// // SAFETY: We don't move `value`.
+/// kernel::spinlock_init!(unsafe { Pin::new_unchecked(&mut value) }, "value");
+///
+/// // Calls the example functions.
+/// assert_eq!(value.lock().a, 1);
+/// lock_example(&value);
+/// assert_eq!(value.lock().a, 10);
+/// lock_irqdisable_example(&value);
+/// assert_eq!(value.lock().a, 30);
 /// ```
 ///
 /// [`spinlock_t`]: ../../../include/linux/spinlock.h

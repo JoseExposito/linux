@@ -35,12 +35,10 @@ use core::{
 ///     Some(guard.a + guard.b)
 /// }
 ///
-/// fn example() {
-///     let v = Revocable::new(Example { a: 10, b: 20 });
-///     assert_eq!(add_two(&v), Some(30));
-///     v.revoke();
-///     assert_eq!(add_two(&v), None);
-/// }
+/// let v = Revocable::new(Example { a: 10, b: 20 });
+/// assert_eq!(add_two(&v), Some(30));
+/// v.revoke();
+/// assert_eq!(add_two(&v), None);
 /// ```
 pub struct Revocable<T: ?Sized> {
     is_available: AtomicBool,
