@@ -39,7 +39,8 @@ macro_rules! build_error {
 /// These examples show that different types of [`assert!`] will trigger errors
 /// at different stage of compilation. It is preferred to err as early as
 /// possible, so [`static_assert!`] should be used whenever possible.
-/// ```compile_fail
+// TODO: Could be `compile_fail` when supported.
+/// ```ignore
 /// # use kernel::prelude::*;
 /// fn foo() {
 ///     static_assert!(1 > 1); // Compile-time error

@@ -94,6 +94,9 @@ pub mod platform;
 mod types;
 pub mod user_ptr;
 
+#[cfg(CONFIG_KUNIT)]
+pub mod kunit;
+
 #[doc(hidden)]
 pub use build_error::build_error;
 

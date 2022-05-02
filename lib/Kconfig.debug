@@ -2900,6 +2900,18 @@ config RUST_BUILD_ASSERT_DENY
 
 endchoice
 
+config RUST_KERNEL_KUNIT_TEST
+	bool "KUnit test for the `kernel` crate" if !KUNIT_ALL_TESTS
+	depends on RUST && KUNIT=y
+	default KUNIT_ALL_TESTS
+	help
+	  This builds the documentation tests of the `kernel` crate
+	  as KUnit tests.
+
+	  For more information on KUnit and unit tests in general,
+	  please refer to the KUnit documentation in Documentation/dev-tools/kunit/.
+
+	  If unsure, say N.
 
 endmenu # "Rust"
 

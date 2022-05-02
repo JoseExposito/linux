@@ -62,7 +62,7 @@ macro_rules! spinlock_init {
 /// }
 ///
 /// // Initialises a spinlock and calls the example functions.
-/// pub fn spinlock_example() {
+/// fn spinlock_example() {
 ///     // SAFETY: `spinlock_init` is called below.
 ///     let mut value = unsafe { SpinLock::new(Example { a: 1, b: 2 }) };
 ///     // SAFETY: We don't move `value`.
@@ -233,7 +233,7 @@ macro_rules! rawspinlock_init {
 /// }
 ///
 /// // Initialises a raw spinlock and calls the example functions.
-/// pub fn spinlock_example() {
+/// fn spinlock_example() {
 ///     // SAFETY: `rawspinlock_init` is called below.
 ///     let mut value = unsafe { RawSpinLock::new(Example { a: 1, b: 2 }) };
 ///     // SAFETY: We don't move `value`.

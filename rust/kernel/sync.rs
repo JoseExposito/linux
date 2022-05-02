@@ -14,7 +14,7 @@
 //! # use alloc::boxed::Box;
 //! # use core::pin::Pin;
 //! // SAFETY: `init` is called below.
-//! let mut data = Pin::from(Box::new(unsafe { Mutex::new(0) }));
+//! let mut data = Pin::from(Box::try_new(unsafe { Mutex::new(0) }).unwrap());
 //! mutex_init!(data.as_mut(), "test::data");
 //! *data.lock() = 10;
 //! pr_info!("{}\n", *data.lock());

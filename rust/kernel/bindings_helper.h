@@ -7,6 +7,7 @@
  */
 
 #include <asm/io.h>
+#include <kunit/test.h>
 #include <linux/amba/bus.h>
 #include <linux/cdev.h>
 #include <linux/clk.h>

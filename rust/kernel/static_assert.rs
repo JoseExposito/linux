@@ -20,7 +20,7 @@
 /// static_assert!(core::mem::size_of::<u8>() == 1);
 ///
 /// const X: &[u8] = b"bar";
-/// static_assert!(X[1] == 'a' as u8);
+/// static_assert!(X[1] == b'a');
 ///
 /// const fn f(x: i32) -> i32 {
 ///     x + 2

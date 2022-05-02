@@ -177,7 +177,7 @@ impl PointerWrapper for () {
 ///         return;
 ///     }
 ///
-///     // Do something...
+///     pr_info!("Do something...\n");
 /// }
 /// ```
 ///
@@ -444,7 +444,7 @@ define_unsigned_number_traits!(usize);
 ///
 /// fn print_bits(x: usize) {
 ///     for bit in bits_iter(x) {
-///         println!("{}", bit);
+///         pr_info!("{}\n", bit);
 ///     }
 /// }
 /// ```

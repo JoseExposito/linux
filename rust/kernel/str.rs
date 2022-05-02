@@ -23,7 +23,7 @@ pub type BStr = [u8];
 /// ```
 /// # use kernel::b_str;
 /// # use kernel::str::BStr;
-/// const MY_BSTR: &'static BStr = b_str!("My awesome BStr!");
+/// const MY_BSTR: &BStr = b_str!("My awesome BStr!");
 /// ```
 #[macro_export]
 macro_rules! b_str {
@@ -213,7 +213,7 @@ impl CStr {
 impl fmt::Display for CStr {
     /// Formats printable ASCII characters, escaping the rest.
     ///
-    /// ```
+    /// ```ignore
     /// # use kernel::c_str;
     /// # use kernel::str::CStr;
     /// let penguin = c_str!("🐧");
@@ -238,7 +238,7 @@ impl fmt::Display for CStr {
 impl fmt::Debug for CStr {
     /// Formats printable ASCII characters with a double quote on either end, escaping the rest.
     ///
-    /// ```
+    /// ```ignore
     /// # use kernel::c_str;
     /// # use kernel::str::CStr;
     /// let penguin = c_str!("🐧");
@@ -334,7 +334,7 @@ where
 /// ```
 /// # use kernel::c_str;
 /// # use kernel::str::CStr;
-/// const MY_CSTR: &'static CStr = c_str!("My awesome CStr!");
+/// const MY_CSTR: &CStr = c_str!("My awesome CStr!");
 /// ```
 #[macro_export]
 macro_rules! c_str {
