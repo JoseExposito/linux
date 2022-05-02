@@ -227,7 +227,6 @@ macro_rules! offset_of {
 /// # Example
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::container_of;
 /// struct Test {
 ///     a: u64,

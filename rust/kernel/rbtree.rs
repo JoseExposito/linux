@@ -37,7 +37,6 @@ struct Node<K, V> {
 /// the system is out of memory.
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::rbtree::RBTree;
 ///
 /// # fn test() -> Result {
@@ -122,7 +121,6 @@ struct Node<K, V> {
 /// holding a spinlock.
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::{rbtree::RBTree, sync::SpinLock};
 ///
 /// fn insert_test(tree: &SpinLock<RBTree<u32, u32>>) -> Result {
@@ -140,7 +138,6 @@ struct Node<K, V> {
 /// In the example below, we reuse an existing node allocation from an element we removed.
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::rbtree::RBTree;
 ///
 /// # fn test() -> Result {

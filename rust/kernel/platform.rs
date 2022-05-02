@@ -195,7 +195,6 @@ unsafe impl device::RawDevice for Device {
 /// # Examples
 ///
 /// ```ignore
-/// # use kernel::prelude::*;
 /// # use kernel::{platform, define_of_id_table, module_platform_driver};
 /// #
 /// struct MyDriver;

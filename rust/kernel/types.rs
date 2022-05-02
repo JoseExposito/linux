@@ -168,7 +168,6 @@ impl PointerWrapper for () {
 /// In the example below, we have multiple exit paths and we want to log regardless of which one is
 /// taken:
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::ScopeGuard;
 /// fn example1(arg: bool) {
 ///     let _log = ScopeGuard::new(|| pr_info!("example1 completed\n"));
@@ -187,7 +186,6 @@ impl PointerWrapper for () {
 /// In the example below, we want to log the same message on all early exits but a different one on
 /// the main exit path:
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::ScopeGuard;
 /// fn example2(arg: bool) {
 ///     let log = ScopeGuard::new(|| pr_info!("example2 returned early\n"));
@@ -209,7 +207,6 @@ impl PointerWrapper for () {
 /// In the example below, we need a mutable object (the vector) to be accessible within the log
 /// function, so we wrap it in the [`ScopeGuard`]:
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::ScopeGuard;
 /// fn example3(arg: bool) -> Result {
 ///     let mut vec =
@@ -319,7 +316,6 @@ pub struct Bit<T> {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::bit;
 /// let mut x = 0xfeu32;
 ///
@@ -438,7 +434,6 @@ define_unsigned_number_traits!(usize);
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::bits_iter;
 ///
 /// let mut iter = bits_iter(5usize);
@@ -448,7 +443,6 @@ define_unsigned_number_traits!(usize);
 /// ```
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::bits_iter;
 ///
 /// fn print_bits(x: usize) {

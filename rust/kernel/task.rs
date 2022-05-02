@@ -19,7 +19,6 @@ use core::{marker::PhantomData, mem::ManuallyDrop, ops::Deref};
 /// when compared to the C version:
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::task::Task;
 ///
 /// let pid = Task::current().pid();
@@ -28,7 +27,6 @@ use core::{marker::PhantomData, mem::ManuallyDrop, ops::Deref};
 /// Getting the PID of the current process, also zero additional cost:
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::task::Task;
 ///
 /// let pid = Task::current().group_leader().pid();
@@ -38,7 +36,6 @@ use core::{marker::PhantomData, mem::ManuallyDrop, ops::Deref};
 /// incremented when creating `State` and decremented when it is dropped:
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::task::Task;
 ///
 /// struct State {

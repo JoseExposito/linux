@@ -8,7 +8,6 @@
 //! # Example
 //!
 //! ```
-//! # use kernel::prelude::*;
 //! # use kernel::mutex_init;
 //! # use kernel::sync::Mutex;
 //! # use alloc::boxed::Box;

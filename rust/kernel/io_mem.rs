@@ -191,7 +191,6 @@ impl<const SIZE: usize> IoMem<SIZE> {
     ///
     /// # Examples
     /// ```
-    /// # use kernel::prelude::*;
     /// use kernel::io_mem::{self, IoMem, Resource};
     ///
     /// fn test(res: Resource) -> Result {

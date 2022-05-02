@@ -12,7 +12,6 @@
 /// An example:
 ///
 /// ```rust
-/// # use kernel::prelude::*;
 /// let a = 2;
 /// # #[allow(clippy::dbg_macro)]
 /// let b = dbg!(a * 2) + 1;
@@ -49,7 +48,6 @@
 /// With a method call:
 ///
 /// ```rust
-/// # use kernel::prelude::*;
 /// # #[allow(clippy::dbg_macro)]
 /// fn foo(n: usize) {
 ///     if dbg!(n.checked_sub(4)).is_some() {
@@ -69,7 +67,6 @@
 /// Naive factorial implementation:
 ///
 /// ```rust
-/// # use kernel::prelude::*;
 /// # #[allow(clippy::dbg_macro)]
 /// # {
 /// fn factorial(n: u32) -> u32 {
@@ -102,7 +99,6 @@
 ///
 // TODO: Could be `compile_fail` when supported.
 /// ```ignore
-/// # use kernel::prelude::*;
 /// /// A wrapper around `usize` which importantly is not Copyable.
 /// #[derive(Debug)]
 /// struct NoCopy(usize);
@@ -119,7 +115,6 @@
 /// a tuple (and return it, too):
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # #[allow(clippy::dbg_macro)]
 /// assert_eq!(dbg!(1usize, 2u32), (1, 2));
 /// ```
@@ -129,7 +124,6 @@
 /// invocations. You can use a 1-tuple directly if you need one:
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # #[allow(clippy::dbg_macro)]
 /// # {
 /// assert_eq!(1, dbg!(1u32,)); // trailing comma ignored

@@ -391,7 +391,6 @@ impl<T: ?Sized> Deref for RefBorrow<'_, T> {
 /// cannot fail.
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::sync::{Ref, UniqueRef};
 ///
 /// struct Example {
@@ -415,7 +414,6 @@ impl<T: ?Sized> Deref for RefBorrow<'_, T> {
 /// in one context (e.g., sleepable) and initialisation in another (e.g., atomic):
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::sync::{Ref, UniqueRef};
 ///
 /// struct Example {
@@ -436,7 +434,6 @@ impl<T: ?Sized> Deref for RefBorrow<'_, T> {
 /// initialisation, for example, when initialising fields that are wrapped in locks.
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::sync::{Ref, UniqueRef};
 ///
 /// struct Example {

@@ -15,7 +15,6 @@
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// static_assert!(42 > 24);
 /// static_assert!(core::mem::size_of::<u8>() == 1);
 ///

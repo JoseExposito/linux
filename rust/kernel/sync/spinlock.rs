@@ -38,7 +38,6 @@ macro_rules! spinlock_init {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::sync::SpinLock;
 /// # use core::pin::Pin;
 ///
@@ -212,7 +211,6 @@ macro_rules! rawspinlock_init {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::sync::RawSpinLock;
 /// # use core::pin::Pin;
 ///

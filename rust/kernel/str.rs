@@ -214,7 +214,6 @@ impl fmt::Display for CStr {
     /// Formats printable ASCII characters, escaping the rest.
     ///
     /// ```
-    /// # use kernel::prelude::*;
     /// # use kernel::c_str;
     /// # use kernel::str::CStr;
     /// # use kernel::str::CString;
@@ -243,7 +242,6 @@ impl fmt::Debug for CStr {
     /// Formats printable ASCII characters with a double quote on either end, escaping the rest.
     ///
     /// ```
-    /// # use kernel::prelude::*;
     /// # use kernel::c_str;
     /// # use kernel::str::CStr;
     /// # use kernel::str::CString;
@@ -530,7 +528,6 @@ impl fmt::Write for Formatter {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::str::CString;
 ///
 /// let s = CString::try_from_fmt(fmt!("{}{}{}", "abc", 10, 20)).unwrap();

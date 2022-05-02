@@ -204,7 +204,6 @@ unsafe impl device::RawDevice for Device {
 /// # Examples
 ///
 /// ```ignore
-/// # use kernel::prelude::*;
 /// # use kernel::{amba, define_amba_id_table, module_amba_driver};
 /// #
 /// struct MyDriver;
@@ -237,7 +236,6 @@ macro_rules! module_amba_driver {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::{amba, define_amba_id_table};
 /// #
 /// # struct Sample;

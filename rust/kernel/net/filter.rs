@@ -82,7 +82,6 @@ pub enum Family {
 /// all packets after printing their lengths) on the specified device (in the `init` ns).
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::net::{self, filter as netfilter};
 ///
 /// struct MyFilter;

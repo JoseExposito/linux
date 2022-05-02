@@ -49,6 +49,9 @@ pub fn {test_name}(__kunit_test: *mut kernel::bindings::kunit) {{
         }}}}
     }}
 
+    // Many tests need the prelude, so provide it by default.
+    use kernel::prelude::*;
+
     {test_body}
 }}
 """

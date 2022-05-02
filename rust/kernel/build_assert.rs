@@ -44,7 +44,6 @@ macro_rules! build_error {
 /// possible, so [`static_assert!`] should be used whenever possible.
 // TODO: Could be `compile_fail` when supported.
 /// ```ignore
-/// # use kernel::prelude::*;
 /// fn foo() {
 ///     static_assert!(1 > 1); // Compile-time error
 ///     build_assert!(1 > 1); // Build-time error
@@ -55,7 +54,6 @@ macro_rules! build_error {
 /// When the condition refers to generic parameters or parameters of an inline function,
 /// [`static_assert!`] cannot be used. Use `build_assert!` in this scenario.
 /// ```
-/// # use kernel::prelude::*;
 /// fn foo<const N: usize>() {
 ///     // `static_assert!(N > 1);` is not allowed
 ///     build_assert!(N > 1); // Build-time check

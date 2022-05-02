@@ -359,7 +359,6 @@ macro_rules! dev_printk {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::device::Device;
 ///
 /// fn example(dev: &Device) {
@@ -385,7 +384,6 @@ macro_rules! dev_emerg {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::device::Device;
 ///
 /// fn example(dev: &Device) {
@@ -411,7 +409,6 @@ macro_rules! dev_alert {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::device::Device;
 ///
 /// fn example(dev: &Device) {
@@ -437,7 +434,6 @@ macro_rules! dev_crit {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::device::Device;
 ///
 /// fn example(dev: &Device) {
@@ -463,7 +459,6 @@ macro_rules! dev_err {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::device::Device;
 ///
 /// fn example(dev: &Device) {
@@ -489,7 +484,6 @@ macro_rules! dev_warn {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::device::Device;
 ///
 /// fn example(dev: &Device) {
@@ -515,7 +509,6 @@ macro_rules! dev_notice {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::device::Device;
 ///
 /// fn example(dev: &Device) {
@@ -541,7 +534,6 @@ macro_rules! dev_info {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::device::Device;
 ///
 /// fn example(dev: &Device) {

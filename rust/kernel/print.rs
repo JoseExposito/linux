@@ -196,7 +196,6 @@ macro_rules! print_macro (
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// pr_emerg!("hello {}\n", "there");
 /// ```
 #[macro_export]
@@ -221,7 +220,6 @@ macro_rules! pr_emerg (
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// pr_alert!("hello {}\n", "there");
 /// ```
 #[macro_export]
@@ -246,7 +244,6 @@ macro_rules! pr_alert (
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// pr_crit!("hello {}\n", "there");
 /// ```
 #[macro_export]
@@ -271,7 +268,6 @@ macro_rules! pr_crit (
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// pr_err!("hello {}\n", "there");
 /// ```
 #[macro_export]
@@ -296,7 +292,6 @@ macro_rules! pr_err (
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// pr_warn!("hello {}\n", "there");
 /// ```
 #[macro_export]
@@ -321,7 +316,6 @@ macro_rules! pr_warn (
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// pr_notice!("hello {}\n", "there");
 /// ```
 #[macro_export]
@@ -346,7 +340,6 @@ macro_rules! pr_notice (
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// pr_info!("hello {}\n", "there");
 /// ```
 #[macro_export]
@@ -373,7 +366,6 @@ macro_rules! pr_info (
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// pr_debug!("hello {}\n", "there");
 /// ```
 #[macro_export]
@@ -401,7 +393,6 @@ macro_rules! pr_debug (
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::pr_cont;
 /// pr_info!("hello");
 /// pr_cont!(" {}\n", "there");
