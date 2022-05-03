@@ -12,7 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
-| [patch-drm_detect_hdmi_monitor-to-is_hdmi](https://github.com/JoseExposito/linux/tree/patch-drm_detect_hdmi_monitor-to-is_hdmi) | [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | DRM: Replace drm_detect_hdmi_monitor() with drm_display_info.is_hdmi | ⏳ |
+| [patch-drm_detect_hdmi_monitor-to-is_hdmi](https://github.com/JoseExposito/linux/tree/patch-drm_detect_hdmi_monitor-to-is_hdmi) | [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | DRM: Replace drm_detect_hdmi_monitor() with drm_display_info.is_hdmi | 🔀 |
 | [patch-vc4-drm_detect_hdmi_monitor-to-is_hdmi](https://github.com/JoseExposito/linux/tree/patch-vc4-drm_detect_hdmi_monitor-to-is_hdmi) | [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | DRM: VC4: Replace drm_detect_hdmi_monitor() with drm_display_info.is_hdmi | 🔀 |
 | [patch-drm_panel_bridge_add](https://github.com/JoseExposito/linux/tree/patch-drm_panel_bridge_add) | [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | DRM: Migrate from `drm_of_find_panel_or_bridge` + `drm_panel_bridge_add` to `devm_drm_of_get_bridge` | 🔀 |
 | [patch-omap-drm_of_find_panel_or_bridge](https://github.com/JoseExposito/linux/tree/patch-omap-drm_of_find_panel_or_bridge) | [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | DRM omap: Use drm_of_find_panel_or_bridge | ⏳ |
