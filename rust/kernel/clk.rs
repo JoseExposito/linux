@@ -47,6 +47,10 @@ impl Drop for Clk {
     }
 }
 
+// SAFETY: `Clk` is not restricted to a single thread so it it safe
+// to move it between threads.
+unsafe impl Send for Clk {}
+
 /// A clock variant that is prepared and enabled.
 pub struct EnabledClk(Clk);
 
