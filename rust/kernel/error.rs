@@ -514,7 +514,6 @@ pub(crate) use from_kernel_result;
 /// # Examples
 ///
 /// ```ignore
-/// # use kernel::prelude::*;
 /// # use kernel::from_kernel_err_ptr;
 /// # use kernel::c_types;
 /// # use kernel::bindings;

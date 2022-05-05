@@ -304,7 +304,8 @@ macro_rules! second_item {
 ///
 /// # Examples
 ///
-/// ```
+// TODO: Exported but not usable by kernel modules (requires `const_trait_impl`).
+/// ```ignore
 /// #![feature(const_trait_impl)]
 /// # use kernel::{define_id_array, driver::RawDeviceId};
 ///
@@ -347,7 +348,8 @@ macro_rules! define_id_array {
 ///
 /// # Examples
 ///
-/// ```
+// TODO: Exported but not usable by kernel modules (requires `const_trait_impl`).
+/// ```ignore
 /// #![feature(const_trait_impl)]
 /// # use kernel::{define_id_table, driver::RawDeviceId};
 ///

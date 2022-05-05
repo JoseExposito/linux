@@ -19,30 +19,23 @@ use core::{marker::PhantomData, mem::ManuallyDrop, ops::Deref};
 /// when compared to the C version:
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::task::Task;
 ///
-/// # fn test() {
-/// Task::current().pid();
-/// # }
+/// let pid = Task::current().pid();
 /// ```
 ///
 /// Getting the PID of the current process, also zero additional cost:
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::task::Task;
 ///
-/// # fn test() {
-/// Task::current().group_leader().pid();
-/// # }
+/// let pid = Task::current().group_leader().pid();
 /// ```
 ///
 /// Getting the current task and storing it in some struct. The reference count is automatically
 /// incremented when creating `State` and decremented when it is dropped:
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::task::Task;
 ///
 /// struct State {

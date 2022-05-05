@@ -267,6 +267,9 @@ jobs:
 
       # Check
       - run: |
+          grep '] ok 1 - rust_kernel_doctests$' qemu-stdout.log
+
+      - run: |
           grep '] rust_minimal: Rust minimal sample (init)$' qemu-stdout.log
           grep '] rust_minimal: Am I built-in? false$'       qemu-stdout.log
           grep '] rust_minimal: My message is on the heap!$' qemu-stdout.log

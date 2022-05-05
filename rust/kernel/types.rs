@@ -168,7 +168,6 @@ impl PointerWrapper for () {
 /// In the example below, we have multiple exit paths and we want to log regardless of which one is
 /// taken:
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::ScopeGuard;
 /// fn example1(arg: bool) {
 ///     let _log = ScopeGuard::new(|| pr_info!("example1 completed\n"));
@@ -177,14 +176,16 @@ impl PointerWrapper for () {
 ///         return;
 ///     }
 ///
-///     // Do something...
+///     pr_info!("Do something...\n");
 /// }
+///
+/// # example1(false);
+/// # example1(true);
 /// ```
 ///
 /// In the example below, we want to log the same message on all early exits but a different one on
 /// the main exit path:
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::ScopeGuard;
 /// fn example2(arg: bool) {
 ///     let log = ScopeGuard::new(|| pr_info!("example2 returned early\n"));
@@ -198,12 +199,14 @@ impl PointerWrapper for () {
 ///     log.dismiss();
 ///     pr_info!("example2 no early return\n");
 /// }
+///
+/// # example2(false);
+/// # example2(true);
 /// ```
 ///
 /// In the example below, we need a mutable object (the vector) to be accessible within the log
 /// function, so we wrap it in the [`ScopeGuard`]:
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::ScopeGuard;
 /// fn example3(arg: bool) -> Result {
 ///     let mut vec =
@@ -216,6 +219,9 @@ impl PointerWrapper for () {
 ///     vec.try_push(20u8)?;
 ///     Ok(())
 /// }
+///
+/// # assert_eq!(example3(false), Ok(()));
+/// # assert_eq!(example3(true), Ok(()));
 /// ```
 ///
 /// # Invariants
@@ -310,7 +316,6 @@ pub struct Bit<T> {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::bit;
 /// let mut x = 0xfeu32;
 ///
@@ -429,7 +434,6 @@ define_unsigned_number_traits!(usize);
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::bits_iter;
 ///
 /// let mut iter = bits_iter(5usize);
@@ -439,14 +443,15 @@ define_unsigned_number_traits!(usize);
 /// ```
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::bits_iter;
 ///
 /// fn print_bits(x: usize) {
 ///     for bit in bits_iter(x) {
-///         println!("{}", bit);
+///         pr_info!("{}\n", bit);
 ///     }
 /// }
+///
+/// # print_bits(42);
 /// ```
 #[inline]
 pub fn bits_iter<T>(value: T) -> impl Iterator<Item = u32>
@@ -546,15 +551,13 @@ where
 ///     }
 /// }
 ///
-/// pub(crate) fn test() {
-///     let mut x = MyType::<S1>::new(10);
-///     let mut y = MyType::<S2>::new(20);
+/// let mut x = MyType::<S1>::new(10);
+/// let mut y = MyType::<S2>::new(20);
 ///
-///     x.set_value(30);
+/// x.set_value(30);
 ///
-///     // The code below fails to compile because `S2` is not writable.
-///     // y.set_value(40);
-/// }
+/// // The code below fails to compile because `S2` is not writable.
+/// // y.set_value(40);
 /// ```
 pub unsafe trait Bool {}
 

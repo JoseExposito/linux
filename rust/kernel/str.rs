@@ -23,7 +23,7 @@ pub type BStr = [u8];
 /// ```
 /// # use kernel::b_str;
 /// # use kernel::str::BStr;
-/// const MY_BSTR: &'static BStr = b_str!("My awesome BStr!");
+/// const MY_BSTR: &BStr = b_str!("My awesome BStr!");
 /// ```
 #[macro_export]
 macro_rules! b_str {
@@ -216,11 +216,14 @@ impl fmt::Display for CStr {
     /// ```
     /// # use kernel::c_str;
     /// # use kernel::str::CStr;
+    /// # use kernel::str::CString;
     /// let penguin = c_str!("🐧");
-    /// assert_eq!(format!("{}", penguin), "\\xf0\\x9f\\x90\\xa7");
+    /// let s = CString::try_from_fmt(fmt!("{}", penguin)).unwrap();
+    /// assert_eq!(s.as_bytes_with_nul(), "\\xf0\\x9f\\x90\\xa7\0".as_bytes());
     ///
     /// let ascii = c_str!("so \"cool\"");
-    /// assert_eq!(format!("{}", ascii), "so \"cool\"");
+    /// let s = CString::try_from_fmt(fmt!("{}", ascii)).unwrap();
+    /// assert_eq!(s.as_bytes_with_nul(), "so \"cool\"\0".as_bytes());
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for &c in self.as_bytes() {
@@ -241,12 +244,15 @@ impl fmt::Debug for CStr {
     /// ```
     /// # use kernel::c_str;
     /// # use kernel::str::CStr;
+    /// # use kernel::str::CString;
     /// let penguin = c_str!("🐧");
-    /// assert_eq!(format!("{:?}", penguin), "\"\\xf0\\x9f\\x90\\xa7\"");
+    /// let s = CString::try_from_fmt(fmt!("{:?}", penguin)).unwrap();
+    /// assert_eq!(s.as_bytes_with_nul(), "\"\\xf0\\x9f\\x90\\xa7\"\0".as_bytes());
     ///
     /// // embedded double quotes are escaped
     /// let ascii = c_str!("so \"cool\"");
-    /// assert_eq!(format!("{:?}", ascii), "\"so \\\"cool\\\"\"");
+    /// let s = CString::try_from_fmt(fmt!("{:?}", ascii)).unwrap();
+    /// assert_eq!(s.as_bytes_with_nul(), "\"so \\\"cool\\\"\"\0".as_bytes());
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("\"")?;
@@ -334,7 +340,7 @@ where
 /// ```
 /// # use kernel::c_str;
 /// # use kernel::str::CStr;
-/// const MY_CSTR: &'static CStr = c_str!("My awesome CStr!");
+/// const MY_CSTR: &CStr = c_str!("My awesome CStr!");
 /// ```
 #[macro_export]
 macro_rules! c_str {
@@ -522,7 +528,6 @@ impl fmt::Write for Formatter {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::str::CString;
 ///
 /// let s = CString::try_from_fmt(fmt!("{}{}{}", "abc", 10, 20)).unwrap();

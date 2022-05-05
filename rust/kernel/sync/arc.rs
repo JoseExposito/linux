@@ -391,7 +391,6 @@ impl<T: ?Sized> Deref for RefBorrow<'_, T> {
 /// cannot fail.
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::sync::{Ref, UniqueRef};
 ///
 /// struct Example {
@@ -405,6 +404,8 @@ impl<T: ?Sized> Deref for RefBorrow<'_, T> {
 ///     x.b += 1;
 ///     Ok(x.into())
 /// }
+///
+/// # test();
 /// ```
 ///
 /// In the following example we first allocate memory for a ref-counted `Example` but we don't
@@ -413,7 +414,6 @@ impl<T: ?Sized> Deref for RefBorrow<'_, T> {
 /// in one context (e.g., sleepable) and initialisation in another (e.g., atomic):
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::sync::{Ref, UniqueRef};
 ///
 /// struct Example {
@@ -421,10 +421,12 @@ impl<T: ?Sized> Deref for RefBorrow<'_, T> {
 ///     b: u32,
 /// }
 ///
-/// fn test2() -> Result<Ref<Example>> {
+/// fn test() -> Result<Ref<Example>> {
 ///     let x = UniqueRef::try_new_uninit()?;
 ///     Ok(x.write(Example { a: 10, b: 20 }).into())
 /// }
+///
+/// # test();
 /// ```
 ///
 /// In the last example below, the caller gets a pinned instance of `Example` while converting to
@@ -432,7 +434,6 @@ impl<T: ?Sized> Deref for RefBorrow<'_, T> {
 /// initialisation, for example, when initialising fields that are wrapped in locks.
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::sync::{Ref, UniqueRef};
 ///
 /// struct Example {
@@ -440,12 +441,14 @@ impl<T: ?Sized> Deref for RefBorrow<'_, T> {
 ///     b: u32,
 /// }
 ///
-/// fn test2() -> Result<Ref<Example>> {
+/// fn test() -> Result<Ref<Example>> {
 ///     let mut pinned = Pin::from(UniqueRef::try_new(Example { a: 10, b: 20 })?);
 ///     // We can modify `pinned` because it is `Unpin`.
 ///     pinned.as_mut().a += 1;
 ///     Ok(pinned.into())
 /// }
+///
+/// # test();
 /// ```
 pub struct UniqueRef<T: ?Sized> {
     inner: Ref<T>,

@@ -13,6 +13,7 @@
 ///
 /// ```rust
 /// let a = 2;
+/// # #[allow(clippy::dbg_macro)]
 /// let b = dbg!(a * 2) + 1;
 /// //      ^-- prints: [src/main.rs:2] a * 2 = 4
 /// assert_eq!(b, 5);
@@ -47,8 +48,9 @@
 /// With a method call:
 ///
 /// ```rust
+/// # #[allow(clippy::dbg_macro)]
 /// fn foo(n: usize) {
-///     if let Some(_) = dbg!(n.checked_sub(4)) {
+///     if dbg!(n.checked_sub(4)).is_some() {
 ///         // ...
 ///     }
 /// }
@@ -65,6 +67,8 @@
 /// Naive factorial implementation:
 ///
 /// ```rust
+/// # #[allow(clippy::dbg_macro)]
+/// # {
 /// fn factorial(n: u32) -> u32 {
 ///     if dbg!(n <= 1) {
 ///         dbg!(1)
@@ -74,6 +78,7 @@
 /// }
 ///
 /// dbg!(factorial(4));
+/// # }
 /// ```
 ///
 /// This prints to the kernel log:
@@ -92,7 +97,8 @@
 ///
 /// The `dbg!(..)` macro moves the input:
 ///
-/// ```compile_fail
+// TODO: Could be `compile_fail` when supported.
+/// ```ignore
 /// /// A wrapper around `usize` which importantly is not Copyable.
 /// #[derive(Debug)]
 /// struct NoCopy(usize);
@@ -109,6 +115,7 @@
 /// a tuple (and return it, too):
 ///
 /// ```
+/// # #[allow(clippy::dbg_macro)]
 /// assert_eq!(dbg!(1usize, 2u32), (1, 2));
 /// ```
 ///
@@ -117,8 +124,11 @@
 /// invocations. You can use a 1-tuple directly if you need one:
 ///
 /// ```
+/// # #[allow(clippy::dbg_macro)]
+/// # {
 /// assert_eq!(1, dbg!(1u32,)); // trailing comma ignored
 /// assert_eq!((1,), dbg!((1u32,))); // 1-tuple
+/// # }
 /// ```
 ///
 /// [`std::dbg`]: https://doc.rust-lang.org/std/macro.dbg.html

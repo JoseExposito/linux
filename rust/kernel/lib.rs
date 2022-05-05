@@ -94,6 +94,9 @@ pub mod platform;
 mod types;
 pub mod user_ptr;
 
+#[cfg(CONFIG_KUNIT)]
+pub mod kunit;
+
 #[doc(hidden)]
 pub use build_error::build_error;
 
@@ -193,10 +196,7 @@ impl<'a> Drop for KParamGuard<'a> {
 ///     b: u32,
 /// }
 ///
-/// fn test() {
-///     // This prints `8`.
-///     pr_info!("{}\n", offset_of!(Test, b));
-/// }
+/// assert_eq!(offset_of!(Test, b), 8);
 /// ```
 #[macro_export]
 macro_rules! offset_of {
@@ -227,20 +227,16 @@ macro_rules! offset_of {
 /// # Example
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::container_of;
 /// struct Test {
 ///     a: u64,
 ///     b: u32,
 /// }
 ///
-/// fn test() {
-///     let test = Test { a: 10, b: 20 };
-///     let b_ptr = &test.b;
-///     let test_alias = container_of!(b_ptr, Test, b);
-///     // This prints `true`.
-///     pr_info!("{}\n", core::ptr::eq(&test, test_alias));
-/// }
+/// let test = Test { a: 10, b: 20 };
+/// let b_ptr = &test.b;
+/// let test_alias = container_of!(b_ptr, Test, b);
+/// assert!(core::ptr::eq(&test, test_alias));
 /// ```
 #[macro_export]
 macro_rules! container_of {

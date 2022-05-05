@@ -86,6 +86,16 @@ const LOCKED: usize = 1;
 /// fn try_new(a: u32, b: u32) -> Result<Ref<Mutex<Example>>> {
 ///     Ref::try_new(Mutex::new(Example {a, b}))
 /// }
+///
+/// assert_eq!(EXAMPLE.lock().a, 10);
+/// assert_eq!(sum(&EXAMPLE), 30);
+///
+/// inc_a(&EXAMPLE);
+///
+/// assert_eq!(EXAMPLE.lock().a, 11);
+/// assert_eq!(sum(&EXAMPLE), 31);
+///
+/// # try_new(42, 43);
 /// ```
 pub struct Mutex<T: ?Sized> {
     /// A stack of waiters.

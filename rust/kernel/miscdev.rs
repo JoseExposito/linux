@@ -20,7 +20,7 @@ use core::{fmt, mem::MaybeUninit, pin::Pin};
 ///
 /// ```
 /// # use kernel::{c_str, device::RawDevice, file, miscdev, prelude::*};
-/// pub fn example(
+/// fn example(
 ///     reg: Pin<&mut miscdev::Registration<impl file::Operations<OpenData = ()>>>,
 ///     parent: &dyn RawDevice,
 /// ) -> Result {

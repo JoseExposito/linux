@@ -38,7 +38,6 @@ macro_rules! spinlock_init {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::sync::SpinLock;
 /// # use core::pin::Pin;
 ///
@@ -61,15 +60,18 @@ macro_rules! spinlock_init {
 ///     guard.b = 40;
 /// }
 ///
-/// // Initialises a spinlock and calls the example functions.
-/// pub fn spinlock_example() {
-///     // SAFETY: `spinlock_init` is called below.
-///     let mut value = unsafe { SpinLock::new(Example { a: 1, b: 2 }) };
-///     // SAFETY: We don't move `value`.
-///     kernel::spinlock_init!(unsafe { Pin::new_unchecked(&mut value) }, "value");
-///     lock_example(&value);
-///     lock_irqdisable_example(&value);
-/// }
+/// // Initialises a spinlock.
+/// // SAFETY: `spinlock_init` is called below.
+/// let mut value = unsafe { SpinLock::new(Example { a: 1, b: 2 }) };
+/// // SAFETY: We don't move `value`.
+/// kernel::spinlock_init!(unsafe { Pin::new_unchecked(&mut value) }, "value");
+///
+/// // Calls the example functions.
+/// assert_eq!(value.lock().a, 1);
+/// lock_example(&value);
+/// assert_eq!(value.lock().a, 10);
+/// lock_irqdisable_example(&value);
+/// assert_eq!(value.lock().a, 30);
 /// ```
 ///
 /// [`spinlock_t`]: ../../../include/linux/spinlock.h
@@ -209,7 +211,6 @@ macro_rules! rawspinlock_init {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::sync::RawSpinLock;
 /// # use core::pin::Pin;
 ///
@@ -233,7 +234,7 @@ macro_rules! rawspinlock_init {
 /// }
 ///
 /// // Initialises a raw spinlock and calls the example functions.
-/// pub fn spinlock_example() {
+/// fn spinlock_example() {
 ///     // SAFETY: `rawspinlock_init` is called below.
 ///     let mut value = unsafe { RawSpinLock::new(Example { a: 1, b: 2 }) };
 ///     // SAFETY: We don't move `value`.
