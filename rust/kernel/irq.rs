@@ -352,10 +352,12 @@ impl Drop for ChainedGuard<'_> {
 /// # Invariants
 ///
 /// The pointer `Domain::ptr` is non-null and valid.
+#[cfg(CONFIG_IRQ_DOMAIN)]
 pub struct Domain {
     ptr: *mut bindings::irq_domain,
 }
 
+#[cfg(CONFIG_IRQ_DOMAIN)]
 impl Domain {
     /// Constructs a new `struct irq_domain` wrapper.
     ///
