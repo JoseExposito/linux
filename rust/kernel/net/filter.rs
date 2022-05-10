@@ -152,7 +152,7 @@ impl<T: Filter> Registration<T> {
     /// registered.
     ///
     /// The priority is relative to the family's base priority. For example, if the base priority
-    /// is `100` and `priority` is -1, the actual priority will be `99`. If a family doesn't
+    /// is `100` and `priority` is `-1`, the actual priority will be `99`. If a family doesn't
     /// explicitly allow a base to be specified, `0` is assumed.
     pub fn register(
         self: Pin<&mut Self>,
