@@ -198,7 +198,7 @@ fn main() {
             features += ",+c";
         }
         ts.push("features", features);
-    } else if cfg.has("X86") {
+    } else if cfg.has("X86_64") {
         ts.push("arch", "x86_64");
         ts.push(
             "data-layout",
