@@ -249,7 +249,7 @@ impl fmt::Debug for CStr {
     /// let s = CString::try_from_fmt(fmt!("{:?}", penguin)).unwrap();
     /// assert_eq!(s.as_bytes_with_nul(), "\"\\xf0\\x9f\\x90\\xa7\"\0".as_bytes());
     ///
-    /// // embedded double quotes are escaped
+    /// // Embedded double quotes are escaped.
     /// let ascii = c_str!("so \"cool\"");
     /// let s = CString::try_from_fmt(fmt!("{:?}", ascii)).unwrap();
     /// assert_eq!(s.as_bytes_with_nul(), "\"so \\\"cool\\\"\"\0".as_bytes());
