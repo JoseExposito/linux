@@ -183,7 +183,7 @@ impl<'a, Out, F: FnMut() -> Result<Out> + Send + 'a> SocketFuture<'a, Out, F> {
 
     /// Callback called when the socket changes state.
     ///
-    /// If the state matches the one we're waiting on, we wake up the tak so that the future can be
+    /// If the state matches the one we're waiting on, we wake up the task so that the future can be
     /// polled again.
     unsafe extern "C" fn wake_callback(
         wq_entry: *mut bindings::wait_queue_entry,
