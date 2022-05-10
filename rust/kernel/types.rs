@@ -494,7 +494,7 @@ where
 
 /// A trait for boolean types.
 ///
-/// This is meant to be used in type states to allow booelan constraints in implementation blocks.
+/// This is meant to be used in type states to allow boolean constraints in implementation blocks.
 /// In the example below, the implementation containing `MyType::set_value` could _not_ be
 /// constrained to type states containing `Writable = true` if `Writable` were a constant instead
 /// of a type.
