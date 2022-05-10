@@ -70,7 +70,7 @@ pub enum Family {
     /// IPv6 packets.
     Ipv6(ipv6::Hook, ipv6::PriorityBase),
 
-    /// Adress resolution protocol (ARP) packets.
+    /// Address resolution protocol (ARP) packets.
     Arp(arp::Hook),
 }
 
@@ -431,7 +431,7 @@ pub mod inet {
         /// Inbound packets that are meant to be delivered locally.
         LocalIn = bindings::nf_inet_hooks_NF_INET_LOCAL_IN as _,
 
-        /// Inbound pakcets that are meant to be forwarded to another host.
+        /// Inbound packets that are meant to be forwarded to another host.
         Forward = bindings::nf_inet_hooks_NF_INET_FORWARD as _,
 
         /// Outbound packet created by the local networking stack.
