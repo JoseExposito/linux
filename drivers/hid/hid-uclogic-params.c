@@ -1081,8 +1081,11 @@ static int uclogic_params_ugee_v2_init(struct uclogic_params *params,
 	__u8 *str_desc = NULL;
 	__u8 *rdesc_pen = NULL;
 	__u8 *rdesc_frame = NULL;
+	__u8 *frame_arr;
+	size_t frame_size;
 	s32 desc_params[UCLOGIC_RDESC_PH_ID_NUM];
 	s32 resolution;
+	bool has_dial;
 	__u8 magic_arr[] = {
 		0x02, 0xb0, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
@@ -1129,6 +1132,7 @@ static int uclogic_params_ugee_v2_init(struct uclogic_params *params,
 	desc_params[UCLOGIC_RDESC_PEN_PH_ID_Y_LM] =
 		get_unaligned_le16(str_desc + 4);
 	desc_params[UCLOGIC_RDESC_FRAME_PH_ID_UM] = str_desc[6];
+	has_dial = str_desc[7];
 	desc_params[UCLOGIC_RDESC_PEN_PH_ID_PRESSURE_LM] =
 		get_unaligned_le16(str_desc + 8);
 	resolution = get_unaligned_le16(str_desc + 10);
@@ -1163,10 +1167,18 @@ static int uclogic_params_ugee_v2_init(struct uclogic_params *params,
 	p.pen.subreport_list[0].id = UCLOGIC_RDESC_V1_FRAME_ID;
 
 	/* Initialize the frame interface */
-	rdesc_frame = uclogic_rdesc_template_apply(
-				uclogic_rdesc_ugee_v2_frame_btn_template_arr,
-				uclogic_rdesc_ugee_v2_frame_btn_template_size,
-				desc_params, ARRAY_SIZE(desc_params));
+	if (has_dial) {
+		frame_arr = (__u8 *)uclogic_rdesc_ugee_v2_frame_dial_template_arr;
+		frame_size = (size_t)uclogic_rdesc_ugee_v2_frame_dial_template_size;
+	} else {
+		frame_arr = (__u8 *)uclogic_rdesc_ugee_v2_frame_btn_template_arr;
+		frame_size = (size_t)uclogic_rdesc_ugee_v2_frame_btn_template_size;
+	}
+
+	rdesc_frame = uclogic_rdesc_template_apply(frame_arr,
+						   frame_size,
+						   desc_params,
+						   ARRAY_SIZE(desc_params));
 	if (!rdesc_frame) {
 		rc = -ENOMEM;
 		goto cleanup;
@@ -1174,12 +1186,16 @@ static int uclogic_params_ugee_v2_init(struct uclogic_params *params,
 
 	rc = uclogic_params_frame_init_with_desc(&p.frame_list[0],
 						 rdesc_frame,
-						 uclogic_rdesc_ugee_v2_frame_btn_template_size,
+						 frame_size,
 						 UCLOGIC_RDESC_V1_FRAME_ID);
 	kfree(rdesc_frame);
 	if (rc) {
 		uclogic_params_init_invalid(&p);
 		goto output;
+	}
+
+	if (has_dial) {
+		p.frame_list[0].bitmap_dial_byte = 7;
 	}
 
 output:
@@ -1428,6 +1444,8 @@ int uclogic_params_init(struct uclogic_params *params,
 			uclogic_params_init_invalid(&p);
 		}
 		break;
+	case VID_PID(USB_VENDOR_ID_UGEE,
+		     USB_DEVICE_ID_UGEE_PARBLO_A610_PRO):
 	case VID_PID(USB_VENDOR_ID_UGEE,
 		     USB_DEVICE_ID_UGEE_XPPEN_TABLET_DECO_L):
 	case VID_PID(USB_VENDOR_ID_UGEE,
