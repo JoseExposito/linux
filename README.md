@@ -12,8 +12,8 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
-| [patch-xppen-deco-l](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-l) | [patch-parblo-a610-pro](https://github.com/JoseExposito/linux/tree/patch-parblo-a610-pro) | XP-PEN Deco L drawing tablet support | 🔨 |
-| [patch-xppen-deco-mini4](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-mini4) | [hid for-5.19/uclogic](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | XP-PEN Deco Mini 4 drawing tablet support | ⏳ |
+| [patch-xppen-deco-mini4](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-mini4) | [hid for-5.19/uclogic](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | XP-PEN Deco Mini 4 drawing tablet support | 🔨 |
+| [patch-xppen-deco-l](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-l) | [patch-parblo-a610-pro](https://github.com/JoseExposito/linux/tree/patch-parblo-a610-pro) | XP-PEN Deco L drawing tablet support | ⏳ |
 | [patch-drm_detect_hdmi_monitor-to-is_hdmi](https://github.com/JoseExposito/linux/tree/patch-drm_detect_hdmi_monitor-to-is_hdmi) | [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | DRM: Replace drm_detect_hdmi_monitor() with drm_display_info.is_hdmi | 🔀 |
 | [patch-vc4-drm_detect_hdmi_monitor-to-is_hdmi](https://github.com/JoseExposito/linux/tree/patch-vc4-drm_detect_hdmi_monitor-to-is_hdmi) | [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | DRM: VC4: Replace drm_detect_hdmi_monitor() with drm_display_info.is_hdmi | 🔀 |
 | [patch-drm_panel_bridge_add](https://github.com/JoseExposito/linux/tree/patch-drm_panel_bridge_add) | [upstream-drm-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-fixes) | DRM: Migrate from `drm_of_find_panel_or_bridge` + `drm_panel_bridge_add` to `devm_drm_of_get_bridge` | 🔀 |
