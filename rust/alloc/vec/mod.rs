@@ -508,7 +508,6 @@ impl<T> Vec<T> {
     /// assert!(result.is_err());
     /// ```
     #[inline]
-    #[doc(alias = "malloc")]
     #[stable(feature = "kernel", since = "1.0.0")]
     pub fn try_with_capacity(capacity: usize) -> Result<Self, TryReserveError> {
         Self::try_with_capacity_in(capacity, Global)
@@ -1049,7 +1048,6 @@ impl<T, A: Allocator> Vec<T, A> {
     /// vec.try_shrink_to_fit().unwrap();
     /// assert!(vec.capacity() >= 3);
     /// ```
-    #[doc(alias = "realloc")]
     #[stable(feature = "kernel", since = "1.0.0")]
     pub fn try_shrink_to_fit(&mut self) -> Result<(), TryReserveError> {
         // The capacity is never less than the length, and there's nothing to do when
