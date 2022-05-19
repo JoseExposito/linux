@@ -98,7 +98,7 @@ mod drain;
 mod cow;
 
 #[cfg(not(no_global_oom_handling))]
-pub(crate) use self::into_iter::AsIntoIter;
+pub(crate) use self::in_place_collect::AsVecIntoIter;
 #[stable(feature = "rust1", since = "1.0.0")]
 pub use self::into_iter::IntoIter;
 
@@ -110,7 +110,7 @@ use self::is_zero::IsZero;
 mod is_zero;
 
 #[cfg(not(no_global_oom_handling))]
-mod source_iter_marker;
+mod in_place_collect;
 
 mod partial_eq;
 
@@ -170,7 +170,7 @@ mod spec_extend;
 /// vec.extend([1, 2, 3].iter().copied());
 ///
 /// for x in &vec {
-///     println!("{}", x);
+///     println!("{x}");
 /// }
 /// assert_eq!(vec, [7, 1, 2, 3]);
 /// ```
@@ -212,7 +212,7 @@ mod spec_extend;
 ///
 /// while let Some(top) = stack.pop() {
 ///     // Prints 3, 2, 1
-///     println!("{}", top);
+///     println!("{top}");
 /// }
 /// ```
 ///
@@ -523,12 +523,14 @@ impl<T> Vec<T> {
     ///
     /// * `ptr` needs to have been previously allocated via [`String`]/`Vec<T>`
     ///   (at least, it's highly likely to be incorrect if it wasn't).
-    /// * `T` needs to have the same size and alignment as what `ptr` was allocated with.
+    /// * `T` needs to have the same alignment as what `ptr` was allocated with.
     ///   (`T` having a less strict alignment is not sufficient, the alignment really
     ///   needs to be equal to satisfy the [`dealloc`] requirement that memory must be
     ///   allocated and deallocated with the same layout.)
+    /// * The size of `T` times the `capacity` (ie. the allocated size in bytes) needs
+    ///   to be the same size as the pointer was allocated with. (Because similar to
+    ///   alignment, [`dealloc`] must be called with the same layout `size`.)
     /// * `length` needs to be less than or equal to `capacity`.
-    /// * `capacity` needs to be the capacity that the pointer was allocated with.
     ///
     /// Violating these may cause problems like corrupting the allocator's
     /// internal data structures. For example it is **not** safe
@@ -536,7 +538,9 @@ impl<T> Vec<T> {
     /// It's also not safe to build one from a `Vec<u16>` and its length, because
     /// the allocator cares about the alignment, and these two types have different
     /// alignments. The buffer was allocated with alignment 2 (for `u16`), but after
-    /// turning it into a `Vec<u8>` it'll be deallocated with alignment 1.
+    /// turning it into a `Vec<u8>` it'll be deallocated with alignment 1. To avoid
+    /// these issues, it is often preferable to do casting/transmuting using
+    /// [`slice::from_raw_parts`] instead.
     ///
     /// The ownership of `ptr` is effectively transferred to the
     /// `Vec<T>` which may then deallocate, reallocate or change the
@@ -1450,7 +1454,7 @@ impl<T, A: Allocator> Vec<T, A> {
         #[cold]
         #[inline(never)]
         fn assert_failed(index: usize, len: usize) -> ! {
-            panic!("swap_remove index (is {}) should be < len (is {})", index, len);
+            panic!("swap_remove index (is {index}) should be < len (is {len})");
         }
 
         let len = self.len();
@@ -1491,7 +1495,7 @@ impl<T, A: Allocator> Vec<T, A> {
         #[cold]
         #[inline(never)]
         fn assert_failed(index: usize, len: usize) -> ! {
-            panic!("insertion index (is {}) should be <= len (is {})", index, len);
+            panic!("insertion index (is {index}) should be <= len (is {len})");
         }
 
         let len = self.len();
@@ -1550,7 +1554,7 @@ impl<T, A: Allocator> Vec<T, A> {
         #[inline(never)]
         #[track_caller]
         fn assert_failed(index: usize, len: usize) -> ! {
-            panic!("removal index (is {}) should be < len (is {})", index, len);
+            panic!("removal index (is {index}) should be < len (is {len})");
         }
 
         let len = self.len();
@@ -1577,7 +1581,7 @@ impl<T, A: Allocator> Vec<T, A> {
 
     /// Retains only the elements specified by the predicate.
     ///
-    /// In other words, remove all elements `e` such that `f(&e)` returns `false`.
+    /// In other words, remove all elements `e` for which `f(&e)` returns `false`.
     /// This method operates in place, visiting each element exactly once in the
     /// original order, and preserves the order of the retained elements.
     ///
@@ -1616,8 +1620,6 @@ impl<T, A: Allocator> Vec<T, A> {
     /// # Examples
     ///
     /// ```
-    /// #![feature(vec_retain_mut)]
-    ///
     /// let mut vec = vec![1, 2, 3, 4];
     /// vec.retain_mut(|x| if *x > 3 {
     ///     false
@@ -1627,7 +1629,7 @@ impl<T, A: Allocator> Vec<T, A> {
     /// });
     /// assert_eq!(vec, [2, 3, 4]);
     /// ```
-    #[unstable(feature = "vec_retain_mut", issue = "90829")]
+    #[stable(feature = "vec_retain_mut", since = "1.61.0")]
     pub fn retain_mut<F>(&mut self, mut f: F)
     where
         F: FnMut(&mut T) -> bool,
@@ -1939,7 +1941,7 @@ impl<T, A: Allocator> Vec<T, A> {
         }
     }
 
-    /// Moves all the elements of `other` into `Self`, leaving `other` empty.
+    /// Moves all the elements of `other` into `self`, leaving `other` empty.
     ///
     /// # Panics
     ///
@@ -1964,7 +1966,7 @@ impl<T, A: Allocator> Vec<T, A> {
         }
     }
 
-    /// Appends elements to `Self` from other buffer.
+    /// Appends elements to `self` from other buffer.
     #[cfg(not(no_global_oom_handling))]
     #[inline]
     unsafe fn append_elements(&mut self, other: *const [T]) {
@@ -1975,7 +1977,7 @@ impl<T, A: Allocator> Vec<T, A> {
         self.len += count;
     }
 
-    /// Tries to append elements to `Self` from other buffer.
+    /// Tries to append elements to `self` from other buffer.
     #[inline]
     unsafe fn try_append_elements(&mut self, other: *const [T]) -> Result<(), TryReserveError> {
         let count = unsafe { (*other).len() };
@@ -2129,7 +2131,7 @@ impl<T, A: Allocator> Vec<T, A> {
         #[cold]
         #[inline(never)]
         fn assert_failed(at: usize, len: usize) -> ! {
-            panic!("`at` split index (is {}) should be <= len (is {})", at, len);
+            panic!("`at` split index (is {at}) should be <= len (is {len})");
         }
 
         if at > self.len() {
@@ -2847,14 +2849,14 @@ impl<T, A: Allocator> IntoIterator for Vec<T, A> {
     /// let v = vec!["a".to_string(), "b".to_string()];
     /// for s in v.into_iter() {
     ///     // s has type String, not &String
-    ///     println!("{}", s);
+    ///     println!("{s}");
     /// }
     /// ```
     #[inline]
     fn into_iter(self) -> IntoIter<T, A> {
         unsafe {
             let mut me = ManuallyDrop::new(self);
-            let alloc = ptr::read(me.allocator());
+            let alloc = ManuallyDrop::new(ptr::read(me.allocator()));
             let begin = me.as_mut_ptr();
             let end = if mem::size_of::<T>() == 0 {
                 arith_offset(begin as *const i8, me.len() as isize) as *const T

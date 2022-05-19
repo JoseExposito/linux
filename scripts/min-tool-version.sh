@@ -32,7 +32,7 @@ llvm)
 	fi
 	;;
 rustc)
-	echo 1.60.0
+	echo 1.61.0
 	;;
 bindgen)
 	echo 0.56.0
