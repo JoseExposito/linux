@@ -16,6 +16,8 @@ use core::ptr::{self, NonNull};
 #[doc(inline)]
 pub use core::alloc::*;
 
+use core::marker::Destruct;
+
 #[cfg(test)]
 mod tests;
 
@@ -326,12 +328,16 @@ unsafe fn exchange_malloc(size: usize, align: usize) -> *mut u8 {
 #[cfg_attr(not(test), lang = "box_free")]
 #[inline]
 #[rustc_const_unstable(feature = "const_box", issue = "92521")]
+#[cfg_attr(not(bootstrap), allow(drop_bounds))] // FIXME remove `~const Drop` and this attr when bumping
 // This signature has to be the same as `Box`, otherwise an ICE will happen.
 // When an additional parameter to `Box` is added (like `A: Allocator`), this has to be added here as
 // well.
 // For example if `Box` is changed to  `struct Box<T: ?Sized, A: Allocator>(Unique<T>, A)`,
 // this function has to be changed to `fn box_free<T: ?Sized, A: Allocator>(Unique<T>, A)` as well.
-pub(crate) const unsafe fn box_free<T: ?Sized, A: ~const Allocator + ~const Drop>(
+pub(crate) const unsafe fn box_free<
+    T: ?Sized,
+    A: ~const Allocator + ~const Drop + ~const Destruct,
+>(
     ptr: Unique<T>,
     alloc: A,
 ) {
@@ -399,7 +405,7 @@ pub mod __alloc_error_handler {
     // if there is no `#[alloc_error_handler]`
     #[rustc_std_internal_symbol]
     pub unsafe extern "C-unwind" fn __rdl_oom(size: usize, _align: usize) -> ! {
-        panic!("memory allocation of {} bytes failed", size)
+        panic!("memory allocation of {size} bytes failed")
     }
 
     // if there is an `#[alloc_error_handler]`
