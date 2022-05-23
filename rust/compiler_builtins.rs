@@ -53,5 +53,4 @@ define_panicking_intrinsics!("`u128` should not be used", {
 #[cfg(target_arch = "arm")]
 define_panicking_intrinsics!("`u64` division/modulo should not be used", {
     __aeabi_uldivmod,
-    __mulodi4,
 });
