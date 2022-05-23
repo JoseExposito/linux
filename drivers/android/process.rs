@@ -244,7 +244,7 @@ pub(crate) struct Process {
     ctx: Ref<Context>,
 
     // The task leader (process).
-    pub(crate) task: Task,
+    pub(crate) task: ARef<Task>,
 
     // Credential associated with file when `Process` is created.
     pub(crate) cred: ARef<Credential>,
@@ -269,7 +269,7 @@ impl Process {
         let mut process = Pin::from(UniqueRef::try_new(Self {
             ctx,
             cred,
-            task: Task::current().group_leader().clone(),
+            task: Task::current().group_leader().into(),
             // SAFETY: `inner` is initialised in the call to `mutex_init` below.
             inner: unsafe { Mutex::new(ProcessInner::new()) },
             // SAFETY: `node_refs` is initialised in the call to `mutex_init` below.
@@ -904,7 +904,7 @@ impl file::Operations for Process {
 
     fn mmap(this: RefBorrow<'_, Process>, _file: &File, vma: &mut mm::virt::Area) -> Result {
         // We don't allow mmap to be used in a different process.
-        if !Task::current().group_leader().eq(&this.task) {
+        if !core::ptr::eq(Task::current().group_leader(), &*this.task) {
             return Err(EINVAL);
         }
 
