@@ -212,7 +212,7 @@ unsafe impl device::RawDevice for Device {
 ///     type: MyDriver,
 ///     name: b"module_name",
 ///     author: b"Author name",
-///     license: b"GPL v2",
+///     license: b"GPL",
 /// }
 /// ```
 #[macro_export]

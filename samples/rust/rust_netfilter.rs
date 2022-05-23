@@ -11,7 +11,7 @@ module! {
     name: b"rust_netfilter",
     author: b"Rust for Linux Contributors",
     description: b"Rust netfilter sample",
-    license: b"GPL v2",
+    license: b"GPL",
 }
 
 struct RustNetfilter {

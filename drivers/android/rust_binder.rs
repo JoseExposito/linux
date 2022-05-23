@@ -30,7 +30,7 @@ module! {
     name: b"rust_binder",
     author: b"Wedson Almeida Filho",
     description: b"Android Binder",
-    license: b"GPL v2",
+    license: b"GPL",
 }
 
 enum Either<L, R> {

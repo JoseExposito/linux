@@ -123,7 +123,7 @@ static struct kunit_suite test_suite = {{
 
 kunit_test_suite(test_suite);
 
-MODULE_LICENSE("GPL v2");
+MODULE_LICENSE("GPL");
 """
 
 def main():

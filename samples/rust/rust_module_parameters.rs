@@ -9,7 +9,7 @@ module! {
     name: b"rust_module_parameters",
     author: b"Rust for Linux Contributors",
     description: b"Rust module parameters sample",
-    license: b"GPL v2",
+    license: b"GPL",
     params: {
         my_bool: bool {
             default: true,

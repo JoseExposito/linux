@@ -13,7 +13,7 @@ module! {
     name: b"rust_sync",
     author: b"Rust for Linux Contributors",
     description: b"Rust synchronisation primitives sample",
-    license: b"GPL v2",
+    license: b"GPL",
 }
 
 kernel::init_static_sync! {

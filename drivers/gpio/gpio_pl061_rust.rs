@@ -366,5 +366,5 @@ module_amba_driver! {
     type: PL061Device,
     name: b"pl061_gpio",
     author: b"Wedson Almeida Filho",
-    license: b"GPL v2",
+    license: b"GPL",
 }

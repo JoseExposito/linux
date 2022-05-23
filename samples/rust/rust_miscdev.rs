@@ -15,7 +15,7 @@ module! {
     name: b"rust_miscdev",
     author: b"Rust for Linux Contributors",
     description: b"Rust miscellaneous device sample",
-    license: b"GPL v2",
+    license: b"GPL",
 }
 
 const MAX_TOKENS: usize = 3;

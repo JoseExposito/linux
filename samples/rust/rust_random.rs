@@ -56,5 +56,5 @@ module_misc_device! {
     name: b"rust_random",
     author: b"Rust for Linux Contributors",
     description: b"Just use /dev/urandom: Now with early-boot safety",
-    license: b"GPL v2",
+    license: b"GPL",
 }
