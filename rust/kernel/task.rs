@@ -4,14 +4,15 @@
 //!
 //! C header: [`include/linux/sched.h`](../../../../include/linux/sched.h).
 
-use crate::bindings;
-use core::{marker::PhantomData, mem::ManuallyDrop, ops::Deref};
+use crate::{bindings, ARef, AlwaysRefCounted};
+use core::{cell::UnsafeCell, marker::PhantomData, ops::Deref, ptr};
 
 /// Wraps the kernel's `struct task_struct`.
 ///
 /// # Invariants
 ///
-/// The pointer `Task::ptr` is non-null and valid. Its reference count is also non-zero.
+/// Instances of this type are always ref-counted, that is, a call to `get_task_struct` ensures
+/// that the allocation remains valid at least until the matching call to `put_task_struct`.
 ///
 /// # Examples
 ///
@@ -36,28 +37,24 @@ use core::{marker::PhantomData, mem::ManuallyDrop, ops::Deref};
 /// incremented when creating `State` and decremented when it is dropped:
 ///
 /// ```
-/// use kernel::task::Task;
+/// use kernel::{ARef, task::Task};
 ///
 /// struct State {
-///     creator: Task,
+///     creator: ARef<Task>,
 ///     index: u32,
 /// }
 ///
 /// impl State {
 ///     fn new() -> Self {
 ///         Self {
-///             creator: Task::current().clone(),
+///             creator: Task::current().into(),
 ///             index: 0,
 ///         }
 ///     }
 /// }
 /// ```
-pub struct Task {
-    pub(crate) ptr: *mut bindings::task_struct,
-}
-
-// SAFETY: Given that the task is referenced, it is OK to send it to another thread.
-unsafe impl Send for Task {}
+#[repr(transparent)]
+pub struct Task(pub(crate) UnsafeCell<bindings::task_struct>);
 
 // SAFETY: It's OK to access `Task` through references from other threads because we're either
 // accessing properties that don't change (e.g., `pid`, `group_leader`) or that are properly
@@ -73,103 +70,75 @@ impl Task {
         // SAFETY: Just an FFI call.
         let ptr = unsafe { bindings::get_current() };
 
-        // SAFETY: If the current thread is still running, the current task is valid. Given
-        // that `TaskRef` is not `Send`, we know it cannot be transferred to another thread (where
-        // it could potentially outlive the caller).
-        unsafe { TaskRef::from_ptr(ptr) }
+        TaskRef {
+            // SAFETY: If the current thread is still running, the current task is valid. Given
+            // that `TaskRef` is not `Send`, we know it cannot be transferred to another thread
+            // (where it could potentially outlive the caller).
+            task: unsafe { &*ptr.cast() },
+            _not_send: PhantomData,
+        }
     }
 
     /// Returns the group leader of the given task.
-    pub fn group_leader(&self) -> TaskRef<'_> {
-        // SAFETY: By the type invariant, we know that `self.ptr` is non-null and valid.
-        let ptr = unsafe { (*self.ptr).group_leader };
+    pub fn group_leader(&self) -> &Task {
+        // SAFETY: By the type invariant, we know that `self.0` is valid.
+        let ptr = unsafe { core::ptr::addr_of!((*self.0.get()).group_leader).read() };
 
         // SAFETY: The lifetime of the returned task reference is tied to the lifetime of `self`,
         // and given that a task has a reference to its group leader, we know it must be valid for
         // the lifetime of the returned task reference.
-        unsafe { TaskRef::from_ptr(ptr) }
+        unsafe { &*ptr.cast() }
     }
 
     /// Returns the PID of the given task.
     pub fn pid(&self) -> Pid {
-        // SAFETY: By the type invariant, we know that `self.ptr` is non-null and valid.
-        unsafe { (*self.ptr).pid }
+        // SAFETY: By the type invariant, we know that `self.0` is valid.
+        unsafe { core::ptr::addr_of!((*self.0.get()).pid).read() }
     }
 
     /// Determines whether the given task has pending signals.
     pub fn signal_pending(&self) -> bool {
-        // SAFETY: By the type invariant, we know that `self.ptr` is non-null and valid.
-        unsafe { bindings::signal_pending(self.ptr) != 0 }
+        // SAFETY: By the type invariant, we know that `self.0` is valid.
+        unsafe { bindings::signal_pending(self.0.get()) != 0 }
     }
 }
 
-impl PartialEq for Task {
-    fn eq(&self, other: &Self) -> bool {
-        self.ptr == other.ptr
+// SAFETY: The type invariants guarantee that `Task` is always ref-counted.
+unsafe impl AlwaysRefCounted for Task {
+    fn inc_ref(&self) {
+        // SAFETY: The existence of a shared reference means that the refcount is nonzero.
+        unsafe { bindings::get_task_struct(self.0.get()) };
+    }
+
+    unsafe fn dec_ref(obj: ptr::NonNull<Self>) {
+        // SAFETY: The safety requirements guarantee that the refcount is nonzero.
+        unsafe { bindings::put_task_struct(obj.cast().as_ptr()) }
     }
 }
 
-impl Eq for Task {}
-
-impl Clone for Task {
-    fn clone(&self) -> Self {
-        // SAFETY: The type invariants guarantee that `self.ptr` has a non-zero reference count.
-        unsafe { bindings::get_task_struct(self.ptr) };
-
-        // INVARIANT: We incremented the reference count to account for the new `Task` being
-        // created.
-        Self { ptr: self.ptr }
-    }
-}
-
-impl Drop for Task {
-    fn drop(&mut self) {
-        // INVARIANT: We may decrement the refcount to zero, but the `Task` is being dropped, so
-        // this is not observable.
-        // SAFETY: The type invariants guarantee that `Task::ptr` has a non-zero reference count.
-        unsafe { bindings::put_task_struct(self.ptr) };
-    }
-}
-
-/// A wrapper for [`Task`] that doesn't automatically decrement the refcount when dropped.
-///
-/// We need the wrapper because [`ManuallyDrop`] alone would allow callers to call
-/// [`ManuallyDrop::into_inner`]. This would allow an unsafe sequence to be triggered without
-/// `unsafe` blocks because it would trigger an unbalanced call to `put_task_struct`.
+/// A wrapper for a shared reference to [`Task`] that isn't [`Send`].
 ///
 /// We make this explicitly not [`Send`] so that we can use it to represent the current thread
-/// without having to increment/decrement its reference count.
+/// without having to increment/decrement the task's reference count.
 ///
 /// # Invariants
 ///
 /// The wrapped [`Task`] remains valid for the lifetime of the object.
 pub struct TaskRef<'a> {
-    task: ManuallyDrop<Task>,
-    _not_send: PhantomData<(&'a (), *mut ())>,
+    task: &'a Task,
+    _not_send: PhantomData<*mut ()>,
 }
-
-impl TaskRef<'_> {
-    /// Constructs a new `struct task_struct` wrapper that doesn't change its reference count.
-    ///
-    /// # Safety
-    ///
-    /// The pointer `ptr` must be non-null and valid for the lifetime of the object.
-    pub(crate) unsafe fn from_ptr(ptr: *mut bindings::task_struct) -> Self {
-        Self {
-            task: ManuallyDrop::new(Task { ptr }),
-            _not_send: PhantomData,
-        }
-    }
-}
-
-// SAFETY: It is OK to share a reference to the current thread with another thread because we know
-// the owner cannot go away while the shared reference exists (and `Task` itself is `Sync`).
-unsafe impl Sync for TaskRef<'_> {}
 
 impl Deref for TaskRef<'_> {
     type Target = Task;
 
     fn deref(&self) -> &Self::Target {
-        self.task.deref()
+        self.task
+    }
+}
+
+impl From<TaskRef<'_>> for ARef<Task> {
+    fn from(t: TaskRef<'_>) -> Self {
+        t.deref().into()
     }
 }
