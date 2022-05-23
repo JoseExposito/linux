@@ -245,7 +245,7 @@ impl Thread {
             process,
             // SAFETY: `inner` is initialised in the call to `spinlock_init` below.
             inner: unsafe { SpinLock::new(InnerThread::new()) },
-            // SAFETY: `work_condvar` is initalised in the call to `condvar_init` below.
+            // SAFETY: `work_condvar` is initialised in the call to `condvar_init` below.
             work_condvar: unsafe { CondVar::new() },
             links: Links::new(),
         })?);

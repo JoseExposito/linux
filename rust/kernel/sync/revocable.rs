@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-//! Synchronisation primitives where acccess to their contents can be revoked at runtime.
+//! Synchronisation primitives where access to their contents can be revoked at runtime.
 
 use crate::{
     bindings,

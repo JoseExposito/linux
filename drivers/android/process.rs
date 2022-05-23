@@ -287,12 +287,12 @@ impl Process {
         Ok(process.into())
     }
 
-    /// Attemps to fetch a work item from the process queue.
+    /// Attempts to fetch a work item from the process queue.
     pub(crate) fn get_work(&self) -> Option<Ref<dyn DeliverToRead>> {
         self.inner.lock().work.pop_front()
     }
 
-    /// Attemps to fetch a work item from the process queue. If none is available, it registers the
+    /// Attempts to fetch a work item from the process queue. If none is available, it registers the
     /// given thread as ready to receive work directly.
     ///
     /// This must only be called when the thread is not participating in a transaction chain; when

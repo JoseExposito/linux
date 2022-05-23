@@ -118,7 +118,7 @@ pub trait ModuleParam: core::fmt::Display + core::marker::Sized {
 
 /// Trait for parsing integers.
 ///
-/// Strings begining with `0x`, `0o`, or `0b` are parsed as hex, octal, or
+/// Strings beginning with `0x`, `0o`, or `0b` are parsed as hex, octal, or
 /// binary respectively. Strings beginning with `0` otherwise are parsed as
 /// octal. Anything else is parsed as decimal. A leading `+` or `-` is also
 /// permitted. Any string parsed by [`kstrtol()`] or [`kstrtoul()`] will be

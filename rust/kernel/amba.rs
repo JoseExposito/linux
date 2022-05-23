@@ -77,7 +77,7 @@ impl<T: Driver> driver::DriverOps for Adapter<T> {
         name: &'static CStr,
         module: &'static ThisModule,
     ) -> Result {
-        // SAFETY: By the safety requirements of this function (defined in the trait defintion),
+        // SAFETY: By the safety requirements of this function (defined in the trait definition),
         // `reg` is non-null and valid.
         let amba = unsafe { &mut *reg };
         amba.drv.name = name.as_char_ptr();
