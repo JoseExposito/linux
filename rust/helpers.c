@@ -18,26 +18,26 @@
  * accidentally exposed.
  */
 
+#include <linux/amba/bus.h>
 #include <linux/bug.h>
 #include <linux/build_bug.h>
 #include <linux/clk.h>
-#include <linux/uaccess.h>
-#include <linux/sched/signal.h>
+#include <linux/errname.h>
 #include <linux/gfp.h>
 #include <linux/highmem.h>
-#include <linux/uio.h>
-#include <linux/errname.h>
-#include <linux/mutex.h>
-#include <linux/platform_device.h>
-#include <linux/security.h>
-#include <asm/io.h>
-#include <linux/irq.h>
+#include <linux/io.h>
 #include <linux/irqchip/chained_irq.h>
 #include <linux/irqdomain.h>
-#include <linux/amba/bus.h>
-#include <linux/of_device.h>
-#include <linux/skbuff.h>
+#include <linux/irq.h>
+#include <linux/mutex.h>
 #include <linux/netdevice.h>
+#include <linux/of_device.h>
+#include <linux/platform_device.h>
+#include <linux/sched/signal.h>
+#include <linux/security.h>
+#include <linux/skbuff.h>
+#include <linux/uaccess.h>
+#include <linux/uio.h>
 
 __noreturn void rust_helper_BUG(void)
 {
@@ -161,26 +161,26 @@ EXPORT_SYMBOL_GPL(rust_helper_readq_relaxed);
 
 void rust_helper_writeb_relaxed(u8 value, volatile void __iomem *addr)
 {
-        writeb_relaxed(value, addr);
+	writeb_relaxed(value, addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_writeb_relaxed);
 
 void rust_helper_writew_relaxed(u16 value, volatile void __iomem *addr)
 {
-        writew_relaxed(value, addr);
+	writew_relaxed(value, addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_writew_relaxed);
 
 void rust_helper_writel_relaxed(u32 value, volatile void __iomem *addr)
 {
-        writel_relaxed(value, addr);
+	writel_relaxed(value, addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_writel_relaxed);
 
 #ifdef CONFIG_64BIT
 void rust_helper_writeq_relaxed(u64 value, volatile void __iomem *addr)
 {
-        writeq_relaxed(value, addr);
+	writeq_relaxed(value, addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_writeq_relaxed);
 #endif
@@ -217,7 +217,9 @@ EXPORT_SYMBOL_GPL(rust_helper_spin_unlock);
 unsigned long rust_helper_spin_lock_irqsave(spinlock_t *lock)
 {
 	unsigned long flags;
+
 	spin_lock_irqsave(lock, flags);
+
 	return flags;
 }
 EXPORT_SYMBOL_GPL(rust_helper_spin_lock_irqsave);
@@ -254,7 +256,9 @@ EXPORT_SYMBOL_GPL(rust_helper_raw_spin_unlock);
 unsigned long rust_helper_raw_spin_lock_irqsave(raw_spinlock_t *lock)
 {
 	unsigned long flags;
+
 	raw_spin_lock_irqsave(lock, flags);
+
 	return flags;
 }
 EXPORT_SYMBOL_GPL(rust_helper_raw_spin_lock_irqsave);
@@ -403,13 +407,13 @@ struct task_struct *rust_helper_get_current(void)
 }
 EXPORT_SYMBOL_GPL(rust_helper_get_current);
 
-void rust_helper_get_task_struct(struct task_struct * t)
+void rust_helper_get_task_struct(struct task_struct *t)
 {
 	get_task_struct(t);
 }
 EXPORT_SYMBOL_GPL(rust_helper_get_task_struct);
 
-void rust_helper_put_task_struct(struct task_struct * t)
+void rust_helper_put_task_struct(struct task_struct *t)
 {
 	put_task_struct(t);
 }
@@ -555,7 +559,8 @@ const struct cred *rust_helper_get_cred(const struct cred *cred)
 }
 EXPORT_SYMBOL_GPL(rust_helper_get_cred);
 
-void rust_helper_put_cred(const struct cred *cred) {
+void rust_helper_put_cred(const struct cred *cred)
+{
 	put_cred(cred);
 }
 EXPORT_SYMBOL_GPL(rust_helper_put_cred);
