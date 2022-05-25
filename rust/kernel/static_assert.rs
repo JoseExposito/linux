@@ -29,6 +29,6 @@
 #[macro_export]
 macro_rules! static_assert {
     ($condition:expr) => {
-        const _: () = assert!($condition);
+        const _: () = core::assert!($condition);
     };
 }
