@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-drm-format-helper-kunit](https://github.com/JoseExposito/linux/tree/patch-drm-format-helper-kunit) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | KUnit tests for drm_format_helper | 🔨 |
 | [patch-parblo-a610-pro](https://github.com/JoseExposito/linux/tree/patch-parblo-a610-pro) | [patch-parblo-a610-plus-v2](https://github.com/JoseExposito/linux/tree/patch-parblo-a610-plus-v2) | Parblo A610 PRO drawing tablet support | 🔨 |
 | [patch-xppen-deco-mini4](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-mini4) | [hid for-5.19/uclogic](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | XP-PEN Deco Mini 4 drawing tablet support | 🔨 |
 | [patch-xppen-deco-l](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-l) | [hid for-5.19/uclogic](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | XP-PEN Deco L drawing tablet support | ⏳ |
