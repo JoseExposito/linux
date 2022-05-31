@@ -286,7 +286,7 @@ pub struct Opaque<T>(MaybeUninit<UnsafeCell<T>>);
 
 impl<T> Opaque<T> {
     /// Creates a new opaque value.
-    pub fn new(value: T) -> Self {
+    pub const fn new(value: T) -> Self {
         Self(MaybeUninit::new(UnsafeCell::new(value)))
     }
 
