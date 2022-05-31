@@ -36,7 +36,7 @@ mod seqlock;
 pub mod smutex;
 mod spinlock;
 
-pub use arc::{Ref, RefBorrow, UniqueRef};
+pub use arc::{new_refcount, Ref, RefBorrow, StaticRef, UniqueRef};
 pub use condvar::CondVar;
 pub use guard::{Guard, Lock, LockFactory, LockInfo, LockIniter, ReadLock, WriteLock};
 pub use locked_by::LockedBy;

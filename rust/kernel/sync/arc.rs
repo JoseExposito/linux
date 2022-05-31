@@ -86,8 +86,7 @@ impl<T> Ref<T> {
 
         // INVARIANT: The refcount is initialised to a non-zero value.
         let value = RefInner {
-            // SAFETY: Just an FFI call that returns a `refcount_t` initialised to 1.
-            refcount: Opaque::new(unsafe { bindings::REFCOUNT_INIT(1) }),
+            refcount: Opaque::new(new_refcount()),
             data: contents,
         };
         // SAFETY: `inner` is writable and properly aligned.
@@ -499,5 +498,85 @@ impl<T: ?Sized> DerefMut for UniqueRef<T> {
         // it is safe to dereference it. Additionally, we know there is only one reference when
         // it's inside a `UniqueRef`, so it is safe to get a mutable reference.
         unsafe { &mut self.inner.ptr.as_mut().data }
+    }
+}
+
+/// Allows the creation of "reference-counted" globals.
+///
+/// This is achieved by biasing the refcount with +1, which ensures that the count never drops back
+/// to zero (unless buggy unsafe code incorrectly decrements without owning an increment) and
+/// therefore also ensures that `drop` is never called.
+///
+/// # Examples
+///
+/// ```
+/// use kernel::sync::{Ref, RefBorrow, StaticRef};
+///
+/// const VALUE: u32 = 10;
+/// static SR: StaticRef<u32> = StaticRef::new(VALUE);
+///
+/// fn takes_ref_borrow(v: RefBorrow<'_, u32>) {
+///     assert_eq!(*v, VALUE);
+/// }
+///
+/// fn takes_ref(v: Ref<u32>) {
+///     assert_eq!(*v, VALUE);
+/// }
+///
+/// takes_ref_borrow(SR.as_ref_borrow());
+/// takes_ref(SR.as_ref_borrow().into());
+/// ```
+pub struct StaticRef<T: ?Sized> {
+    inner: RefInner<T>,
+}
+
+// SAFETY: A `StaticRef<T>` is a `Ref<T>` declared statically, so we just use the same criteria for
+// making it `Sync`.
+unsafe impl<T: ?Sized + Sync + Send> Sync for StaticRef<T> {}
+
+impl<T> StaticRef<T> {
+    /// Creates a new instance of a static "ref-counted" object.
+    pub const fn new(data: T) -> Self {
+        // INVARIANT: The refcount is initialised to a non-zero value.
+        Self {
+            inner: RefInner {
+                refcount: Opaque::new(new_refcount()),
+                data,
+            },
+        }
+    }
+}
+
+impl<T: ?Sized> StaticRef<T> {
+    /// Creates a [`RefBorrow`] instance from the given static object.
+    ///
+    /// This requires a `'static` lifetime so that it can guarantee that the underlyling object
+    /// remains valid and is effectively pinned.
+    pub fn as_ref_borrow(&'static self) -> RefBorrow<'static, T> {
+        // SAFETY: The static lifetime guarantees that the object remains valid. And the shared
+        // reference guarantees that no mutable references exist.
+        unsafe { RefBorrow::new(NonNull::from(&self.inner)) }
+    }
+}
+
+/// Creates, from a const context, a new instance of `struct refcount_struct` with a refcount of 1.
+///
+/// ```
+/// # // The test below is meant to ensure that `new_refcount` (which is const) mimics
+/// # // `REFCOUNT_INIT`, which is written in C and thus can't be used in a const context.
+/// # // TODO: Once `#[test]` is working, move this to a test and make `new_refcount` private.
+/// # use kernel::bindings;
+/// # // SAFETY: Just an FFI call that returns a `refcount_t` initialised to 1.
+/// # let bindings::refcount_struct {
+/// #     refs: bindings::atomic_t { counter: a },
+/// # } = unsafe { bindings::REFCOUNT_INIT(1) };
+/// # let bindings::refcount_struct {
+/// #     refs: bindings::atomic_t { counter: b },
+/// # } = kernel::sync::new_refcount();
+/// # assert_eq!(a, b);
+/// ```
+pub const fn new_refcount() -> bindings::refcount_struct {
+    bindings::refcount_struct {
+        refs: bindings::atomic_t { counter: 1 },
     }
 }
