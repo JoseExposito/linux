@@ -26,7 +26,7 @@ use proc_macro::TokenStream;
 ///     name: b"my_kernel_module",
 ///     author: b"Rust for Linux Contributors",
 ///     description: b"My very own kernel module!",
-///     license: b"GPL v2",
+///     license: b"GPL",
 ///     params: {
 ///        my_i32: i32 {
 ///            default: 42,

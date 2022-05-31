@@ -178,7 +178,7 @@ pub struct KParamGuard<'a> {
 impl<'a> Drop for KParamGuard<'a> {
     fn drop(&mut self) {
         // SAFETY: `kernel_param_lock` will check if the pointer is null and
-        // use the built-in mutex in that case. The existance of `self`
+        // use the built-in mutex in that case. The existence of `self`
         // guarantees that the lock is held.
         unsafe { bindings::kernel_param_unlock(self.this_module.0) }
     }

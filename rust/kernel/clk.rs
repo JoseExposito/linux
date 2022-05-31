@@ -47,7 +47,7 @@ impl Drop for Clk {
     }
 }
 
-// SAFETY: `Clk` is not restricted to a single thread so it it safe
+// SAFETY: `Clk` is not restricted to a single thread so it is safe
 // to move it between threads.
 unsafe impl Send for Clk {}
 

@@ -79,7 +79,7 @@ impl<const ORDER: u32> Pages<ORDER> {
         Ok(())
     }
 
-    /// Maps the pages and writes into them from the given bufer.
+    /// Maps the pages and writes into them from the given buffer.
     ///
     /// # Safety
     ///

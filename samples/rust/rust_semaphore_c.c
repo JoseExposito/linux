@@ -207,6 +207,6 @@ static void __exit semaphore_exit(void)
 module_init(semaphore_init);
 module_exit(semaphore_exit);
 
-MODULE_LICENSE("GPL v2");
+MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Rust for Linux Contributors");
 MODULE_DESCRIPTION("Rust semaphore sample (in C, for comparison)");

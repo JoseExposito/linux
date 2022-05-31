@@ -10,7 +10,7 @@ module! {
     name: b"rust_chrdev",
     author: b"Rust for Linux Contributors",
     description: b"Rust character device sample",
-    license: b"GPL v2",
+    license: b"GPL",
 }
 
 struct RustFile;

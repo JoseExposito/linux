@@ -17158,9 +17158,9 @@ S:	Supported
 W:	https://github.com/Rust-for-Linux/linux
 B:	https://github.com/Rust-for-Linux/linux/issues
 T:	git https://github.com/Rust-for-Linux/linux.git rust-next
+F:	Documentation/rust/
 F:	rust/
 F:	samples/rust/
-F:	Documentation/rust/
 F:	scripts/*rust*
 K:	\b(?i:rust)\b
 

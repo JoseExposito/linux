@@ -269,7 +269,7 @@ impl<T: file::Operations<OpenData = ()>> crate::Module for Module<T> {
 ///     name: b"my_miscdev_kernel_module",
 ///     author: b"Rust for Linux Contributors",
 ///     description: b"My very own misc device kernel module!",
-///     license: b"GPL v2",
+///     license: b"GPL",
 /// }
 ///
 /// #[derive(Default)]

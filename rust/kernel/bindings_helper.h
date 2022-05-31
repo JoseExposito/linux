@@ -6,7 +6,6 @@
  * Sorted alphabetically.
  */
 
-#include <asm/io.h>
 #include <kunit/test.h>
 #include <linux/amba/bus.h>
 #include <linux/cdev.h>
@@ -17,11 +16,16 @@
 #include <linux/gpio/driver.h>
 #include <linux/hw_random.h>
 #include <linux/interrupt.h>
+#include <linux/io.h>
 #include <linux/irqdomain.h>
 #include <linux/irq.h>
 #include <linux/miscdevice.h>
 #include <linux/mm.h>
 #include <linux/module.h>
+#include <linux/netfilter_arp.h>
+#include <linux/netfilter.h>
+#include <linux/netfilter_ipv4.h>
+#include <linux/netfilter_ipv6.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/poll.h>
@@ -32,10 +36,6 @@
 #include <linux/uaccess.h>
 #include <linux/uio.h>
 #include <uapi/linux/android/binder.h>
-#include <linux/netfilter.h>
-#include <linux/netfilter_ipv4.h>
-#include <linux/netfilter_ipv6.h>
-#include <linux/netfilter_arp.h>
 
 /* `bindgen` gets confused at certain things. */
 const gfp_t BINDINGS_GFP_KERNEL = GFP_KERNEL;

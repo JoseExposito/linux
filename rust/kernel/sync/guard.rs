@@ -94,7 +94,7 @@ impl LockInfo for WriteLock {
 ///   may access the protected data once the lock is held, that is, between calls to `lock_noguard`
 ///   and `unlock`.
 /// - Implementers of all other markers must ensure that a mutable reference to the protected data
-///   is not active in any thread/CPU because at least one shared refence is active between calls
+///   is not active in any thread/CPU because at least one shared reference is active between calls
 ///   to `lock_noguard` and `unlock`.
 pub unsafe trait Lock<I: LockInfo = WriteLock> {
     /// The type of the data protected by the lock.

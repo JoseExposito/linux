@@ -9,7 +9,7 @@ module! {
     name: b"rust_minimal",
     author: b"Rust for Linux Contributors",
     description: b"Rust minimal sample",
-    license: b"GPL v2",
+    license: b"GPL",
 }
 
 struct RustMinimal {

@@ -9,7 +9,7 @@ module! {
     name: b"rust_stack_probing",
     author: b"Rust for Linux Contributors",
     description: b"Rust stack probing sample",
-    license: b"GPL v2",
+    license: b"GPL",
 }
 
 struct RustStackProbing;

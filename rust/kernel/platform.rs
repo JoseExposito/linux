@@ -32,7 +32,7 @@ impl<T: Driver> driver::DriverOps for Adapter<T> {
         name: &'static CStr,
         module: &'static ThisModule,
     ) -> Result {
-        // SAFETY: By the safety requirements of this function (defined in the trait defintion),
+        // SAFETY: By the safety requirements of this function (defined in the trait definition),
         // `reg` is non-null and valid.
         let pdrv = unsafe { &mut *reg };
 
@@ -212,7 +212,7 @@ unsafe impl device::RawDevice for Device {
 ///     type: MyDriver,
 ///     name: b"module_name",
 ///     author: b"Author name",
-///     license: b"GPL v2",
+///     license: b"GPL",
 /// }
 /// ```
 #[macro_export]
