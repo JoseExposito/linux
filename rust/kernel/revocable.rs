@@ -5,7 +5,7 @@
 //! The [`Revocable`] type wraps other types and allows access to them to be revoked. The existence
 //! of a [`RevocableGuard`] ensures that objects remain valid.
 
-use crate::bindings;
+use crate::{bindings, sync::rcu};
 use core::{
     cell::UnsafeCell,
     marker::PhantomData,
@@ -40,6 +40,29 @@ use core::{
 /// v.revoke();
 /// assert_eq!(add_two(&v), None);
 /// ```
+///
+/// Sample example as above, but explicitly using the rcu read side lock.
+///
+/// ```
+/// # use kernel::revocable::Revocable;
+/// use kernel::sync::rcu;
+///
+/// struct Example {
+///     a: u32,
+///     b: u32,
+/// }
+///
+/// fn add_two(v: &Revocable<Example>) -> Option<u32> {
+///     let guard = rcu::read_lock();
+///     let e = v.try_access_with_guard(&guard)?;
+///     Some(e.a + e.b)
+/// }
+///
+/// let v = Revocable::new(Example { a: 10, b: 20 });
+/// assert_eq!(add_two(&v), Some(30));
+/// v.revoke();
+/// assert_eq!(add_two(&v), None);
+/// ```
 pub struct Revocable<T: ?Sized> {
     is_available: AtomicBool,
     data: ManuallyDrop<UnsafeCell<T>>,
@@ -57,7 +80,7 @@ unsafe impl<T: ?Sized + Sync + Send> Sync for Revocable<T> {}
 
 impl<T> Revocable<T> {
     /// Creates a new revocable instance of the given data.
-    pub fn new(data: T) -> Self {
+    pub const fn new(data: T) -> Self {
         Self {
             is_available: AtomicBool::new(true),
             data: ManuallyDrop::new(UnsafeCell::new(data)),
@@ -74,9 +97,26 @@ impl<T: ?Sized> Revocable<T> {
     /// remain accessible while the guard is alive. In such cases, callers are not allowed to sleep
     /// because another CPU may be waiting to complete the revocation of this object.
     pub fn try_access(&self) -> Option<RevocableGuard<'_, T>> {
-        let guard = RevocableGuard::new(self.data.get());
+        let guard = rcu::read_lock();
         if self.is_available.load(Ordering::Relaxed) {
-            Some(guard)
+            Some(RevocableGuard::new(self.data.get(), guard))
+        } else {
+            None
+        }
+    }
+
+    /// Tries to access the \[revocable\] wrapped object.
+    ///
+    /// Returns `None` if the object has been revoked and is therefore no longer accessible.
+    ///
+    /// Returns a shared reference to the object otherwise; the object is guaranteed to
+    /// remain accessible while the rcu read side guard is alive. In such cases, callers are not
+    /// allowed to sleep because another CPU may be waiting to complete the revocation of this
+    /// object.
+    pub fn try_access_with_guard<'a>(&'a self, _guard: &'a rcu::Guard) -> Option<&'a T> {
+        if self.is_available.load(Ordering::Relaxed) {
+            // SAFETY: Given that the RCU read side lock is held, data has to remain valid.
+            Some(unsafe { &*self.data.get() })
         } else {
             None
         }
@@ -127,26 +167,17 @@ impl<T: ?Sized> Drop for Revocable<T> {
 /// The RCU read-side lock is held while the guard is alive.
 pub struct RevocableGuard<'a, T: ?Sized> {
     data_ref: *const T,
+    _rcu_guard: rcu::Guard,
     _p: PhantomData<&'a ()>,
 }
 
 impl<T: ?Sized> RevocableGuard<'_, T> {
-    fn new(data_ref: *const T) -> Self {
-        // SAFETY: Just an FFI call, there are no further requirements.
-        unsafe { bindings::rcu_read_lock() };
-
-        // INVARIANTS: The RCU read-side lock was just acquired.
+    fn new(data_ref: *const T, rcu_guard: rcu::Guard) -> Self {
         Self {
             data_ref,
+            _rcu_guard: rcu_guard,
             _p: PhantomData,
         }
-    }
-}
-
-impl<T: ?Sized> Drop for RevocableGuard<'_, T> {
-    fn drop(&mut self) {
-        // SAFETY: By the type invariants, we know that we hold the RCU read-side lock.
-        unsafe { bindings::rcu_read_unlock() };
     }
 }
 

@@ -30,6 +30,7 @@ mod guard;
 mod locked_by;
 mod mutex;
 mod nowait;
+pub mod rcu;
 mod revocable;
 mod rwsem;
 mod seqlock;
