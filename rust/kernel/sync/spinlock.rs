@@ -6,7 +6,10 @@
 //!
 //! See <https://www.kernel.org/doc/Documentation/locking/spinlocks.txt>.
 
-use super::{mutex::EmptyGuardContext, Guard, Lock, LockFactory, LockInfo, LockIniter, WriteLock};
+use super::{
+    mutex::EmptyGuardContext, Guard, Lock, LockClassKey, LockFactory, LockInfo, LockIniter,
+    WriteLock,
+};
 use crate::{bindings, c_types, str::CStr, Opaque, True};
 use core::{cell::UnsafeCell, marker::PhantomPinned, pin::Pin};
 
@@ -137,12 +140,8 @@ impl<T> LockFactory for SpinLock<T> {
 }
 
 impl<T> LockIniter for SpinLock<T> {
-    unsafe fn init_lock(
-        self: Pin<&mut Self>,
-        name: &'static CStr,
-        key: *mut bindings::lock_class_key,
-    ) {
-        unsafe { bindings::__spin_lock_init(self.spin_lock.get(), name.as_char_ptr(), key) };
+    fn init_lock(self: Pin<&mut Self>, name: &'static CStr, key: &'static LockClassKey) {
+        unsafe { bindings::__spin_lock_init(self.spin_lock.get(), name.as_char_ptr(), key.get()) };
     }
 }
 
@@ -307,12 +306,10 @@ impl<T> LockFactory for RawSpinLock<T> {
 }
 
 impl<T> LockIniter for RawSpinLock<T> {
-    unsafe fn init_lock(
-        self: Pin<&mut Self>,
-        name: &'static CStr,
-        key: *mut bindings::lock_class_key,
-    ) {
-        unsafe { bindings::_raw_spin_lock_init(self.spin_lock.get(), name.as_char_ptr(), key) };
+    fn init_lock(self: Pin<&mut Self>, name: &'static CStr, key: &'static LockClassKey) {
+        unsafe {
+            bindings::_raw_spin_lock_init(self.spin_lock.get(), name.as_char_ptr(), key.get())
+        };
     }
 }
 

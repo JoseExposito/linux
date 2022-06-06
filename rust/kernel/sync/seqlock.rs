@@ -7,7 +7,7 @@
 //!
 //! See <https://www.kernel.org/doc/Documentation/locking/seqlock.rst>.
 
-use super::{Guard, Lock, LockFactory, LockIniter, NeedsLockClass, ReadLock};
+use super::{Guard, Lock, LockClassKey, LockFactory, LockIniter, NeedsLockClass, ReadLock};
 use crate::{bindings, str::CStr, Opaque};
 use core::{cell::UnsafeCell, marker::PhantomPinned, ops::Deref, pin::Pin};
 
@@ -130,18 +130,17 @@ impl<L: Lock + ?Sized> SeqLock<L> {
 }
 
 impl<L: LockIniter + Lock + ?Sized> NeedsLockClass for SeqLock<L> {
-    unsafe fn init(
+    fn init(
         mut self: Pin<&mut Self>,
         name: &'static CStr,
-        key1: *mut bindings::lock_class_key,
-        key2: *mut bindings::lock_class_key,
+        key1: &'static LockClassKey,
+        key2: &'static LockClassKey,
     ) {
         // SAFETY: `write_lock` is pinned when `self` is.
         let pinned = unsafe { self.as_mut().map_unchecked_mut(|s| &mut s.write_lock) };
-        // SAFETY: `key1` is valid by the safety requirements of this function.
-        unsafe { pinned.init_lock(name, key1) };
-        // SAFETY: `key2` is valid by the safety requirements of this function.
-        unsafe { bindings::__seqcount_init(self.count.get(), name.as_char_ptr(), key2) };
+        pinned.init_lock(name, key1);
+        // SAFETY: `key2` is valid as it has a static lifetime.
+        unsafe { bindings::__seqcount_init(self.count.get(), name.as_char_ptr(), key2.get()) };
     }
 }
 

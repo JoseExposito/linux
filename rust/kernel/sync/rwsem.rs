@@ -6,7 +6,10 @@
 //!
 //! C header: [`include/linux/rwsem.h`](../../../../include/linux/rwsem.h)
 
-use super::{mutex::EmptyGuardContext, Guard, Lock, LockFactory, LockIniter, ReadLock, WriteLock};
+use super::{
+    mutex::EmptyGuardContext, Guard, Lock, LockClassKey, LockFactory, LockIniter, ReadLock,
+    WriteLock,
+};
 use crate::{bindings, str::CStr, Opaque};
 use core::{cell::UnsafeCell, marker::PhantomPinned, pin::Pin};
 
@@ -95,12 +98,8 @@ impl<T> LockFactory for RwSemaphore<T> {
 }
 
 impl<T> LockIniter for RwSemaphore<T> {
-    unsafe fn init_lock(
-        self: Pin<&mut Self>,
-        name: &'static CStr,
-        key: *mut bindings::lock_class_key,
-    ) {
-        unsafe { bindings::__init_rwsem(self.rwsem.get(), name.as_char_ptr(), key) };
+    fn init_lock(self: Pin<&mut Self>, name: &'static CStr, key: &'static LockClassKey) {
+        unsafe { bindings::__init_rwsem(self.rwsem.get(), name.as_char_ptr(), key.get()) };
     }
 }
 

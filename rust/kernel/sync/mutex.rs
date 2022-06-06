@@ -4,7 +4,7 @@
 //!
 //! This module allows Rust code to use the kernel's [`struct mutex`].
 
-use super::{Guard, Lock, LockFactory, LockIniter, WriteLock};
+use super::{Guard, Lock, LockClassKey, LockFactory, LockIniter, WriteLock};
 use crate::{bindings, str::CStr, Opaque};
 use core::{cell::UnsafeCell, marker::PhantomPinned, pin::Pin};
 
@@ -82,12 +82,8 @@ impl<T> LockFactory for Mutex<T> {
 }
 
 impl<T> LockIniter for Mutex<T> {
-    unsafe fn init_lock(
-        self: Pin<&mut Self>,
-        name: &'static CStr,
-        key: *mut bindings::lock_class_key,
-    ) {
-        unsafe { bindings::__mutex_init(self.mutex.get(), name.as_char_ptr(), key) };
+    fn init_lock(self: Pin<&mut Self>, name: &'static CStr, key: &'static LockClassKey) {
+        unsafe { bindings::__mutex_init(self.mutex.get(), name.as_char_ptr(), key.get()) };
     }
 }
 
