@@ -11,7 +11,7 @@ use crate::{
     bindings,
     revocable::{Revocable, RevocableGuard},
     str::CStr,
-    sync::{NeedsLockClass, RevocableMutex, RevocableMutexGuard, UniqueRef},
+    sync::{LockClassKey, NeedsLockClass, RevocableMutex, RevocableMutexGuard, UniqueRef},
     Result,
 };
 use core::{
@@ -240,26 +240,13 @@ pub struct Data<T, U, V> {
 #[macro_export]
 macro_rules! new_device_data {
     ($reg:expr, $res:expr, $gen:expr, $name:literal) => {{
-        static mut CLASS1: core::mem::MaybeUninit<$crate::bindings::lock_class_key> =
-            core::mem::MaybeUninit::uninit();
-        static mut CLASS2: core::mem::MaybeUninit<$crate::bindings::lock_class_key> =
-            core::mem::MaybeUninit::uninit();
+        static CLASS1: $crate::sync::LockClassKey = $crate::sync::LockClassKey::new();
+        static CLASS2: $crate::sync::LockClassKey = $crate::sync::LockClassKey::new();
         let regs = $reg;
         let res = $res;
         let gen = $gen;
         let name = $crate::c_str!($name);
-        // SAFETY: `CLASS1` and `CLASS2` are never used by Rust code directly; the C portion of the
-        // kernel may change it though.
-        unsafe {
-            $crate::device::Data::try_new(
-                regs,
-                res,
-                gen,
-                name,
-                CLASS1.as_mut_ptr(),
-                CLASS2.as_mut_ptr(),
-            )
-        }
+        $crate::device::Data::try_new(regs, res, gen, name, &CLASS1, &CLASS2)
     }};
 }
 
@@ -268,18 +255,13 @@ impl<T, U, V> Data<T, U, V> {
     ///
     /// It is recommended that the [`new_device_data`] macro be used as it automatically creates
     /// the lock classes.
-    ///
-    /// # Safety
-    ///
-    /// `key1` and `key2` must point to valid memory locations and remain valid until `self` is
-    /// dropped.
-    pub unsafe fn try_new(
+    pub fn try_new(
         registrations: T,
         resources: U,
         general: V,
         name: &'static CStr,
-        key1: *mut bindings::lock_class_key,
-        key2: *mut bindings::lock_class_key,
+        key1: &'static LockClassKey,
+        key2: &'static LockClassKey,
     ) -> Result<Pin<UniqueRef<Self>>> {
         let mut ret = Pin::from(UniqueRef::try_new(Self {
             // SAFETY: We call `RevocableMutex::init` below.
@@ -290,9 +272,7 @@ impl<T, U, V> Data<T, U, V> {
 
         // SAFETY: `Data::registrations` is pinned when `Data` is.
         let pinned = unsafe { ret.as_mut().map_unchecked_mut(|d| &mut d.registrations) };
-
-        // SAFETY: The safety requirements of this function satisfy those of `RevocableMutex::init`.
-        unsafe { pinned.init(name, key1, key2) };
+        pinned.init(name, key1, key2);
         Ok(ret)
     }
 

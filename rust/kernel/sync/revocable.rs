@@ -3,9 +3,8 @@
 //! Synchronisation primitives where access to their contents can be revoked at runtime.
 
 use crate::{
-    bindings,
     str::CStr,
-    sync::{Guard, Lock, LockFactory, LockInfo, NeedsLockClass, ReadLock, WriteLock},
+    sync::{Guard, Lock, LockClassKey, LockFactory, LockInfo, NeedsLockClass, ReadLock, WriteLock},
     True,
 };
 use core::{
@@ -130,18 +129,15 @@ impl<F: LockFactory, T> NeedsLockClass for Revocable<F, T>
 where
     F::LockedType<Inner<T>>: NeedsLockClass,
 {
-    unsafe fn init(
+    fn init(
         self: Pin<&mut Self>,
         name: &'static CStr,
-        key1: *mut bindings::lock_class_key,
-        key2: *mut bindings::lock_class_key,
+        key1: &'static LockClassKey,
+        key2: &'static LockClassKey,
     ) {
         // SAFETY: `inner` is pinned when `self` is.
         let inner = unsafe { self.map_unchecked_mut(|r| &mut r.inner) };
-
-        // SAFETY: The safety requirements of this function satisfy the ones for `inner.init`
-        // (they're the same).
-        unsafe { inner.init(name, key1, key2) };
+        inner.init(name, key1, key2);
     }
 }
 
