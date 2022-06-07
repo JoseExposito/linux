@@ -104,7 +104,6 @@ needed).
    block/index
    cdrom/index
    cpu-freq/index
-   ide/index
    fb/index
    fpga/index
    hid/index
@@ -138,8 +137,8 @@ needed).
    misc-devices/index
    scheduler/index
    mhi/index
-   tty/index
    peci/index
+   hte/index
 
 Architecture-agnostic documentation
 -----------------------------------
@@ -170,7 +169,6 @@ to ReStructured Text format, or are simply too old.
 
    tools/index
    staging/index
-   watch_queue
 
 
 Translations
