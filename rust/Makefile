@@ -87,6 +87,8 @@ rustdoc: rustdoc-core rustdoc-macros rustdoc-compiler_builtins \
 		-e 's:rust-logo\.png:logo.svg:g' \
 		-e 's:favicon\.svg:logo.svg:g' \
 		-e 's:<link rel="alternate icon" type="image/png" href="[./]*favicon-(16x16|32x32)\.png">::g'
+	$(Q)echo '.logo-container > img { object-fit: contain; }' \
+		>> $(objtree)/$(obj)/doc/rustdoc.css
 
 rustdoc-macros: private rustdoc_host = yes
 rustdoc-macros: private rustc_target_flags = --crate-type proc-macro \
