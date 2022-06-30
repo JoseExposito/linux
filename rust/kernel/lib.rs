@@ -19,6 +19,8 @@
 #![feature(const_ptr_offset_from)]
 #![feature(const_refs_to_cell)]
 #![feature(const_trait_impl)]
+#![feature(core_ffi_c)]
+#![feature(c_size_t)]
 #![feature(doc_cfg)]
 #![feature(generic_associated_types)]
 #![feature(ptr_metadata)]
@@ -41,7 +43,6 @@ pub mod bindings;
 
 #[cfg(CONFIG_ARM_AMBA)]
 pub mod amba;
-pub mod c_types;
 pub mod chrdev;
 #[cfg(CONFIG_COMMON_CLK)]
 pub mod clk;
