@@ -13,7 +13,7 @@ Welcome to my fork of the Linux kernel.
 | Branch | Target | Details | Status |
 | - | - | - | - |
 | [patch-drm-format-helper-rgb565-kunit](https://github.com/JoseExposito/linux/tree/patch-drm-format-helper-rgb565-kunit) | [patch-drm-rect-init-helper](https://github.com/JoseExposito/linux/tree/patch-drm-rect-init-helper) | KUnit tests for drm_format_helper (DRM_FORMAT_RGB565) | 🔨 |
-| [patch-drm-rect-init-helper](https://github.com/JoseExposito/linux/tree/patch-drm-rect-init-helper) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | DRM: Add DRM_RECT_INIT helper macro | ⏳ |
+| [patch-drm-rect-init-helper](https://github.com/JoseExposito/linux/tree/patch-drm-rect-init-helper) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | DRM: Add DRM_RECT_INIT helper macro | 🔀 |
 | [patch-drm-kunit-docs](https://github.com/JoseExposito/linux/tree/patch-drm-kunit-docs) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | DRM: Add docs for the KUnit tests | 🔀 |
 | [patch-drm-format-helper-kunit](https://github.com/JoseExposito/linux/tree/patch-drm-format-helper-kunit) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | KUnit tests for drm_format_helper (DRM_FORMAT_RGB332) | 🔀 |
 | [patch-parblo-a610-pro](https://github.com/JoseExposito/linux/tree/patch-parblo-a610-pro) | [patch-xppen-deco-mini4](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-mini4) | Parblo A610 PRO drawing tablet support | 🔨 |
