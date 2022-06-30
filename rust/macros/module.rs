@@ -413,7 +413,7 @@ pub(crate) fn module(ts: TokenStream) -> TokenStream {
             let kparam = format!(
                 "
                     kernel::bindings::kernel_param__bindgen_ty_1 {{
-                        arg: unsafe {{ &__{name}_{param_name}_value }} as *const _ as *mut kernel::c_types::c_void,
+                        arg: unsafe {{ &__{name}_{param_name}_value }} as *const _ as *mut core::ffi::c_void,
                     }},
                 ",
                 name = info.name,
@@ -443,10 +443,10 @@ pub(crate) fn module(ts: TokenStream) -> TokenStream {
                 }}
 
                 #[cfg(not(MODULE))]
-                const __{name}_{param_name}_name: *const kernel::c_types::c_char = b\"{name}.{param_name}\\0\" as *const _ as *const kernel::c_types::c_char;
+                const __{name}_{param_name}_name: *const core::ffi::c_char = b\"{name}.{param_name}\\0\" as *const _ as *const core::ffi::c_char;
 
                 #[cfg(MODULE)]
-                const __{name}_{param_name}_name: *const kernel::c_types::c_char = b\"{param_name}\\0\" as *const _ as *const kernel::c_types::c_char;
+                const __{name}_{param_name}_name: *const core::ffi::c_char = b\"{param_name}\\0\" as *const _ as *const core::ffi::c_char;
 
                 #[link_section = \"__param\"]
                 #[used]
@@ -523,7 +523,7 @@ pub(crate) fn module(ts: TokenStream) -> TokenStream {
             #[cfg(MODULE)]
             #[doc(hidden)]
             #[no_mangle]
-            pub extern \"C\" fn init_module() -> kernel::c_types::c_int {{
+            pub extern \"C\" fn init_module() -> core::ffi::c_int {{
                 __init()
             }}
 
@@ -541,7 +541,7 @@ pub(crate) fn module(ts: TokenStream) -> TokenStream {
             #[doc(hidden)]
             #[link_section = \"{initcall_section}\"]
             #[used]
-            pub static __{name}_initcall: extern \"C\" fn() -> kernel::c_types::c_int = __{name}_init;
+            pub static __{name}_initcall: extern \"C\" fn() -> core::ffi::c_int = __{name}_init;
 
             #[cfg(not(MODULE))]
             #[cfg(CONFIG_HAVE_ARCH_PREL32_RELOCATIONS)]
@@ -556,7 +556,7 @@ pub(crate) fn module(ts: TokenStream) -> TokenStream {
             #[cfg(not(MODULE))]
             #[doc(hidden)]
             #[no_mangle]
-            pub extern \"C\" fn __{name}_init() -> kernel::c_types::c_int {{
+            pub extern \"C\" fn __{name}_init() -> core::ffi::c_int {{
                 __init()
             }}
 
@@ -567,7 +567,7 @@ pub(crate) fn module(ts: TokenStream) -> TokenStream {
                 __exit()
             }}
 
-            fn __init() -> kernel::c_types::c_int {{
+            fn __init() -> core::ffi::c_int {{
                 match <{type_} as kernel::Module>::init(kernel::c_str!(\"{name}\"), &THIS_MODULE) {{
                     Ok(m) => {{
                         unsafe {{
