@@ -21,9 +21,8 @@ module_misc_device! {
 
 struct RandomFile;
 
+#[vtable]
 impl file::Operations for RandomFile {
-    kernel::declare_file_operations!(read, write, read_iter, write_iter);
-
     fn open(_data: &(), _file: &File) -> Result {
         Ok(())
     }
