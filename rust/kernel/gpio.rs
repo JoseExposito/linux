@@ -427,9 +427,12 @@ mod irqchip {
     /// data is passed as context.
     struct IrqChipAdapter<T: irq::Chip>(PhantomData<T>);
 
+    #[vtable]
     impl<T: irq::Chip> irq::Chip for IrqChipAdapter<T> {
         type Data = *mut bindings::gpio_chip;
-        const TO_USE: irq::ToUse = T::TO_USE;
+
+        const HAS_SET_TYPE: bool = T::HAS_SET_TYPE;
+        const HAS_SET_WAKE: bool = T::HAS_SET_WAKE;
 
         fn ack(gc: *mut bindings::gpio_chip, irq_data: &irq::IrqData) {
             // SAFETY: `IrqChipAdapter` is a private struct, only used when the data stored in the

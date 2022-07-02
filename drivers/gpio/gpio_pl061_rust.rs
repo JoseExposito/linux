@@ -122,10 +122,9 @@ impl gpio::ChipWithIrqChip for PL061Device {
     }
 }
 
+#[vtable]
 impl irq::Chip for PL061Device {
     type Data = Ref<DeviceData>;
-
-    kernel::declare_irq_chip_operations!(set_type, set_wake);
 
     fn set_type(
         data: RefBorrow<'_, DeviceData>,
