@@ -107,7 +107,7 @@ pub use build_error::build_error;
 pub use crate::error::{to_result, Error, Result};
 pub use crate::types::{
     bit, bits_iter, ARef, AlwaysRefCounted, Bool, Either, Either::Left, Either::Right, False, Mode,
-    Opaque, ScopeGuard, True,
+    Opaque, PointerWrapper, ScopeGuard, True,
 };
 
 use core::marker::PhantomData;

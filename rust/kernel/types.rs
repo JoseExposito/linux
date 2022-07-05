@@ -40,7 +40,8 @@ impl Mode {
 /// Used to convert an object into a raw pointer that represents it.
 ///
 /// It can eventually be converted back into the object. This is used to store objects as pointers
-/// in kernel data structures, for example, an implementation of [`FileOperations`] in `struct
+/// in kernel data structures, for example, an implementation of
+/// [`Operations`][crate::file::Operations] in `struct
 /// file::private_data`.
 pub trait PointerWrapper {
     /// Type of values borrowed between calls to [`PointerWrapper::into_pointer`] and
