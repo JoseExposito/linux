@@ -366,7 +366,7 @@ impl<T: PointerWrapper> InternalRegistration<T> {
             unsafe { T::from_pointer(ptr) };
         });
         // SAFETY: `name` and `ptr` remain valid as long as the registration is alive.
-        to_result(|| unsafe {
+        to_result(unsafe {
             bindings::request_threaded_irq(
                 irq,
                 handler,
