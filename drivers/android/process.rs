@@ -805,11 +805,10 @@ impl IoctlHandler for Process {
     }
 }
 
+#[vtable]
 impl file::Operations for Process {
     type Data = Ref<Self>;
     type OpenData = Ref<Context>;
-
-    kernel::declare_file_operations!(ioctl, compat_ioctl, mmap, poll);
 
     fn open(ctx: &Ref<Context>, file: &File) -> Result<Self::Data> {
         Self::new(ctx.clone(), file.cred().into())

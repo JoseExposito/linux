@@ -19,6 +19,7 @@ use crate::{
 };
 use core::convert::{TryFrom, TryInto};
 use core::{cell::UnsafeCell, marker, mem, ptr};
+use macros::vtable;
 
 /// Wraps the kernel's `struct file`.
 ///
@@ -468,24 +469,24 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
     const VTABLE: bindings::file_operations = bindings::file_operations {
         open: Some(Self::open_callback),
         release: Some(Self::release_callback),
-        read: if T::TO_USE.read {
+        read: if T::HAS_READ {
             Some(Self::read_callback)
         } else {
             None
         },
-        write: if T::TO_USE.write {
+        write: if T::HAS_WRITE {
             Some(Self::write_callback)
         } else {
             None
         },
-        llseek: if T::TO_USE.seek {
+        llseek: if T::HAS_SEEK {
             Some(Self::llseek_callback)
         } else {
             None
         },
 
         check_flags: None,
-        compat_ioctl: if T::TO_USE.compat_ioctl {
+        compat_ioctl: if T::HAS_COMPAT_IOCTL {
             Some(Self::compat_ioctl_callback)
         } else {
             None
@@ -496,7 +497,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
         fasync: None,
         flock: None,
         flush: None,
-        fsync: if T::TO_USE.fsync {
+        fsync: if T::HAS_FSYNC {
             Some(Self::fsync_callback)
         } else {
             None
@@ -506,19 +507,19 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
         iterate_shared: None,
         iopoll: None,
         lock: None,
-        mmap: if T::TO_USE.mmap {
+        mmap: if T::HAS_MMAP {
             Some(Self::mmap_callback)
         } else {
             None
         },
         mmap_supported_flags: 0,
         owner: ptr::null_mut(),
-        poll: if T::TO_USE.poll {
+        poll: if T::HAS_POLL {
             Some(Self::poll_callback)
         } else {
             None
         },
-        read_iter: if T::TO_USE.read_iter {
+        read_iter: if T::HAS_READ {
             Some(Self::read_iter_callback)
         } else {
             None
@@ -529,13 +530,13 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
         show_fdinfo: None,
         splice_read: None,
         splice_write: None,
-        unlocked_ioctl: if T::TO_USE.ioctl {
+        unlocked_ioctl: if T::HAS_IOCTL {
             Some(Self::unlocked_ioctl_callback)
         } else {
             None
         },
         uring_cmd: None,
-        write_iter: if T::TO_USE.write_iter {
+        write_iter: if T::HAS_WRITE {
             Some(Self::write_iter_callback)
         } else {
             None
@@ -550,69 +551,6 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
     pub(crate) const unsafe fn build() -> &'static bindings::file_operations {
         &Self::VTABLE
     }
-}
-
-/// Represents which fields of [`struct file_operations`] should be populated with pointers.
-pub struct ToUse {
-    /// The `read` field of [`struct file_operations`].
-    pub read: bool,
-
-    /// The `read_iter` field of [`struct file_operations`].
-    pub read_iter: bool,
-
-    /// The `write` field of [`struct file_operations`].
-    pub write: bool,
-
-    /// The `write_iter` field of [`struct file_operations`].
-    pub write_iter: bool,
-
-    /// The `llseek` field of [`struct file_operations`].
-    pub seek: bool,
-
-    /// The `unlocked_ioctl` field of [`struct file_operations`].
-    pub ioctl: bool,
-
-    /// The `compat_ioctl` field of [`struct file_operations`].
-    pub compat_ioctl: bool,
-
-    /// The `fsync` field of [`struct file_operations`].
-    pub fsync: bool,
-
-    /// The `mmap` field of [`struct file_operations`].
-    pub mmap: bool,
-
-    /// The `poll` field of [`struct file_operations`].
-    pub poll: bool,
-}
-
-/// A constant version where all values are to set to `false`, that is, all supported fields will
-/// be set to null pointers.
-pub const USE_NONE: ToUse = ToUse {
-    read: false,
-    read_iter: false,
-    write: false,
-    write_iter: false,
-    seek: false,
-    ioctl: false,
-    compat_ioctl: false,
-    fsync: false,
-    mmap: false,
-    poll: false,
-};
-
-/// Defines the [`Operations::TO_USE`] field based on a list of fields to be populated.
-#[macro_export]
-macro_rules! declare_file_operations {
-    () => {
-        const TO_USE: $crate::file::ToUse = $crate::file::USE_NONE;
-    };
-    ($($i:ident),+) => {
-        const TO_USE: kernel::file::ToUse =
-            $crate::file::ToUse {
-                $($i: true),+ ,
-                ..$crate::file::USE_NONE
-            };
-    };
 }
 
 /// Allows the handling of ioctls defined with the `_IO`, `_IOR`, `_IOW`, and `_IOWR` macros.
@@ -742,10 +680,8 @@ pub trait OpenAdapter<T: Sync> {
 /// File descriptors may be used from multiple threads/processes concurrently, so your type must be
 /// [`Sync`]. It must also be [`Send`] because [`Operations::release`] will be called from the
 /// thread that decrements that associated file's refcount to zero.
+#[vtable]
 pub trait Operations {
-    /// The methods to use to populate [`struct file_operations`].
-    const TO_USE: ToUse;
-
     /// The type of the context data returned by [`Operations::open`] and made available to
     /// other methods.
     type Data: PointerWrapper + Send + Sync = ();
