@@ -155,4 +155,11 @@ config SAMPLE_RUST_HOSTPROGS
 
 	  If unsure, say N.
 
+config SAMPLE_RUST_SELFTESTS
+	tristate "Self tests"
+	help
+	  This option builds the self test cases for Rust.
+
+	  If unsure, say N.
+
 endif # SAMPLES_RUST
