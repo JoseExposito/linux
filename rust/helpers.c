@@ -38,6 +38,7 @@
 #include <linux/skbuff.h>
 #include <linux/uaccess.h>
 #include <linux/uio.h>
+#include <linux/fs_parser.h>
 
 __noreturn void rust_helper_BUG(void)
 {
@@ -644,6 +645,15 @@ void rust_helper_lockdep_unregister_key(struct lock_class_key *key)
 	lockdep_unregister_key(key);
 }
 EXPORT_SYMBOL_GPL(rust_helper_lockdep_unregister_key);
+
+int rust_helper_fs_parse(struct fs_context *fc,
+		const struct fs_parameter_spec *desc,
+		struct fs_parameter *param,
+		struct fs_parse_result *result)
+{
+	return fs_parse(fc, desc, param, result);
+}
+EXPORT_SYMBOL_GPL(rust_helper_fs_parse);
 
 /*
  * We use `bindgen`'s `--size_t-is-usize` option to bind the C `size_t` type
