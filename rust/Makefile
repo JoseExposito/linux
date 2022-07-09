@@ -15,8 +15,9 @@ always-$(CONFIG_RUST) += libmacros.so
 no-clean-files += libmacros.so
 
 always-$(CONFIG_RUST) += bindings_generated.rs bindings_helpers_generated.rs
-obj-$(CONFIG_RUST) += alloc.o kernel.o
-always-$(CONFIG_RUST) += exports_alloc_generated.h exports_kernel_generated.h
+obj-$(CONFIG_RUST) += alloc.o bindings.o kernel.o
+always-$(CONFIG_RUST) += exports_alloc_generated.h exports_bindings_generated.h \
+    exports_kernel_generated.h
 
 ifdef CONFIG_RUST_BUILD_ASSERT_DENY
 always-$(CONFIG_RUST) += build_error.o
@@ -110,10 +111,11 @@ rustdoc-alloc: $(src)/alloc/lib.rs rustdoc-core rustdoc-compiler_builtins FORCE
 	$(call if_changed,rustdoc)
 
 rustdoc-kernel: private rustc_target_flags = --extern alloc \
-    --extern build_error --extern macros=$(objtree)/$(obj)/libmacros.so
+    --extern build_error --extern macros=$(objtree)/$(obj)/libmacros.so \
+    --extern bindings
 rustdoc-kernel: $(src)/kernel/lib.rs rustdoc-core rustdoc-macros \
     rustdoc-compiler_builtins rustdoc-alloc $(obj)/libmacros.so \
-    $(obj)/bindings_generated.rs $(obj)/bindings_helpers_generated.rs FORCE
+    $(obj)/bindings.o FORCE
 	$(call if_changed,rustdoc)
 
 quiet_cmd_rustc_test_library = RUSTC TL $<
@@ -135,6 +137,9 @@ rusttestlib-macros: private rustc_test_library_proc = yes
 rusttestlib-macros: $(src)/macros/lib.rs rusttest-prepare FORCE
 	$(call if_changed,rustc_test_library)
 
+rusttestlib-bindings: $(src)/bindings/lib.rs rusttest-prepare FORCE
+	$(call if_changed,rustc_test_library)
+
 quiet_cmd_rustdoc_test = RUSTDOC T $<
       cmd_rustdoc_test = \
 	OBJTREE=$(abspath $(objtree)) \
@@ -154,6 +159,7 @@ quiet_cmd_rustdoc_test_kernel = RUSTDOC TK $<
 		@$(objtree)/include/generated/rustc_cfg \
 		-L$(objtree)/$(obj) --extern alloc --extern kernel \
 		--extern build_error --extern macros \
+		--extern bindings \
 		--no-run --crate-name kernel -Zunstable-options \
 		--test-builder $(srctree)/scripts/rustdoc_test_builder.py \
 		$< $(rustdoc_test_kernel_quiet); \
@@ -234,10 +240,9 @@ rusttest-macros: $(src)/macros/lib.rs rusttest-prepare FORCE
 	$(call if_changed,rustdoc_test)
 
 rusttest-kernel: private rustc_target_flags = --extern alloc \
-    --extern build_error --extern macros
-rusttest-kernel: private rustc_test_run_flags = --skip bindgen_test_layout_
+    --extern build_error --extern macros --extern bindings
 rusttest-kernel: $(src)/kernel/lib.rs rusttest-prepare \
-    rusttestlib-build_error rusttestlib-macros FORCE
+    rusttestlib-build_error rusttestlib-macros rusttestlib-bindings FORCE
 	$(call if_changed,rustc_test)
 	$(call if_changed,rustc_test_library)
 
@@ -335,6 +340,9 @@ $(obj)/exports_core_generated.h: $(obj)/core.o FORCE
 $(obj)/exports_alloc_generated.h: $(obj)/alloc.o FORCE
 	$(call if_changed,exports)
 
+$(obj)/exports_bindings_generated.h: $(obj)/bindings.o FORCE
+	$(call if_changed,exports)
+
 $(obj)/exports_kernel_generated.h: $(obj)/kernel.o FORCE
 	$(call if_changed,exports)
 
@@ -388,11 +396,16 @@ $(obj)/alloc.o: $(src)/alloc/lib.rs $(obj)/compiler_builtins.o FORCE
 $(obj)/build_error.o: $(src)/build_error.rs $(obj)/compiler_builtins.o FORCE
 	$(call if_changed_dep,rustc_library)
 
-$(obj)/kernel.o: private rustc_target_flags = --extern alloc \
-    --extern build_error --extern macros
-$(obj)/kernel.o: $(src)/kernel/lib.rs $(obj)/alloc.o $(obj)/build_error.o \
-    $(obj)/libmacros.so $(obj)/bindings_generated.rs \
+$(obj)/bindings.o: $(src)/kernel/bindings.rs \
+	$(obj)/compiler_builtins.o \
+    $(obj)/bindings_generated.rs \
     $(obj)/bindings_helpers_generated.rs FORCE
+	$(call if_changed_dep,rustc_library)
+
+$(obj)/kernel.o: private rustc_target_flags = --extern alloc \
+    --extern build_error --extern macros --extern bindings
+$(obj)/kernel.o: $(src)/kernel/lib.rs $(obj)/alloc.o $(obj)/build_error.o \
+    $(obj)/libmacros.so $(obj)/bindings.o FORCE
 	$(call if_changed_dep,rustc_library)
 
 endif # CONFIG_RUST
