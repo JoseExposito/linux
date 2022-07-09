@@ -27,6 +27,7 @@
 #![feature(coerce_unsized)]
 #![feature(dispatch_from_dyn)]
 #![feature(unsize)]
+#![feature(duration_constants)]
 
 // Ensure conditional compilation based on the kernel configuration works;
 // otherwise we may silently break things like initcall handling.
@@ -48,6 +49,7 @@ pub mod chrdev;
 #[cfg(CONFIG_COMMON_CLK)]
 pub mod clk;
 pub mod cred;
+pub mod delay;
 pub mod device;
 pub mod driver;
 pub mod error;
