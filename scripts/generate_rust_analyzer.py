@@ -75,7 +75,7 @@ def generate_crates(srctree, objtree, sysroot_src):
 
     append_crate(
         "bindings",
-        srctree / "rust"/ "kernel" / "bindings.rs",
+        srctree / "rust"/ "bindings" / "lib.rs",
         ["core"],
         cfg=cfg,
     )

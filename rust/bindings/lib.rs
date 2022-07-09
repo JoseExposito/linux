@@ -29,7 +29,10 @@ mod bindings_raw {
     // Use glob import here to expose all helpers.
     // Symbols defined within the module will take precedence to the glob import.
     pub use super::bindings_helper::*;
-    include!(concat!(env!("OBJTREE"), "/rust/bindings_generated.rs"));
+    include!(concat!(
+        env!("OBJTREE"),
+        "/rust/bindings/bindings_generated.rs"
+    ));
 }
 
 // When both a directly exposed symbol and a helper exists for the same function,
@@ -41,7 +44,7 @@ mod bindings_helper {
     use super::bindings_raw::*;
     include!(concat!(
         env!("OBJTREE"),
-        "/rust/bindings_helpers_generated.rs"
+        "/rust/bindings/bindings_helpers_generated.rs"
     ));
 }
 

@@ -14,7 +14,7 @@ CFLAGS_REMOVE_helpers.o = -Wmissing-prototypes -Wmissing-declarations
 always-$(CONFIG_RUST) += libmacros.so
 no-clean-files += libmacros.so
 
-always-$(CONFIG_RUST) += bindings_generated.rs bindings_helpers_generated.rs
+always-$(CONFIG_RUST) += bindings/bindings_generated.rs bindings/bindings_helpers_generated.rs
 obj-$(CONFIG_RUST) += alloc.o bindings.o kernel.o
 always-$(CONFIG_RUST) += exports_alloc_generated.h exports_bindings_generated.h \
     exports_kernel_generated.h
@@ -307,9 +307,9 @@ quiet_cmd_bindgen = BINDGEN $@
 		--size_t-is-usize -o $@ -- $(bindgen_c_flags_final) -DMODULE \
 		$(bindgen_target_cflags) $(bindgen_target_extra)
 
-$(obj)/bindings_generated.rs: private bindgen_target_flags = \
+$(obj)/bindings/bindings_generated.rs: private bindgen_target_flags = \
     $(shell grep -v '^\#\|^$$' $(srctree)/$(src)/bindgen_parameters)
-$(obj)/bindings_generated.rs: $(src)/kernel/bindings_helper.h \
+$(obj)/bindings/bindings_generated.rs: $(src)/bindings/bindings_helper.h \
     $(src)/bindgen_parameters FORCE
 	$(call if_changed_dep,bindgen)
 
@@ -317,14 +317,14 @@ $(obj)/bindings_generated.rs: $(src)/kernel/bindings_helper.h \
 # with `-Wmissing-declarations` (unlike GCC), so it is not strictly needed here
 # given it is `libclang`; but for consistency, future Clang changes and/or
 # a potential future GCC backend for `bindgen`, we disable it too.
-$(obj)/bindings_helpers_generated.rs: private bindgen_target_flags = \
+$(obj)/bindings/bindings_helpers_generated.rs: private bindgen_target_flags = \
     --blacklist-type '.*' --whitelist-var '' \
     --whitelist-function 'rust_helper_.*'
-$(obj)/bindings_helpers_generated.rs: private bindgen_target_cflags = \
+$(obj)/bindings/bindings_helpers_generated.rs: private bindgen_target_cflags = \
     -I$(objtree)/$(obj) -Wno-missing-prototypes -Wno-missing-declarations
-$(obj)/bindings_helpers_generated.rs: private bindgen_target_extra = ; \
+$(obj)/bindings/bindings_helpers_generated.rs: private bindgen_target_extra = ; \
     sed -Ei 's/pub fn rust_helper_([a-zA-Z0-9_]*)/#[link_name="rust_helper_\1"]\n    pub fn \1/g' $@
-$(obj)/bindings_helpers_generated.rs: $(src)/helpers.c FORCE
+$(obj)/bindings/bindings_helpers_generated.rs: $(src)/helpers.c FORCE
 	$(call if_changed_dep,bindgen)
 
 quiet_cmd_exports = EXPORTS $@
@@ -396,10 +396,10 @@ $(obj)/alloc.o: $(src)/alloc/lib.rs $(obj)/compiler_builtins.o FORCE
 $(obj)/build_error.o: $(src)/build_error.rs $(obj)/compiler_builtins.o FORCE
 	$(call if_changed_dep,rustc_library)
 
-$(obj)/bindings.o: $(src)/kernel/bindings.rs \
-	$(obj)/compiler_builtins.o \
-    $(obj)/bindings_generated.rs \
-    $(obj)/bindings_helpers_generated.rs FORCE
+$(obj)/bindings.o: $(src)/bindings/lib.rs \
+    $(obj)/compiler_builtins.o \
+    $(obj)/bindings/bindings_generated.rs \
+    $(obj)/bindings/bindings_helpers_generated.rs FORCE
 	$(call if_changed_dep,rustc_library)
 
 $(obj)/kernel.o: private rustc_target_flags = --extern alloc \
