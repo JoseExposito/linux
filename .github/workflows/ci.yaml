@@ -363,6 +363,11 @@ jobs:
           grep '] rust_semaphore_c: Rust semaphore sample (in C, for comparison) (init)$' qemu-stdout.log
           grep '] rust_semaphore_c: Rust semaphore sample (in C, for comparison) (exit)$' qemu-stdout.log
 
+      - run: |
+          grep '] rust_selftests: Rust self tests (init)$' qemu-stdout.log
+          grep '] rust_selftests: All tests passed. Congratulations!$' qemu-stdout.log
+          grep '] rust_selftests: Rust self tests (exit)$' qemu-stdout.log
+
       # Report
       - run: |
           cat ${{ env.BUILD_DIR }}.config
