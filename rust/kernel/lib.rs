@@ -39,7 +39,7 @@ compile_error!("Missing kernel configuration for conditional compilation");
 mod allocator;
 
 #[doc(hidden)]
-pub mod bindings;
+pub use bindings;
 
 #[cfg(CONFIG_ARM_AMBA)]
 pub mod amba;
