@@ -14,7 +14,6 @@
 #![no_std]
 #![feature(allocator_api)]
 #![feature(associated_type_defaults)]
-#![feature(concat_idents)]
 #![feature(const_mut_refs)]
 #![feature(const_ptr_offset_from)]
 #![feature(const_refs_to_cell)]
@@ -40,6 +39,8 @@ mod allocator;
 
 #[doc(hidden)]
 pub use bindings;
+
+pub use macros;
 
 #[cfg(CONFIG_ARM_AMBA)]
 pub mod amba;
