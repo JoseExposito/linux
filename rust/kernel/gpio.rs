@@ -5,13 +5,15 @@
 //! C header: [`include/linux/gpio/driver.h`](../../../../include/linux/gpio/driver.h)
 
 use crate::{
-    bindings, c_types, device, error::from_kernel_result, types::PointerWrapper, Error, Result,
+    bindings, device, error::code::*, error::from_kernel_result, sync::LockClassKey,
+    types::PointerWrapper, Error, Result,
 };
 use core::{
     cell::UnsafeCell,
     marker::{PhantomData, PhantomPinned},
     pin::Pin,
 };
+use macros::vtable;
 
 #[cfg(CONFIG_GPIOLIB_IRQCHIP)]
 pub use irqchip::{ChipWithIrqChip, RegistrationWithIrqChip};
@@ -26,22 +28,19 @@ pub enum LineDirection {
 }
 
 /// A gpio chip.
+#[vtable]
 pub trait Chip {
     /// Context data associated with the gpio chip.
     ///
     /// It determines the type of the context data passed to each of the methods of the trait.
     type Data: PointerWrapper + Sync + Send;
 
-    /// The methods to use to populate [`struct gpio_chip`]. This is typically populated with
-    /// [`declare_gpio_chip_operations`].
-    const TO_USE: ToUse;
-
     /// Returns the direction of the given gpio line.
     fn get_direction(
         _data: <Self::Data as PointerWrapper>::Borrowed<'_>,
         _offset: u32,
     ) -> Result<LineDirection> {
-        Err(Error::ENOTSUPP)
+        Err(ENOTSUPP)
     }
 
     /// Configures the direction as input of the given gpio line.
@@ -49,7 +48,7 @@ pub trait Chip {
         _data: <Self::Data as PointerWrapper>::Borrowed<'_>,
         _offset: u32,
     ) -> Result {
-        Err(Error::EIO)
+        Err(EIO)
     }
 
     /// Configures the direction as output of the given gpio line.
@@ -60,65 +59,40 @@ pub trait Chip {
         _offset: u32,
         _value: bool,
     ) -> Result {
-        Err(Error::ENOTSUPP)
+        Err(ENOTSUPP)
     }
 
     /// Returns the current value of the given gpio line.
     fn get(_data: <Self::Data as PointerWrapper>::Borrowed<'_>, _offset: u32) -> Result<bool> {
-        Err(Error::EIO)
+        Err(EIO)
     }
 
     /// Sets the value of the given gpio line.
     fn set(_data: <Self::Data as PointerWrapper>::Borrowed<'_>, _offset: u32, _value: bool) {}
 }
 
-/// Represents which fields of [`struct gpio_chip`] should be populated with pointers.
-///
-/// This is typically populated with the [`declare_gpio_chip_operations`] macro.
-pub struct ToUse {
-    /// The `get_direction` field of [`struct gpio_chip`].
-    pub get_direction: bool,
-
-    /// The `direction_input` field of [`struct gpio_chip`].
-    pub direction_input: bool,
-
-    /// The `direction_output` field of [`struct gpio_chip`].
-    pub direction_output: bool,
-
-    /// The `get` field of [`struct gpio_chip`].
-    pub get: bool,
-
-    /// The `set` field of [`struct gpio_chip`].
-    pub set: bool,
-}
-
-/// A constant version where all values are set to `false`, that is, all supported fields will be
-/// set to null pointers.
-pub const USE_NONE: ToUse = ToUse {
-    get_direction: false,
-    direction_input: false,
-    direction_output: false,
-    get: false,
-    set: false,
-};
-
-/// Defines the [`Chip::TO_USE`] field based on a list of fields to be populated.
-#[macro_export]
-macro_rules! declare_gpio_chip_operations {
-    () => {
-        const TO_USE: $crate::gpio::ToUse = $crate::gpio::USE_NONE;
-    };
-    ($($i:ident),+) => {
-        #[allow(clippy::needless_update)]
-        const TO_USE: $crate::gpio::ToUse =
-            $crate::gpio::ToUse {
-                $($i: true),+ ,
-                ..$crate::gpio::USE_NONE
-            };
-    };
-}
-
 /// A registration of a gpio chip.
+///
+/// # Examples
+///
+/// The following example registers an empty gpio chip.
+///
+/// ```
+/// # use kernel::prelude::*;
+/// use kernel::{device::RawDevice, gpio::{self, Registration}};
+///
+/// struct MyGpioChip;
+/// #[vtable]
+/// impl gpio::Chip for MyGpioChip {
+///     type Data = ();
+/// }
+///
+/// fn example(parent: &dyn RawDevice) -> Result<Pin<Box<Registration<MyGpioChip>>>> {
+///     let mut r = Pin::from(Box::try_new(Registration::new())?);
+///     kernel::gpio_chip_register!(r.as_mut(), 32, None, parent, ())?;
+///     Ok(r)
+/// }
+/// ```
 pub struct Registration<T: Chip> {
     gc: UnsafeCell<bindings::gpio_chip>,
     parent: Option<device::Device>,
@@ -140,16 +114,20 @@ impl<T: Chip> Registration<T> {
     }
 
     /// Registers a gpio chip with the rest of the kernel.
+    ///
+    /// Users are encouraged to use the [`gpio_chip_register`] macro because it automatically
+    /// defines the lock classes and calls the registration function.
     pub fn register(
         self: Pin<&mut Self>,
         gpio_count: u16,
         base: Option<i32>,
         parent: &dyn device::RawDevice,
         data: T::Data,
+        lock_keys: [&'static LockClassKey; 2],
     ) -> Result {
         if self.parent.is_some() {
             // Already registered.
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         // SAFETY: We never move out of `this`.
@@ -160,19 +138,19 @@ impl<T: Chip> Registration<T> {
             // Set up the callbacks.
             gc.request = Some(bindings::gpiochip_generic_request);
             gc.free = Some(bindings::gpiochip_generic_free);
-            if T::TO_USE.get_direction {
+            if T::HAS_GET_DIRECTION {
                 gc.get_direction = Some(get_direction_callback::<T>);
             }
-            if T::TO_USE.direction_input {
+            if T::HAS_DIRECTION_INPUT {
                 gc.direction_input = Some(direction_input_callback::<T>);
             }
-            if T::TO_USE.direction_output {
+            if T::HAS_DIRECTION_OUTPUT {
                 gc.direction_output = Some(direction_output_callback::<T>);
             }
-            if T::TO_USE.get {
+            if T::HAS_GET {
                 gc.get = Some(get_callback::<T>);
             }
-            if T::TO_USE.set {
+            if T::HAS_SET {
                 gc.set = Some(set_callback::<T>);
             }
 
@@ -196,8 +174,8 @@ impl<T: Chip> Registration<T> {
             bindings::gpiochip_add_data_with_key(
                 this.gc.get(),
                 data_pointer as _,
-                core::ptr::null_mut(),
-                core::ptr::null_mut(),
+                lock_keys[0].get(),
+                lock_keys[1].get(),
             )
         };
         if ret < 0 {
@@ -246,10 +224,29 @@ impl<T: Chip> Drop for Registration<T> {
     }
 }
 
+/// Registers a gpio chip with the rest of the kernel.
+///
+/// It automatically defines the required lock classes.
+#[macro_export]
+macro_rules! gpio_chip_register {
+    ($reg:expr, $count:expr, $base:expr, $parent:expr, $data:expr $(,)?) => {{
+        static CLASS1: $crate::sync::LockClassKey = $crate::sync::LockClassKey::new();
+        static CLASS2: $crate::sync::LockClassKey = $crate::sync::LockClassKey::new();
+        $crate::gpio::Registration::register(
+            $reg,
+            $count,
+            $base,
+            $parent,
+            $data,
+            [&CLASS1, &CLASS2],
+        )
+    }};
+}
+
 unsafe extern "C" fn get_direction_callback<T: Chip>(
     gc: *mut bindings::gpio_chip,
-    offset: c_types::c_uint,
-) -> c_types::c_int {
+    offset: core::ffi::c_uint,
+) -> core::ffi::c_int {
     from_kernel_result! {
         // SAFETY: The value stored as chip data was returned by `into_pointer` during registration.
         let data = unsafe { T::Data::borrow(bindings::gpiochip_get_data(gc)) };
@@ -259,8 +256,8 @@ unsafe extern "C" fn get_direction_callback<T: Chip>(
 
 unsafe extern "C" fn direction_input_callback<T: Chip>(
     gc: *mut bindings::gpio_chip,
-    offset: c_types::c_uint,
-) -> c_types::c_int {
+    offset: core::ffi::c_uint,
+) -> core::ffi::c_int {
     from_kernel_result! {
         // SAFETY: The value stored as chip data was returned by `into_pointer` during registration.
         let data = unsafe { T::Data::borrow(bindings::gpiochip_get_data(gc)) };
@@ -271,9 +268,9 @@ unsafe extern "C" fn direction_input_callback<T: Chip>(
 
 unsafe extern "C" fn direction_output_callback<T: Chip>(
     gc: *mut bindings::gpio_chip,
-    offset: c_types::c_uint,
-    value: c_types::c_int,
-) -> c_types::c_int {
+    offset: core::ffi::c_uint,
+    value: core::ffi::c_int,
+) -> core::ffi::c_int {
     from_kernel_result! {
         // SAFETY: The value stored as chip data was returned by `into_pointer` during registration.
         let data = unsafe { T::Data::borrow(bindings::gpiochip_get_data(gc)) };
@@ -284,8 +281,8 @@ unsafe extern "C" fn direction_output_callback<T: Chip>(
 
 unsafe extern "C" fn get_callback<T: Chip>(
     gc: *mut bindings::gpio_chip,
-    offset: c_types::c_uint,
-) -> c_types::c_int {
+    offset: core::ffi::c_uint,
+) -> core::ffi::c_int {
     from_kernel_result! {
         // SAFETY: The value stored as chip data was returned by `into_pointer` during registration.
         let data = unsafe { T::Data::borrow(bindings::gpiochip_get_data(gc)) };
@@ -296,8 +293,8 @@ unsafe extern "C" fn get_callback<T: Chip>(
 
 unsafe extern "C" fn set_callback<T: Chip>(
     gc: *mut bindings::gpio_chip,
-    offset: c_types::c_uint,
-    value: c_types::c_int,
+    offset: core::ffi::c_uint,
+    value: core::ffi::c_int,
 ) {
     // SAFETY: The value stored as chip data was returned by `into_pointer` during registration.
     let data = unsafe { T::Data::borrow(bindings::gpiochip_get_data(gc)) };
@@ -339,6 +336,9 @@ mod irqchip {
         }
 
         /// Registers a gpio chip and its irq chip with the rest of the kernel.
+        ///
+        /// Users are encouraged to use the [`gpio_irq_chip_register`] macro because it
+        /// automatically defines the lock classes and calls the registration function.
         pub fn register<U: irq::Chip<Data = T::Data>>(
             mut self: Pin<&mut Self>,
             gpio_count: u16,
@@ -346,10 +346,11 @@ mod irqchip {
             parent: &dyn device::RawDevice,
             data: T::Data,
             parent_irq: u32,
+            lock_keys: [&'static LockClassKey; 2],
         ) -> Result {
             if self.reg.parent.is_some() {
                 // Already registered.
-                return Err(Error::EINVAL);
+                return Err(EINVAL);
             }
 
             // SAFETY: We never move out of `this`.
@@ -383,7 +384,7 @@ mod irqchip {
 
             // SAFETY: `reg` is pinned when `self` is.
             let pinned = unsafe { self.map_unchecked_mut(|r| &mut r.reg) };
-            pinned.register(gpio_count, base, parent, data)
+            pinned.register(gpio_count, base, parent, data, lock_keys)
         }
     }
 
@@ -426,9 +427,12 @@ mod irqchip {
     /// data is passed as context.
     struct IrqChipAdapter<T: irq::Chip>(PhantomData<T>);
 
+    #[vtable]
     impl<T: irq::Chip> irq::Chip for IrqChipAdapter<T> {
         type Data = *mut bindings::gpio_chip;
-        const TO_USE: irq::ToUse = T::TO_USE;
+
+        const HAS_SET_TYPE: bool = T::HAS_SET_TYPE;
+        const HAS_SET_WAKE: bool = T::HAS_SET_WAKE;
 
         fn ack(gc: *mut bindings::gpio_chip, irq_data: &irq::IrqData) {
             // SAFETY: `IrqChipAdapter` is a private struct, only used when the data stored in the
@@ -473,5 +477,26 @@ mod irqchip {
             let data = unsafe { T::Data::borrow(bindings::gpiochip_get_data(gc as _)) };
             T::set_wake(data, irq_data, on)
         }
+    }
+
+    /// Registers a gpio chip and its irq chip with the rest of the kernel.
+    ///
+    /// It automatically defines the required lock classes.
+    #[macro_export]
+    macro_rules! gpio_irq_chip_register {
+        ($reg:expr, $irqchip:ty, $count:expr, $base:expr, $parent:expr, $data:expr,
+         $parent_irq:expr $(,)?) => {{
+            static CLASS1: $crate::sync::LockClassKey = $crate::sync::LockClassKey::new();
+            static CLASS2: $crate::sync::LockClassKey = $crate::sync::LockClassKey::new();
+            $crate::gpio::RegistrationWithIrqChip::register::<$irqchip>(
+                $reg,
+                $count,
+                $base,
+                $parent,
+                $data,
+                $parent_irq,
+                [&CLASS1, &CLASS2],
+            )
+        }};
     }
 }

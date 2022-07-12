@@ -30,12 +30,7 @@ module! {
     name: b"rust_binder",
     author: b"Wedson Almeida Filho",
     description: b"Android Binder",
-    license: b"GPL v2",
-}
-
-enum Either<L, R> {
-    Left(L),
-    Right(R),
+    license: b"GPL",
 }
 
 trait DeliverToRead {
@@ -102,7 +97,7 @@ struct BinderModule {
     _reg: Pin<Box<Registration<process::Process>>>,
 }
 
-impl KernelModule for BinderModule {
+impl kernel::Module for BinderModule {
     fn init(name: &'static CStr, _module: &'static kernel::ThisModule) -> Result<Self> {
         let ctx = Context::new()?;
         let reg = Registration::new_pinned(fmt!("{name}"), ctx)?;

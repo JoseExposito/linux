@@ -4,8 +4,8 @@
 //!
 //! C header: [`include/uapi/asm-generic/errno-base.h`](../../../include/uapi/asm-generic/errno-base.h)
 
+use crate::bindings;
 use crate::str::CStr;
-use crate::{bindings, c_types};
 use alloc::{
     alloc::{AllocError, LayoutError},
     collections::TryReserveError,
@@ -15,30 +15,17 @@ use core::fmt;
 use core::num::TryFromIntError;
 use core::str::{self, Utf8Error};
 
-macro_rules! declare_err {
-    ($err:tt) => {
-        pub const $err: Self = Error(-(bindings::$err as i32));
-    };
-    ($err:tt, $($doc:expr),+) => {
-        $(
-        #[doc = $doc]
-        )*
-        pub const $err: Self = Error(-(bindings::$err as i32));
-    };
-}
+/// Contains the C-compatible error codes.
+pub mod code {
+    macro_rules! declare_err {
+        ($err:tt $(,)? $($doc:expr),+) => {
+            $(
+            #[doc = $doc]
+            )*
+            pub const $err: super::Error = super::Error(-(crate::bindings::$err as i32));
+        };
+    }
 
-/// Generic integer kernel error.
-///
-/// The kernel defines a set of integer generic error codes based on C and
-/// POSIX ones. These codes may have a more specific meaning in some contexts.
-///
-/// # Invariants
-///
-/// The value is a valid `errno` (i.e. `>= -MAX_ERRNO && < 0`).
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Error(c_types::c_int);
-
-impl Error {
     declare_err!(EPERM, "Operation not permitted.");
 
     declare_err!(ENOENT, "No such file or directory.");
@@ -118,10 +105,10 @@ impl Error {
         "Invalid system call number.",
         "",
         "This error code is special: arch syscall entry code will return",
-        "[`Self::ENOSYS`] if users try to call a syscall that doesn't exist.",
+        "[`ENOSYS`] if users try to call a syscall that doesn't exist.",
         "To keep failures of syscalls that really do exist distinguishable from",
         "failures due to attempts to use a nonexistent syscall, syscall",
-        "implementations should refrain from returning [`Self::ENOSYS`]."
+        "implementations should refrain from returning [`ENOSYS`]."
     );
 
     declare_err!(ENOTEMPTY, "Directory not empty.");
@@ -317,19 +304,32 @@ impl Error {
     declare_err!(ERESTARTSYS, "Restart the system call.");
 
     declare_err!(ENOTSUPP, "Operation is not supported.");
+}
 
+/// Generic integer kernel error.
+///
+/// The kernel defines a set of integer generic error codes based on C and
+/// POSIX ones. These codes may have a more specific meaning in some contexts.
+///
+/// # Invariants
+///
+/// The value is a valid `errno` (i.e. `>= -MAX_ERRNO && < 0`).
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Error(core::ffi::c_int);
+
+impl Error {
     /// Creates an [`Error`] from a kernel error code.
     ///
     /// It is a bug to pass an out-of-range `errno`. `EINVAL` would
     /// be returned in such a case.
-    pub(crate) fn from_kernel_errno(errno: c_types::c_int) -> Error {
+    pub(crate) fn from_kernel_errno(errno: core::ffi::c_int) -> Error {
         if errno < -(bindings::MAX_ERRNO as i32) || errno >= 0 {
             // TODO: Make it a `WARN_ONCE` once available.
             crate::pr_warn!(
                 "attempted to create `Error` with out of range `errno`: {}",
                 errno
             );
-            return Error::EINVAL;
+            return code::EINVAL;
         }
 
         // INVARIANT: The check above ensures the type invariant
@@ -342,14 +342,14 @@ impl Error {
     /// # Safety
     ///
     /// `errno` must be within error code range (i.e. `>= -MAX_ERRNO && < 0`).
-    pub(crate) unsafe fn from_kernel_errno_unchecked(errno: c_types::c_int) -> Error {
+    pub(crate) unsafe fn from_kernel_errno_unchecked(errno: core::ffi::c_int) -> Error {
         // INVARIANT: The contract ensures the type invariant
         // will hold.
         Error(errno)
     }
 
     /// Returns the kernel error code.
-    pub fn to_kernel_errno(self) -> c_types::c_int {
+    pub fn to_kernel_errno(self) -> core::ffi::c_int {
         self.0
     }
 
@@ -392,31 +392,37 @@ impl fmt::Debug for Error {
 
 impl From<TryFromIntError> for Error {
     fn from(_: TryFromIntError) -> Error {
-        Error::EINVAL
+        code::EINVAL
     }
 }
 
 impl From<Utf8Error> for Error {
     fn from(_: Utf8Error) -> Error {
-        Error::EINVAL
+        code::EINVAL
     }
 }
 
 impl From<TryReserveError> for Error {
     fn from(_: TryReserveError) -> Error {
-        Error::ENOMEM
+        code::ENOMEM
     }
 }
 
 impl From<LayoutError> for Error {
     fn from(_: LayoutError) -> Error {
-        Error::ENOMEM
+        code::ENOMEM
     }
 }
 
 impl From<core::fmt::Error> for Error {
     fn from(_: core::fmt::Error) -> Error {
-        Error::EINVAL
+        code::EINVAL
+    }
+}
+
+impl From<core::convert::Infallible> for Error {
+    fn from(e: core::convert::Infallible) -> Error {
+        match e {}
     }
 }
 
@@ -444,7 +450,7 @@ pub type Result<T = ()> = core::result::Result<T, Error>;
 
 impl From<AllocError> for Error {
     fn from(_: AllocError) -> Error {
-        Error::ENOMEM
+        code::ENOMEM
     }
 }
 
@@ -476,11 +482,10 @@ where
 ///
 /// ```ignore
 /// # use kernel::from_kernel_result;
-/// # use kernel::c_types;
 /// # use kernel::bindings;
 /// unsafe extern "C" fn probe_callback(
 ///     pdev: *mut bindings::platform_device,
-/// ) -> c_types::c_int {
+/// ) -> core::ffi::c_int {
 ///     from_kernel_result! {
 ///         let ptr = devm_alloc(pdev)?;
 ///         bindings::platform_set_drvdata(pdev, ptr);
@@ -508,14 +513,12 @@ pub(crate) use from_kernel_result;
 /// # Examples
 ///
 /// ```ignore
-/// # use kernel::prelude::*;
 /// # use kernel::from_kernel_err_ptr;
-/// # use kernel::c_types;
 /// # use kernel::bindings;
 /// fn devm_platform_ioremap_resource(
 ///     pdev: &mut PlatformDevice,
 ///     index: u32,
-/// ) -> Result<*mut c_types::c_void> {
+/// ) -> Result<*mut core::ffi::c_void> {
 ///     // SAFETY: FFI call.
 ///     unsafe {
 ///         from_kernel_err_ptr(bindings::devm_platform_ioremap_resource(
@@ -528,8 +531,8 @@ pub(crate) use from_kernel_result;
 // TODO: Remove `dead_code` marker once an in-kernel client is available.
 #[allow(dead_code)]
 pub(crate) fn from_kernel_err_ptr<T>(ptr: *mut T) -> Result<*mut T> {
-    // CAST: Casting a pointer to `*const c_types::c_void` is always valid.
-    let const_ptr: *const c_types::c_void = ptr.cast();
+    // CAST: Casting a pointer to `*const core::ffi::c_void` is always valid.
+    let const_ptr: *const core::ffi::c_void = ptr.cast();
     // SAFETY: The FFI function does not deref the pointer.
     if unsafe { bindings::IS_ERR(const_ptr) } {
         // SAFETY: The FFI function does not deref the pointer.
@@ -548,10 +551,9 @@ pub(crate) fn from_kernel_err_ptr<T>(ptr: *mut T) -> Result<*mut T> {
     Ok(ptr)
 }
 
-/// Calls a kernel function that returns an integer error code on failure and converts the result
-/// to a [`Result`].
-pub fn to_result(func: impl FnOnce() -> c_types::c_int) -> Result {
-    let err = func();
+/// Converts an integer as returned by a C kernel function to an error if it's negative, and
+/// `Ok(())` otherwise.
+pub fn to_result(err: core::ffi::c_int) -> Result {
     if err < 0 {
         Err(Error::from_kernel_errno(err))
     } else {

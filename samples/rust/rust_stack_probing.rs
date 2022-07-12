@@ -9,12 +9,12 @@ module! {
     name: b"rust_stack_probing",
     author: b"Rust for Linux Contributors",
     description: b"Rust stack probing sample",
-    license: b"GPL v2",
+    license: b"GPL",
 }
 
 struct RustStackProbing;
 
-impl KernelModule for RustStackProbing {
+impl kernel::Module for RustStackProbing {
     fn init(_name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust stack probing sample (init)\n");
 

@@ -39,6 +39,7 @@
 #[cfg(all(not(no_global_oom_handling), not(test)))]
 #[macro_export]
 #[stable(feature = "rust1", since = "1.0.0")]
+#[rustc_diagnostic_item = "vec_macro"]
 #[allow_internal_unstable(box_syntax, liballoc_internals)]
 macro_rules! vec {
     () => (
@@ -56,7 +57,8 @@ macro_rules! vec {
 // required for this macro definition, is not available. Instead use the
 // `slice::into_vec`  function which is only available with cfg(test)
 // NB see the slice::hack module in slice.rs for more information
-#[cfg(test)]
+#[cfg(all(not(no_global_oom_handling), test))]
+#[cfg_attr(not(bootstrap), allow(unused_macro_rules))]
 macro_rules! vec {
     () => (
         $crate::vec::Vec::new()

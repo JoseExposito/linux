@@ -49,7 +49,7 @@ impl<T> RangeAllocator<T> {
 
     pub(crate) fn reserve_new(&mut self, size: usize) -> Result<usize> {
         let desc_ptr = match self.find_best_match(size) {
-            None => return Err(Error::ENOMEM),
+            None => return Err(ENOMEM),
             Some(found) => found,
         };
 
@@ -70,11 +70,11 @@ impl<T> RangeAllocator<T> {
 
     fn free_with_cursor(cursor: &mut CursorMut<'_, Box<Descriptor<T>>>) -> Result {
         let mut size = match cursor.current() {
-            None => return Err(Error::EINVAL),
+            None => return Err(EINVAL),
             Some(ref mut entry) => {
                 match entry.state {
-                    DescriptorState::Free => return Err(Error::EINVAL),
-                    DescriptorState::Allocated => return Err(Error::EPERM),
+                    DescriptorState::Free => return Err(EINVAL),
+                    DescriptorState::Allocated => return Err(EPERM),
                     DescriptorState::Reserved => {}
                 }
                 entry.state = DescriptorState::Free;
@@ -121,13 +121,13 @@ impl<T> RangeAllocator<T> {
 
     pub(crate) fn reservation_abort(&mut self, offset: usize) -> Result {
         // TODO: The force case is currently O(n), but could be made O(1) with unsafe.
-        let mut cursor = self.find_at_offset(offset).ok_or(Error::EINVAL)?;
+        let mut cursor = self.find_at_offset(offset).ok_or(EINVAL)?;
         Self::free_with_cursor(&mut cursor)
     }
 
     pub(crate) fn reservation_commit(&mut self, offset: usize, data: Option<T>) -> Result {
         // TODO: This is currently O(n), make it O(1).
-        let mut cursor = self.find_at_offset(offset).ok_or(Error::ENOENT)?;
+        let mut cursor = self.find_at_offset(offset).ok_or(ENOENT)?;
         let desc = cursor.current().unwrap();
         desc.state = DescriptorState::Allocated;
         desc.data = data;
@@ -140,10 +140,10 @@ impl<T> RangeAllocator<T> {
     /// Returns the size of the existing entry and the data associated with it.
     pub(crate) fn reserve_existing(&mut self, offset: usize) -> Result<(usize, Option<T>)> {
         // TODO: This is currently O(n), make it O(log n).
-        let mut cursor = self.find_at_offset(offset).ok_or(Error::ENOENT)?;
+        let mut cursor = self.find_at_offset(offset).ok_or(ENOENT)?;
         let desc = cursor.current().unwrap();
         if desc.state != DescriptorState::Allocated {
-            return Err(Error::ENOENT);
+            return Err(ENOENT);
         }
         desc.state = DescriptorState::Reserved;
         Ok((desc.size, desc.data.take()))

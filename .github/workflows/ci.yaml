@@ -7,7 +7,7 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-20.04
-    container: ghcr.io/rust-for-linux/ci
+    container: ghcr.io/rust-for-linux/ci:Rust-1.62.0
     timeout-minutes: 20
 
     strategy:
@@ -267,6 +267,9 @@ jobs:
 
       # Check
       - run: |
+          grep '] ok 1 - rust_kernel_doctests$' qemu-stdout.log
+
+      - run: |
           grep '] rust_minimal: Rust minimal sample (init)$' qemu-stdout.log
           grep '] rust_minimal: Am I built-in? false$'       qemu-stdout.log
           grep '] rust_minimal: My message is on the heap!$' qemu-stdout.log
@@ -360,6 +363,11 @@ jobs:
           grep '] rust_semaphore_c: Rust semaphore sample (in C, for comparison) (init)$' qemu-stdout.log
           grep '] rust_semaphore_c: Rust semaphore sample (in C, for comparison) (exit)$' qemu-stdout.log
 
+      - run: |
+          grep '] rust_selftests: Rust self tests (init)$' qemu-stdout.log
+          grep '] rust_selftests: All tests passed. Congratulations!$' qemu-stdout.log
+          grep '] rust_selftests: Rust self tests (exit)$' qemu-stdout.log
+
       # Report
       - run: |
           cat ${{ env.BUILD_DIR }}.config
@@ -404,6 +412,9 @@ jobs:
           grep -F '#![feature(prelude_import)]' ${{ env.BUILD_DIR }}samples/rust/rust_minimal.i
           grep -F '.text'                       ${{ env.BUILD_DIR }}samples/rust/rust_minimal.s
           grep -F '; ModuleID'                  ${{ env.BUILD_DIR }}samples/rust/rust_minimal.ll
+
+      # Rust host programs
+      - run: ${{ env.BUILD_DIR }}samples/rust/hostprogs/single | grep -F 'The number is 42.'
 
       # View changes to ccache
       - run: ccache -s

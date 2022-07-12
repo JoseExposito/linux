@@ -7,14 +7,14 @@ use core::{
 };
 use kernel::{
     bindings,
-    file::File,
-    file_operations::PollTable,
+    file::{File, PollTable},
     io_buffer::{IoBufferReader, IoBufferWriter},
     linked_list::{GetLinks, Links, List},
     prelude::*,
     security,
     sync::{CondVar, Ref, SpinLock, UniqueRef},
     user_ptr::{UserSlicePtr, UserSlicePtrWriter},
+    Either,
 };
 
 use crate::{
@@ -23,7 +23,7 @@ use crate::{
     process::{AllocationInfo, Process},
     ptr_align,
     transaction::{FileInfo, Transaction},
-    DeliverCode, DeliverToRead, DeliverToReadListAdapter, Either,
+    DeliverCode, DeliverToRead, DeliverToReadListAdapter,
 };
 
 pub(crate) type BinderResult<T = ()> = core::result::Result<T, BinderError>;
@@ -163,11 +163,11 @@ impl InnerThread {
     /// (that it could respond to) but it has also issued a transaction, it must first wait for the
     /// previously-issued transaction to complete.
     fn pop_transaction_to_reply(&mut self, thread: &Thread) -> Result<Ref<Transaction>> {
-        let transaction = self.current_transaction.take().ok_or(Error::EINVAL)?;
+        let transaction = self.current_transaction.take().ok_or(EINVAL)?;
 
         if core::ptr::eq(thread, transaction.from.as_ref()) {
             self.current_transaction = Some(transaction);
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         // Find a new current transaction for this thread.
@@ -246,7 +246,7 @@ impl Thread {
             process,
             // SAFETY: `inner` is initialised in the call to `spinlock_init` below.
             inner: unsafe { SpinLock::new(InnerThread::new()) },
-            // SAFETY: `work_condvar` is initalised in the call to `condvar_init` below.
+            // SAFETY: `work_condvar` is initialised in the call to `condvar_init` below.
             work_condvar: unsafe { CondVar::new() },
             links: Links::new(),
         })?);
@@ -278,7 +278,7 @@ impl Thread {
     fn get_work_local(self: &Ref<Self>, wait: bool) -> Result<Ref<dyn DeliverToRead>> {
         // Try once if the caller does not want to wait.
         if !wait {
-            return self.inner.lock().pop_work().ok_or(Error::EAGAIN);
+            return self.inner.lock().pop_work().ok_or(EAGAIN);
         }
 
         // Loop waiting only on the local queue (i.e., not registering with the process queue).
@@ -293,7 +293,7 @@ impl Thread {
             inner.looper_flags &= !LOOPER_WAITING;
 
             if signal_pending {
-                return Err(Error::ERESTARTSYS);
+                return Err(ERESTARTSYS);
             }
         }
     }
@@ -317,7 +317,7 @@ impl Thread {
         // We know nothing will have been queued directly to the thread queue because it is not in
         // a transaction and it is not in the process' ready list.
         if !wait {
-            return self.process.get_work().ok_or(Error::EAGAIN);
+            return self.process.get_work().ok_or(EAGAIN);
         }
 
         // Get work from the process queue. If none is available, atomically register as ready.
@@ -343,7 +343,7 @@ impl Thread {
                 // error).
                 drop(inner);
                 drop(reg);
-                return self.inner.lock().pop_work().ok_or(Error::ERESTARTSYS);
+                return self.inner.lock().pop_work().ok_or(ERESTARTSYS);
             }
         }
     }
@@ -473,7 +473,7 @@ impl Thread {
 
         // This guarantees that at least `sizeof(usize)` bytes will be allocated.
         let len = core::cmp::max(
-            adata_size.checked_add(aoffsets_size).ok_or(Error::ENOMEM)?,
+            adata_size.checked_add(aoffsets_size).ok_or(ENOMEM)?,
             size_of::<usize>(),
         );
         let mut alloc = to_process.buffer_alloc(len)?;
@@ -607,7 +607,7 @@ impl Thread {
         let inner = self.inner.lock();
         Ok(if let Some(cur) = &inner.current_transaction {
             if core::ptr::eq(self, cur.from.as_ref()) {
-                return Err(Error::EINVAL);
+                return Err(EINVAL);
             }
             Some(cur.clone())
         } else {
@@ -691,7 +691,7 @@ impl Thread {
 
                 // TODO: Add support for BC_TRANSACTION_SG and BC_REPLY_SG.
                 // BC_ATTEMPT_ACQUIRE and BC_ACQUIRE_RESULT are no longer supported.
-                _ => return Err(Error::EINVAL),
+                _ => return Err(EINVAL),
             }
 
             // Update the number of write bytes consumed.

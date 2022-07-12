@@ -57,8 +57,8 @@ impl<'a> Allocation<'a> {
         T: FnMut(&Pages<0>, usize, usize) -> Result,
     {
         // Check that the request is within the buffer.
-        if offset.checked_add(size).ok_or(Error::EINVAL)? > self.size {
-            return Err(Error::EINVAL);
+        if offset.checked_add(size).ok_or(EINVAL)? > self.size {
+            return Err(EINVAL);
         }
         offset += self.offset;
         let mut page_index = offset >> bindings::PAGE_SHIFT;
@@ -157,15 +157,15 @@ impl<'a, 'b> AllocationView<'a, 'b> {
     }
 
     pub(crate) fn read<T>(&self, offset: usize) -> Result<T> {
-        if offset.checked_add(size_of::<T>()).ok_or(Error::EINVAL)? > self.limit {
-            return Err(Error::EINVAL);
+        if offset.checked_add(size_of::<T>()).ok_or(EINVAL)? > self.limit {
+            return Err(EINVAL);
         }
         self.alloc.read(offset)
     }
 
     pub(crate) fn write<T>(&self, offset: usize, obj: &T) -> Result {
-        if offset.checked_add(size_of::<T>()).ok_or(Error::EINVAL)? > self.limit {
-            return Err(Error::EINVAL);
+        if offset.checked_add(size_of::<T>()).ok_or(EINVAL)? > self.limit {
+            return Err(EINVAL);
         }
         self.alloc.write(offset, obj)
     }

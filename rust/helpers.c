@@ -1,40 +1,43 @@
 // SPDX-License-Identifier: GPL-2.0
-//
-// Non-trivial C macros cannot be used in Rust. Similarly, inlined C functions
-// cannot be called either. This file explicitly creates functions ("helpers")
-// that wrap those so that they can be called from Rust.
-//
-// Even though Rust kernel modules should never use directly the bindings, some
-// of these helpers need to be exported because Rust generics and inlined
-// functions may not get their code generated in the crate where they are
-// defined. Other helpers, called from non-inline functions, may not be
-// exported, in principle. However, in general, the Rust compiler does not
-// guarantee codegen will be performed for a non-inline function either.
-// Therefore, this file exports all the helpers. In the future, this may be
-// revisited to reduce the number of exports after the compiler is informed
-// about the places codegen is required.
-//
-// All symbols are exported as GPL-only to guarantee no GPL-only feature is
-// accidentally exposed.
+/*
+ * Non-trivial C macros cannot be used in Rust. Similarly, inlined C functions
+ * cannot be called either. This file explicitly creates functions ("helpers")
+ * that wrap those so that they can be called from Rust.
+ *
+ * Even though Rust kernel modules should never use directly the bindings, some
+ * of these helpers need to be exported because Rust generics and inlined
+ * functions may not get their code generated in the crate where they are
+ * defined. Other helpers, called from non-inline functions, may not be
+ * exported, in principle. However, in general, the Rust compiler does not
+ * guarantee codegen will be performed for a non-inline function either.
+ * Therefore, this file exports all the helpers. In the future, this may be
+ * revisited to reduce the number of exports after the compiler is informed
+ * about the places codegen is required.
+ *
+ * All symbols are exported as GPL-only to guarantee no GPL-only feature is
+ * accidentally exposed.
+ */
 
+#include <linux/amba/bus.h>
 #include <linux/bug.h>
 #include <linux/build_bug.h>
 #include <linux/clk.h>
-#include <linux/uaccess.h>
-#include <linux/sched/signal.h>
+#include <linux/errname.h>
 #include <linux/gfp.h>
 #include <linux/highmem.h>
-#include <linux/uio.h>
-#include <linux/errname.h>
-#include <linux/mutex.h>
-#include <linux/platform_device.h>
-#include <linux/security.h>
-#include <asm/io.h>
-#include <linux/irq.h>
+#include <linux/io.h>
 #include <linux/irqchip/chained_irq.h>
 #include <linux/irqdomain.h>
-#include <linux/amba/bus.h>
+#include <linux/irq.h>
+#include <linux/mutex.h>
+#include <linux/netdevice.h>
 #include <linux/of_device.h>
+#include <linux/platform_device.h>
+#include <linux/sched/signal.h>
+#include <linux/security.h>
+#include <linux/skbuff.h>
+#include <linux/uaccess.h>
+#include <linux/uio.h>
 
 __noreturn void rust_helper_BUG(void)
 {
@@ -158,29 +161,36 @@ EXPORT_SYMBOL_GPL(rust_helper_readq_relaxed);
 
 void rust_helper_writeb_relaxed(u8 value, volatile void __iomem *addr)
 {
-        writeb_relaxed(value, addr);
+	writeb_relaxed(value, addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_writeb_relaxed);
 
 void rust_helper_writew_relaxed(u16 value, volatile void __iomem *addr)
 {
-        writew_relaxed(value, addr);
+	writew_relaxed(value, addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_writew_relaxed);
 
 void rust_helper_writel_relaxed(u32 value, volatile void __iomem *addr)
 {
-        writel_relaxed(value, addr);
+	writel_relaxed(value, addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_writel_relaxed);
 
 #ifdef CONFIG_64BIT
 void rust_helper_writeq_relaxed(u64 value, volatile void __iomem *addr)
 {
-        writeq_relaxed(value, addr);
+	writeq_relaxed(value, addr);
 }
 EXPORT_SYMBOL_GPL(rust_helper_writeq_relaxed);
 #endif
+
+void rust_helper_memcpy_fromio(void *to, const volatile void __iomem *from, long count)
+{
+	memcpy_fromio(to, from, count);
+}
+EXPORT_SYMBOL_GPL(rust_helper_memcpy_fromio);
+
 void rust_helper___spin_lock_init(spinlock_t *lock, const char *name,
 				  struct lock_class_key *key)
 {
@@ -207,7 +217,9 @@ EXPORT_SYMBOL_GPL(rust_helper_spin_unlock);
 unsigned long rust_helper_spin_lock_irqsave(spinlock_t *lock)
 {
 	unsigned long flags;
+
 	spin_lock_irqsave(lock, flags);
+
 	return flags;
 }
 EXPORT_SYMBOL_GPL(rust_helper_spin_lock_irqsave);
@@ -218,11 +230,58 @@ void rust_helper_spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags)
 }
 EXPORT_SYMBOL_GPL(rust_helper_spin_unlock_irqrestore);
 
+void rust_helper__raw_spin_lock_init(raw_spinlock_t *lock, const char *name,
+				     struct lock_class_key *key)
+{
+#ifdef CONFIG_DEBUG_SPINLOCK
+	_raw_spin_lock_init(lock, name, key);
+#else
+	raw_spin_lock_init(lock);
+#endif
+}
+EXPORT_SYMBOL_GPL(rust_helper__raw_spin_lock_init);
+
+void rust_helper_raw_spin_lock(raw_spinlock_t *lock)
+{
+	raw_spin_lock(lock);
+}
+EXPORT_SYMBOL_GPL(rust_helper_raw_spin_lock);
+
+void rust_helper_raw_spin_unlock(raw_spinlock_t *lock)
+{
+	raw_spin_unlock(lock);
+}
+EXPORT_SYMBOL_GPL(rust_helper_raw_spin_unlock);
+
+unsigned long rust_helper_raw_spin_lock_irqsave(raw_spinlock_t *lock)
+{
+	unsigned long flags;
+
+	raw_spin_lock_irqsave(lock, flags);
+
+	return flags;
+}
+EXPORT_SYMBOL_GPL(rust_helper_raw_spin_lock_irqsave);
+
+void rust_helper_raw_spin_unlock_irqrestore(raw_spinlock_t *lock,
+					    unsigned long flags)
+{
+	raw_spin_unlock_irqrestore(lock, flags);
+}
+EXPORT_SYMBOL_GPL(rust_helper_raw_spin_unlock_irqrestore);
+
 void rust_helper_init_wait(struct wait_queue_entry *wq_entry)
 {
 	init_wait(wq_entry);
 }
 EXPORT_SYMBOL_GPL(rust_helper_init_wait);
+
+void rust_helper_init_waitqueue_func_entry(struct wait_queue_entry *wq_entry,
+					   wait_queue_func_t func)
+{
+	init_waitqueue_func_entry(wq_entry, func);
+}
+EXPORT_SYMBOL_GPL(rust_helper_init_waitqueue_func_entry);
 
 int rust_helper_signal_pending(struct task_struct *t)
 {
@@ -348,13 +407,13 @@ struct task_struct *rust_helper_get_current(void)
 }
 EXPORT_SYMBOL_GPL(rust_helper_get_current);
 
-void rust_helper_get_task_struct(struct task_struct * t)
+void rust_helper_get_task_struct(struct task_struct *t)
 {
 	get_task_struct(t);
 }
 EXPORT_SYMBOL_GPL(rust_helper_get_task_struct);
 
-void rust_helper_put_task_struct(struct task_struct * t)
+void rust_helper_put_task_struct(struct task_struct *t)
 {
 	put_task_struct(t);
 }
@@ -387,6 +446,12 @@ int rust_helper_security_binder_transfer_file(const struct cred *from,
 	return security_binder_transfer_file(from, to, file);
 }
 EXPORT_SYMBOL_GPL(rust_helper_security_binder_transfer_file);
+
+struct file *rust_helper_get_file(struct file *f)
+{
+	return get_file(f);
+}
+EXPORT_SYMBOL_GPL(rust_helper_get_file);
 
 void rust_helper_rcu_read_lock(void)
 {
@@ -494,7 +559,8 @@ const struct cred *rust_helper_get_cred(const struct cred *cred)
 }
 EXPORT_SYMBOL_GPL(rust_helper_get_cred);
 
-void rust_helper_put_cred(const struct cred *cred) {
+void rust_helper_put_cred(const struct cred *cred)
+{
 	put_cred(cred);
 }
 EXPORT_SYMBOL_GPL(rust_helper_put_cred);
@@ -506,11 +572,85 @@ const struct of_device_id *rust_helper_of_match_device(
 }
 EXPORT_SYMBOL_GPL(rust_helper_of_match_device);
 
-/* We use bindgen's --size_t-is-usize option to bind the C size_t type
- * as the Rust usize type, so we can use it in contexts where Rust
- * expects a usize like slice (array) indices. usize is defined to be
- * the same as C's uintptr_t type (can hold any pointer) but not
- * necessarily the same as size_t (can hold the size of any single
+void rust_helper_init_completion(struct completion *c)
+{
+	init_completion(c);
+}
+EXPORT_SYMBOL_GPL(rust_helper_init_completion);
+
+struct sk_buff *rust_helper_skb_get(struct sk_buff *skb)
+{
+	return skb_get(skb);
+}
+EXPORT_SYMBOL_GPL(rust_helper_skb_get);
+
+unsigned int rust_helper_skb_headlen(const struct sk_buff *skb)
+{
+	return skb_headlen(skb);
+}
+EXPORT_SYMBOL_GPL(rust_helper_skb_headlen);
+
+void rust_helper_dev_hold(struct net_device *dev)
+{
+	return dev_hold(dev);
+}
+EXPORT_SYMBOL_GPL(rust_helper_dev_hold);
+
+void rust_helper_dev_put(struct net_device *dev)
+{
+	return dev_put(dev);
+}
+EXPORT_SYMBOL_GPL(rust_helper_dev_put);
+
+struct net *rust_helper_get_net(struct net *net)
+{
+	return get_net(net);
+}
+EXPORT_SYMBOL_GPL(rust_helper_get_net);
+
+void rust_helper_put_net(struct net *net)
+{
+	return put_net(net);
+}
+EXPORT_SYMBOL_GPL(rust_helper_put_net);
+
+unsigned int rust_helper_NF_QUEUE_NR(unsigned int n)
+{
+	return NF_QUEUE_NR(n);
+}
+EXPORT_SYMBOL_GPL(rust_helper_NF_QUEUE_NR);
+
+void rust_helper___INIT_WORK_WITH_KEY(struct work_struct *work,
+		work_func_t func, bool on_stack, struct lock_class_key *key)
+{
+	__INIT_WORK_WITH_KEY(work, func, on_stack, key);
+}
+EXPORT_SYMBOL_GPL(rust_helper___INIT_WORK_WITH_KEY);
+
+struct dentry *rust_helper_dget(struct dentry *dentry)
+{
+	return dget(dentry);
+}
+EXPORT_SYMBOL_GPL(rust_helper_dget);
+
+void rust_helper_lockdep_register_key(struct lock_class_key *key)
+{
+	lockdep_register_key(key);
+}
+EXPORT_SYMBOL_GPL(rust_helper_lockdep_register_key);
+
+void rust_helper_lockdep_unregister_key(struct lock_class_key *key)
+{
+	lockdep_unregister_key(key);
+}
+EXPORT_SYMBOL_GPL(rust_helper_lockdep_unregister_key);
+
+/*
+ * We use `bindgen`'s `--size_t-is-usize` option to bind the C `size_t` type
+ * as the Rust `usize` type, so we can use it in contexts where Rust
+ * expects a `usize` like slice (array) indices. `usize` is defined to be
+ * the same as C's `uintptr_t` type (can hold any pointer) but not
+ * necessarily the same as `size_t` (can hold the size of any single
  * object). Most modern platforms use the same concrete integer type for
  * both of them, but in case we find ourselves on a platform where
  * that's not true, fail early instead of risking ABI or
@@ -518,12 +658,12 @@ EXPORT_SYMBOL_GPL(rust_helper_of_match_device);
  *
  * If your platform fails this assertion, it means that you are in
  * danger of integer-overflow bugs (even if you attempt to remove
- * --size_t-is-usize). It may be easiest to change the kernel ABI on
- * your platform such that size_t matches uintptr_t (i.e., to increase
- * size_t, because uintptr_t has to be at least as big as size_t).
-*/
+ * `--size_t-is-usize`). It may be easiest to change the kernel ABI on
+ * your platform such that `size_t` matches `uintptr_t` (i.e., to increase
+ * `size_t`, because `uintptr_t` has to be at least as big as `size_t`).
+ */
 static_assert(
 	sizeof(size_t) == sizeof(uintptr_t) &&
 	__alignof__(size_t) == __alignof__(uintptr_t),
-	"Rust code expects C size_t to match Rust usize"
+	"Rust code expects C `size_t` to match Rust `usize`"
 );

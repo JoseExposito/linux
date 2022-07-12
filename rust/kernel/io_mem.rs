@@ -6,7 +6,7 @@
 
 #![allow(dead_code)]
 
-use crate::{bindings, Error, Result};
+use crate::{bindings, error::code::*, Result};
 use core::convert::TryInto;
 
 /// Represents a memory resource.
@@ -68,6 +68,7 @@ macro_rules! define_read {
         ///
         /// If the offset is not known at compile time, the build will fail.
         $(#[$attr])*
+        #[inline]
         pub fn $name(&self, offset: usize) -> $type_name {
             Self::check_offset::<$type_name>(offset);
             let ptr = self.ptr.wrapping_add(offset);
@@ -83,7 +84,7 @@ macro_rules! define_read {
         $(#[$attr])*
         pub fn $try_name(&self, offset: usize) -> Result<$type_name> {
             if !Self::offset_ok::<$type_name>(offset) {
-                return Err(Error::EINVAL);
+                return Err(EINVAL);
             }
             let ptr = self.ptr.wrapping_add(offset);
             // SAFETY: The type invariants guarantee that `ptr` is a valid pointer. The check above
@@ -100,6 +101,7 @@ macro_rules! define_write {
         ///
         /// If the offset is not known at compile time, the build will fail.
         $(#[$attr])*
+        #[inline]
         pub fn $name(&self, value: $type_name, offset: usize) {
             Self::check_offset::<$type_name>(offset);
             let ptr = self.ptr.wrapping_add(offset);
@@ -115,7 +117,7 @@ macro_rules! define_write {
         $(#[$attr])*
         pub fn $try_name(&self, value: $type_name, offset: usize) -> Result {
             if !Self::offset_ok::<$type_name>(offset) {
-                return Err(Error::EINVAL);
+                return Err(EINVAL);
             }
             let ptr = self.ptr.wrapping_add(offset);
             // SAFETY: The type invariants guarantee that `ptr` is a valid pointer. The check above
@@ -142,21 +144,21 @@ impl<const SIZE: usize> IoMem<SIZE> {
     pub unsafe fn try_new(res: Resource) -> Result<Self> {
         // Check that the resource has at least `SIZE` bytes in it.
         if res.size < SIZE.try_into()? {
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         // To be able to check pointers at compile time based only on offsets, we need to guarantee
         // that the base pointer is minimally aligned. So we conservatively expect at least 8 bytes.
         if res.offset % 8 != 0 {
             crate::pr_err!("Physical address is not 64-bit aligned: {:x}", res.offset);
-            return Err(Error::EDOM);
+            return Err(EDOM);
         }
 
         // Try to map the resource.
         // SAFETY: Just mapping the memory range.
         let addr = unsafe { bindings::ioremap(res.offset, res.size as _) };
         if addr.is_null() {
-            Err(Error::ENOMEM)
+            Err(ENOMEM)
         } else {
             // INVARIANT: `addr` is non-null and was returned by `ioremap`, so it is valid. It is
             // also 8-byte aligned because we checked it above.
@@ -164,6 +166,7 @@ impl<const SIZE: usize> IoMem<SIZE> {
         }
     }
 
+    #[inline]
     const fn offset_ok<T>(offset: usize) -> bool {
         let type_size = core::mem::size_of::<T>();
         if let Some(end) = offset.checked_add(type_size) {
@@ -173,8 +176,57 @@ impl<const SIZE: usize> IoMem<SIZE> {
         }
     }
 
+    fn offset_ok_of_val<T: ?Sized>(offset: usize, value: &T) -> bool {
+        let value_size = core::mem::size_of_val(value);
+        let value_alignment = core::mem::align_of_val(value);
+        if let Some(end) = offset.checked_add(value_size) {
+            end <= SIZE && offset % value_alignment == 0
+        } else {
+            false
+        }
+    }
+
+    #[inline]
     const fn check_offset<T>(offset: usize) {
         crate::build_assert!(Self::offset_ok::<T>(offset), "IoMem offset overflow");
+    }
+
+    /// Copy memory block from an i/o memory by filling the specified buffer with it.
+    ///
+    /// # Examples
+    /// ```
+    /// use kernel::io_mem::{self, IoMem, Resource};
+    ///
+    /// fn test(res: Resource) -> Result {
+    ///     // Create an i/o memory block of at least 100 bytes.
+    ///     let mem = unsafe { IoMem::<100>::try_new(res) }?;
+    ///
+    ///     let mut buffer: [u8; 32] = [0; 32];
+    ///
+    ///     // Memcpy 16 bytes from an offset 10 of i/o memory block into the buffer.
+    ///     mem.try_memcpy_fromio(&mut buffer[..16], 10)?;
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn try_memcpy_fromio(&self, buffer: &mut [u8], offset: usize) -> Result {
+        if !Self::offset_ok_of_val(offset, buffer) {
+            return Err(EINVAL);
+        }
+
+        let ptr = self.ptr.wrapping_add(offset);
+
+        // SAFETY:
+        //   - The type invariants guarantee that `ptr` is a valid pointer.
+        //   - The bounds of `buffer` are checked with a call to `offset_ok_of_val()`.
+        unsafe {
+            bindings::memcpy_fromio(
+                buffer.as_mut_ptr() as *mut _,
+                ptr as *const _,
+                buffer.len() as _,
+            )
+        };
+        Ok(())
     }
 
     define_read!(readb, try_readb, u8);

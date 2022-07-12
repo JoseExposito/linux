@@ -14,9 +14,8 @@ use core::marker::PhantomPinned;
 use core::pin::Pin;
 
 use crate::bindings;
-use crate::c_types;
-use crate::error::{Error, Result};
-use crate::file_operations;
+use crate::error::{code::*, Error, Result};
+use crate::file;
 use crate::str::CStr;
 
 /// Character device.
@@ -36,7 +35,7 @@ impl Cdev {
         // SAFETY: FFI call.
         let cdev = unsafe { bindings::cdev_alloc() };
         if cdev.is_null() {
-            return Err(Error::ENOMEM);
+            return Err(ENOMEM);
         }
         // SAFETY: `cdev` is valid and non-null since `cdev_alloc()`
         // returned a valid pointer which was null-checked.
@@ -53,7 +52,7 @@ impl Cdev {
         Ok(Self(cdev))
     }
 
-    fn add(&mut self, dev: bindings::dev_t, count: c_types::c_uint) -> Result {
+    fn add(&mut self, dev: bindings::dev_t, count: core::ffi::c_uint) -> Result {
         // SAFETY: According to the type invariants:
         //   - [`self.0`] can be safely passed to [`bindings::cdev_add`].
         //   - [`(*self.0).ops`] will live at least as long as [`self.0`].
@@ -100,7 +99,7 @@ impl<const N: usize> Registration<{ N }> {
     ///
     /// This associated function is intended to be used when you need to avoid
     /// a memory allocation, e.g. when the [`Registration`] is a member of
-    /// a bigger structure inside your [`crate::KernelModule`] instance. If you
+    /// a bigger structure inside your [`crate::Module`] instance. If you
     /// are going to pin the registration right away, call
     /// [`Self::new_pinned()`] instead.
     pub fn new(
@@ -134,9 +133,7 @@ impl<const N: usize> Registration<{ N }> {
     /// Registers a character device.
     ///
     /// You may call this once per device type, up to `N` times.
-    pub fn register<T: file_operations::FileOperations<OpenData = ()>>(
-        self: Pin<&mut Self>,
-    ) -> Result {
+    pub fn register<T: file::Operations<OpenData = ()>>(self: Pin<&mut Self>) -> Result {
         // SAFETY: We must ensure that we never move out of `this`.
         let this = unsafe { self.get_unchecked_mut() };
         if this.inner.is_none() {
@@ -165,12 +162,12 @@ impl<const N: usize> Registration<{ N }> {
 
         let mut inner = this.inner.as_mut().unwrap();
         if inner.used == N {
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         // SAFETY: The adapter doesn't retrieve any state yet, so it's compatible with any
         // registration.
-        let fops = unsafe { file_operations::FileOperationsVtable::<Self, T>::build() };
+        let fops = unsafe { file::OperationsVtable::<Self, T>::build() };
         let mut cdev = Cdev::alloc(fops, this.this_module)?;
         cdev.add(inner.dev + inner.used as bindings::dev_t, 1)?;
         inner.cdevs[inner.used].replace(cdev);
@@ -179,7 +176,7 @@ impl<const N: usize> Registration<{ N }> {
     }
 }
 
-impl<const N: usize> file_operations::FileOpenAdapter<()> for Registration<{ N }> {
+impl<const N: usize> file::OpenAdapter<()> for Registration<{ N }> {
     unsafe fn convert(_inode: *mut bindings::inode, _file: *mut bindings::file) -> *const () {
         // TODO: Update the SAFETY comment on the call to `FileOperationsVTable::build` above once
         // this is updated to retrieve state.

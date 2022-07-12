@@ -15,12 +15,11 @@
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// static_assert!(42 > 24);
 /// static_assert!(core::mem::size_of::<u8>() == 1);
 ///
 /// const X: &[u8] = b"bar";
-/// static_assert!(X[1] == 'a' as u8);
+/// static_assert!(X[1] == b'a');
 ///
 /// const fn f(x: i32) -> i32 {
 ///     x + 2
@@ -30,10 +29,6 @@
 #[macro_export]
 macro_rules! static_assert {
     ($condition:expr) => {
-        // Based on the latest one in `rustc`'s one before it was [removed].
-        //
-        // [removed]: https://github.com/rust-lang/rust/commit/c2dad1c6b9f9636198d7c561b47a2974f5103f6d
-        #[allow(dead_code)]
-        const _: () = [()][!($condition) as usize];
+        const _: () = core::assert!($condition);
     };
 }

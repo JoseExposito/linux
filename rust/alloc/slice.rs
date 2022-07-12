@@ -50,7 +50,7 @@
 //! ```
 //! let numbers = &[0, 1, 2];
 //! for n in numbers {
-//!     println!("{} is a number!", n);
+//!     println!("{n} is a number!");
 //! }
 //! ```
 //!
@@ -110,7 +110,7 @@ pub use core::slice::ArrayChunks;
 pub use core::slice::ArrayChunksMut;
 #[unstable(feature = "array_windows", issue = "75027")]
 pub use core::slice::ArrayWindows;
-#[unstable(feature = "inherent_ascii_escape", issue = "77174")]
+#[stable(feature = "inherent_ascii_escape", since = "1.60.0")]
 pub use core::slice::EscapeAscii;
 #[stable(feature = "slice_get_slice", since = "1.28.0")]
 pub use core::slice::SliceIndex;
@@ -155,7 +155,7 @@ pub use hack::to_vec;
 // functions are actually methods that are in `impl [T]` but not in
 // `core::slice::SliceExt` - we need to supply these functions for the
 // `test_permutations` test
-mod hack {
+pub(crate) mod hack {
     use core::alloc::Allocator;
 
     use crate::boxed::Box;
@@ -287,7 +287,6 @@ mod hack {
     }
 }
 
-#[lang = "slice_alloc"]
 #[cfg(not(test))]
 impl<T> [T] {
     /// Sorts the slice.
@@ -317,6 +316,7 @@ impl<T> [T] {
     /// assert!(v == [-5, -3, 1, 2, 4]);
     /// ```
     #[cfg(not(no_global_oom_handling))]
+    #[rustc_allow_incoherent_impl]
     #[stable(feature = "rust1", since = "1.0.0")]
     #[inline]
     pub fn sort(&mut self)
@@ -372,6 +372,7 @@ impl<T> [T] {
     /// assert!(v == [5, 4, 3, 2, 1]);
     /// ```
     #[cfg(not(no_global_oom_handling))]
+    #[rustc_allow_incoherent_impl]
     #[stable(feature = "rust1", since = "1.0.0")]
     #[inline]
     pub fn sort_by<F>(&mut self, mut compare: F)
@@ -413,6 +414,7 @@ impl<T> [T] {
     /// assert!(v == [1, 2, -3, 4, -5]);
     /// ```
     #[cfg(not(no_global_oom_handling))]
+    #[rustc_allow_incoherent_impl]
     #[stable(feature = "slice_sort_by_key", since = "1.7.0")]
     #[inline]
     pub fn sort_by_key<K, F>(&mut self, mut f: F)
@@ -425,7 +427,10 @@ impl<T> [T] {
 
     /// Sorts the slice with a key extraction function.
     ///
-    /// During sorting, the key function is called only once per element.
+    /// During sorting, the key function is called at most once per element, by using
+    /// temporary storage to remember the results of key evaluation.
+    /// The order of calls to the key function is unspecified and may change in future versions
+    /// of the standard library.
     ///
     /// This sort is stable (i.e., does not reorder equal elements) and *O*(*m* \* *n* + *n* \* log(*n*))
     /// worst-case, where the key function is *O*(*m*).
@@ -456,6 +461,7 @@ impl<T> [T] {
     ///
     /// [pdqsort]: https://github.com/orlp/pdqsort
     #[cfg(not(no_global_oom_handling))]
+    #[rustc_allow_incoherent_impl]
     #[stable(feature = "slice_sort_by_cached_key", since = "1.34.0")]
     #[inline]
     pub fn sort_by_cached_key<K, F>(&mut self, f: F)
@@ -514,6 +520,7 @@ impl<T> [T] {
     /// // Here, `s` and `x` can be modified independently.
     /// ```
     #[cfg(not(no_global_oom_handling))]
+    #[rustc_allow_incoherent_impl]
     #[rustc_conversion_suggestion]
     #[stable(feature = "rust1", since = "1.0.0")]
     #[inline]
@@ -533,6 +540,7 @@ impl<T> [T] {
     /// let x = s.try_to_vec().unwrap();
     /// // Here, `s` and `x` can be modified independently.
     /// ```
+    #[rustc_allow_incoherent_impl]
     #[inline]
     #[stable(feature = "kernel", since = "1.0.0")]
     pub fn try_to_vec(&self) -> Result<Vec<T>, TryReserveError>
@@ -556,6 +564,7 @@ impl<T> [T] {
     /// // Here, `s` and `x` can be modified independently.
     /// ```
     #[cfg(not(no_global_oom_handling))]
+    #[rustc_allow_incoherent_impl]
     #[inline]
     #[unstable(feature = "allocator_api", issue = "32838")]
     pub fn to_vec_in<A: Allocator>(&self, alloc: A) -> Vec<T, A>
@@ -579,6 +588,7 @@ impl<T> [T] {
     /// let x = s.try_to_vec_in(System).unwrap();
     /// // Here, `s` and `x` can be modified independently.
     /// ```
+    #[rustc_allow_incoherent_impl]
     #[inline]
     #[stable(feature = "kernel", since = "1.0.0")]
     pub fn try_to_vec_in<A: Allocator>(&self, alloc: A) -> Result<Vec<T, A>, TryReserveError>
@@ -603,6 +613,7 @@ impl<T> [T] {
     ///
     /// assert_eq!(x, vec![10, 40, 30]);
     /// ```
+    #[rustc_allow_incoherent_impl]
     #[stable(feature = "rust1", since = "1.0.0")]
     #[inline]
     pub fn into_vec<A: Allocator>(self: Box<Self, A>) -> Vec<T, A> {
@@ -630,6 +641,7 @@ impl<T> [T] {
     /// // this will panic at runtime
     /// b"0123456789abcdef".repeat(usize::MAX);
     /// ```
+    #[rustc_allow_incoherent_impl]
     #[cfg(not(no_global_oom_handling))]
     #[stable(feature = "repeat_generic_slice", since = "1.40.0")]
     pub fn repeat(&self, n: usize) -> Vec<T>
@@ -698,6 +710,7 @@ impl<T> [T] {
     /// assert_eq!(["hello", "world"].concat(), "helloworld");
     /// assert_eq!([[1, 2], [3, 4]].concat(), [1, 2, 3, 4]);
     /// ```
+    #[rustc_allow_incoherent_impl]
     #[stable(feature = "rust1", since = "1.0.0")]
     pub fn concat<Item: ?Sized>(&self) -> <Self as Concat<Item>>::Output
     where
@@ -716,6 +729,7 @@ impl<T> [T] {
     /// assert_eq!([[1, 2], [3, 4]].join(&0), [1, 2, 0, 3, 4]);
     /// assert_eq!([[1, 2], [3, 4]].join(&[0, 0][..]), [1, 2, 0, 0, 3, 4]);
     /// ```
+    #[rustc_allow_incoherent_impl]
     #[stable(feature = "rename_connect_to_join", since = "1.3.0")]
     pub fn join<Separator>(&self, sep: Separator) -> <Self as Join<Separator>>::Output
     where
@@ -734,8 +748,9 @@ impl<T> [T] {
     /// assert_eq!(["hello", "world"].connect(" "), "hello world");
     /// assert_eq!([[1, 2], [3, 4]].connect(&0), [1, 2, 0, 3, 4]);
     /// ```
+    #[rustc_allow_incoherent_impl]
     #[stable(feature = "rust1", since = "1.0.0")]
-    #[rustc_deprecated(since = "1.3.0", reason = "renamed to join")]
+    #[deprecated(since = "1.3.0", note = "renamed to join")]
     pub fn connect<Separator>(&self, sep: Separator) -> <Self as Join<Separator>>::Output
     where
         Self: Join<Separator>,
@@ -744,7 +759,6 @@ impl<T> [T] {
     }
 }
 
-#[lang = "slice_u8_alloc"]
 #[cfg(not(test))]
 impl [u8] {
     /// Returns a vector containing a copy of this slice where each byte
@@ -757,6 +771,7 @@ impl [u8] {
     ///
     /// [`make_ascii_uppercase`]: slice::make_ascii_uppercase
     #[cfg(not(no_global_oom_handling))]
+    #[rustc_allow_incoherent_impl]
     #[must_use = "this returns the uppercase bytes as a new Vec, \
                   without modifying the original"]
     #[stable(feature = "ascii_methods_on_intrinsics", since = "1.23.0")]
@@ -777,6 +792,7 @@ impl [u8] {
     ///
     /// [`make_ascii_lowercase`]: slice::make_ascii_lowercase
     #[cfg(not(no_global_oom_handling))]
+    #[rustc_allow_incoherent_impl]
     #[must_use = "this returns the lowercase bytes as a new Vec, \
                   without modifying the original"]
     #[stable(feature = "ascii_methods_on_intrinsics", since = "1.23.0")]
@@ -983,7 +999,7 @@ where
             //    performance than with the 2nd method.
             //
             // All methods were benchmarked, and the 3rd showed best results. So we chose that one.
-            let mut tmp = mem::ManuallyDrop::new(ptr::read(&v[0]));
+            let tmp = mem::ManuallyDrop::new(ptr::read(&v[0]));
 
             // Intermediate state of the insertion process is always tracked by `hole`, which
             // serves two purposes:
@@ -995,7 +1011,7 @@ where
             // If `is_less` panics at any point during the process, `hole` will get dropped and
             // fill the hole in `v` with `tmp`, thus ensuring that `v` still holds every object it
             // initially held exactly once.
-            let mut hole = InsertionHole { src: &mut *tmp, dest: &mut v[1] };
+            let mut hole = InsertionHole { src: &*tmp, dest: &mut v[1] };
             ptr::copy_nonoverlapping(&v[1], &mut v[0], 1);
 
             for i in 2..v.len() {
@@ -1011,7 +1027,7 @@ where
 
     // When dropped, copies from `src` into `dest`.
     struct InsertionHole<T> {
-        src: *mut T,
+        src: *const T,
         dest: *mut T,
     }
 
@@ -1131,9 +1147,9 @@ where
 
     impl<T> Drop for MergeHole<T> {
         fn drop(&mut self) {
-            // `T` is not a zero-sized type, so it's okay to divide by its size.
-            let len = (self.end as usize - self.start as usize) / mem::size_of::<T>();
+            // `T` is not a zero-sized type, and these are pointers into a slice's elements.
             unsafe {
+                let len = self.end.sub_ptr(self.start);
                 ptr::copy_nonoverlapping(self.start, self.dest, len);
             }
         }

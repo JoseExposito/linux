@@ -1,4 +1,4 @@
-.. _rust_general_information:
+.. SPDX-License-Identifier: GPL-2.0
 
 General Information
 ===================
@@ -31,8 +31,7 @@ To read the docs locally in your web browser, run e.g.::
 
 	xdg-open rust/doc/kernel/index.html
 
-To learn about how to write the documentation, please see the coding guidelines
-at :ref:`Documentation/rust/coding-guidelines.rst <rust_coding_guidelines>`.
+To learn about how to write the documentation, please see coding-guidelines.rst.
 
 
 Extra lints

@@ -5,15 +5,17 @@
 //! C header: [`include/linux/types.h`](../../../../include/linux/types.h)
 
 use crate::{
-    bindings, c_types,
+    bindings,
     sync::{Ref, RefBorrow},
 };
 use alloc::boxed::Box;
 use core::{
     cell::UnsafeCell,
+    marker::PhantomData,
     mem::MaybeUninit,
     ops::{self, Deref, DerefMut},
     pin::Pin,
+    ptr::NonNull,
 };
 
 /// Permissions.
@@ -38,7 +40,8 @@ impl Mode {
 /// Used to convert an object into a raw pointer that represents it.
 ///
 /// It can eventually be converted back into the object. This is used to store objects as pointers
-/// in kernel data structures, for example, an implementation of [`FileOperations`] in `struct
+/// in kernel data structures, for example, an implementation of
+/// [`Operations`][crate::file::Operations] in `struct
 /// file::private_data`.
 pub trait PointerWrapper {
     /// Type of values borrowed between calls to [`PointerWrapper::into_pointer`] and
@@ -46,7 +49,7 @@ pub trait PointerWrapper {
     type Borrowed<'a>;
 
     /// Returns the raw pointer.
-    fn into_pointer(self) -> *const c_types::c_void;
+    fn into_pointer(self) -> *const core::ffi::c_void;
 
     /// Returns a borrowed value.
     ///
@@ -55,24 +58,24 @@ pub trait PointerWrapper {
     /// `ptr` must have been returned by a previous call to [`PointerWrapper::into_pointer`].
     /// Additionally, [`PointerWrapper::from_pointer`] can only be called after *all* values
     /// returned by [`PointerWrapper::borrow`] have been dropped.
-    unsafe fn borrow<'a>(ptr: *const c_types::c_void) -> Self::Borrowed<'a>;
+    unsafe fn borrow<'a>(ptr: *const core::ffi::c_void) -> Self::Borrowed<'a>;
 
     /// Returns the instance back from the raw pointer.
     ///
     /// # Safety
     ///
     /// The passed pointer must come from a previous call to [`PointerWrapper::into_pointer()`].
-    unsafe fn from_pointer(ptr: *const c_types::c_void) -> Self;
+    unsafe fn from_pointer(ptr: *const core::ffi::c_void) -> Self;
 }
 
 impl<T: 'static> PointerWrapper for Box<T> {
     type Borrowed<'a> = &'a T;
 
-    fn into_pointer(self) -> *const c_types::c_void {
+    fn into_pointer(self) -> *const core::ffi::c_void {
         Box::into_raw(self) as _
     }
 
-    unsafe fn borrow<'a>(ptr: *const c_types::c_void) -> &'a T {
+    unsafe fn borrow<'a>(ptr: *const core::ffi::c_void) -> &'a T {
         // SAFETY: The safety requirements for this function ensure that the object is still alive,
         // so it is safe to dereference the raw pointer.
         // The safety requirements also ensure that the object remains alive for the lifetime of
@@ -80,7 +83,7 @@ impl<T: 'static> PointerWrapper for Box<T> {
         unsafe { &*ptr.cast() }
     }
 
-    unsafe fn from_pointer(ptr: *const c_types::c_void) -> Self {
+    unsafe fn from_pointer(ptr: *const core::ffi::c_void) -> Self {
         // SAFETY: The passed pointer comes from a previous call to [`Self::into_pointer()`].
         unsafe { Box::from_raw(ptr as _) }
     }
@@ -89,17 +92,17 @@ impl<T: 'static> PointerWrapper for Box<T> {
 impl<T: 'static> PointerWrapper for Ref<T> {
     type Borrowed<'a> = RefBorrow<'a, T>;
 
-    fn into_pointer(self) -> *const c_types::c_void {
+    fn into_pointer(self) -> *const core::ffi::c_void {
         Ref::into_usize(self) as _
     }
 
-    unsafe fn borrow<'a>(ptr: *const c_types::c_void) -> RefBorrow<'a, T> {
+    unsafe fn borrow<'a>(ptr: *const core::ffi::c_void) -> RefBorrow<'a, T> {
         // SAFETY: The safety requirements for this function ensure that the underlying object
         // remains valid for the lifetime of the returned value.
         unsafe { Ref::borrow_usize(ptr as _) }
     }
 
-    unsafe fn from_pointer(ptr: *const c_types::c_void) -> Self {
+    unsafe fn from_pointer(ptr: *const core::ffi::c_void) -> Self {
         // SAFETY: The passed pointer comes from a previous call to [`Self::into_pointer()`].
         unsafe { Ref::from_usize(ptr as _) }
     }
@@ -108,20 +111,20 @@ impl<T: 'static> PointerWrapper for Ref<T> {
 impl<T: PointerWrapper + Deref> PointerWrapper for Pin<T> {
     type Borrowed<'a> = T::Borrowed<'a>;
 
-    fn into_pointer(self) -> *const c_types::c_void {
+    fn into_pointer(self) -> *const core::ffi::c_void {
         // SAFETY: We continue to treat the pointer as pinned by returning just a pointer to it to
         // the caller.
         let inner = unsafe { Pin::into_inner_unchecked(self) };
         inner.into_pointer()
     }
 
-    unsafe fn borrow<'a>(ptr: *const c_types::c_void) -> Self::Borrowed<'a> {
+    unsafe fn borrow<'a>(ptr: *const core::ffi::c_void) -> Self::Borrowed<'a> {
         // SAFETY: The safety requirements for this function are the same as the ones for
         // `T::borrow`.
         unsafe { T::borrow(ptr) }
     }
 
-    unsafe fn from_pointer(p: *const c_types::c_void) -> Self {
+    unsafe fn from_pointer(p: *const core::ffi::c_void) -> Self {
         // SAFETY: The object was originally pinned.
         // The passed pointer comes from a previous call to `inner::into_pointer()`.
         unsafe { Pin::new_unchecked(T::from_pointer(p)) }
@@ -131,15 +134,15 @@ impl<T: PointerWrapper + Deref> PointerWrapper for Pin<T> {
 impl<T> PointerWrapper for *mut T {
     type Borrowed<'a> = *mut T;
 
-    fn into_pointer(self) -> *const c_types::c_void {
+    fn into_pointer(self) -> *const core::ffi::c_void {
         self as _
     }
 
-    unsafe fn borrow<'a>(ptr: *const c_types::c_void) -> Self::Borrowed<'a> {
+    unsafe fn borrow<'a>(ptr: *const core::ffi::c_void) -> Self::Borrowed<'a> {
         ptr as _
     }
 
-    unsafe fn from_pointer(ptr: *const c_types::c_void) -> Self {
+    unsafe fn from_pointer(ptr: *const core::ffi::c_void) -> Self {
         ptr as _
     }
 }
@@ -147,14 +150,14 @@ impl<T> PointerWrapper for *mut T {
 impl PointerWrapper for () {
     type Borrowed<'a> = ();
 
-    fn into_pointer(self) -> *const c_types::c_void {
+    fn into_pointer(self) -> *const core::ffi::c_void {
         // We use 1 to be different from a null pointer.
         1usize as _
     }
 
-    unsafe fn borrow<'a>(_: *const c_types::c_void) -> Self::Borrowed<'a> {}
+    unsafe fn borrow<'a>(_: *const core::ffi::c_void) -> Self::Borrowed<'a> {}
 
-    unsafe fn from_pointer(_: *const c_types::c_void) -> Self {}
+    unsafe fn from_pointer(_: *const core::ffi::c_void) -> Self {}
 }
 
 /// Runs a cleanup function/closure when dropped.
@@ -166,7 +169,6 @@ impl PointerWrapper for () {
 /// In the example below, we have multiple exit paths and we want to log regardless of which one is
 /// taken:
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::ScopeGuard;
 /// fn example1(arg: bool) {
 ///     let _log = ScopeGuard::new(|| pr_info!("example1 completed\n"));
@@ -175,14 +177,16 @@ impl PointerWrapper for () {
 ///         return;
 ///     }
 ///
-///     // Do something...
+///     pr_info!("Do something...\n");
 /// }
+///
+/// # example1(false);
+/// # example1(true);
 /// ```
 ///
 /// In the example below, we want to log the same message on all early exits but a different one on
 /// the main exit path:
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::ScopeGuard;
 /// fn example2(arg: bool) {
 ///     let log = ScopeGuard::new(|| pr_info!("example2 returned early\n"));
@@ -196,12 +200,14 @@ impl PointerWrapper for () {
 ///     log.dismiss();
 ///     pr_info!("example2 no early return\n");
 /// }
+///
+/// # example2(false);
+/// # example2(true);
 /// ```
 ///
 /// In the example below, we need a mutable object (the vector) to be accessible within the log
 /// function, so we wrap it in the [`ScopeGuard`]:
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::ScopeGuard;
 /// fn example3(arg: bool) -> Result {
 ///     let mut vec =
@@ -214,6 +220,9 @@ impl PointerWrapper for () {
 ///     vec.try_push(20u8)?;
 ///     Ok(())
 /// }
+///
+/// # assert_eq!(example3(false), Ok(()));
+/// # assert_eq!(example3(true), Ok(()));
 /// ```
 ///
 /// # Invariants
@@ -274,11 +283,12 @@ impl<T, F: FnOnce(T)> Drop for ScopeGuard<T, F> {
 /// Stores an opaque value.
 ///
 /// This is meant to be used with FFI objects that are never interpreted by Rust code.
+#[repr(transparent)]
 pub struct Opaque<T>(MaybeUninit<UnsafeCell<T>>);
 
 impl<T> Opaque<T> {
     /// Creates a new opaque value.
-    pub fn new(value: T) -> Self {
+    pub const fn new(value: T) -> Self {
         Self(MaybeUninit::new(UnsafeCell::new(value)))
     }
 
@@ -308,7 +318,6 @@ pub struct Bit<T> {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::bit;
 /// let mut x = 0xfeu32;
 ///
@@ -427,7 +436,6 @@ define_unsigned_number_traits!(usize);
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::bits_iter;
 ///
 /// let mut iter = bits_iter(5usize);
@@ -437,14 +445,15 @@ define_unsigned_number_traits!(usize);
 /// ```
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::bits_iter;
 ///
 /// fn print_bits(x: usize) {
 ///     for bit in bits_iter(x) {
-///         println!("{}", bit);
+///         pr_info!("{}\n", bit);
 ///     }
 /// }
+///
+/// # print_bits(42);
 /// ```
 #[inline]
 pub fn bits_iter<T>(value: T) -> impl Iterator<Item = u32>
@@ -487,7 +496,7 @@ where
 
 /// A trait for boolean types.
 ///
-/// This is meant to be used in type states to allow booelan constraints in implementation blocks.
+/// This is meant to be used in type states to allow boolean constraints in implementation blocks.
 /// In the example below, the implementation containing `MyType::set_value` could _not_ be
 /// constrained to type states containing `Writable = true` if `Writable` were a constant instead
 /// of a type.
@@ -544,15 +553,13 @@ where
 ///     }
 /// }
 ///
-/// pub(crate) fn test() {
-///     let mut x = MyType::<S1>::new(10);
-///     let mut y = MyType::<S2>::new(20);
+/// let mut x = MyType::<S1>::new(10);
+/// let mut y = MyType::<S2>::new(20);
 ///
-///     x.set_value(30);
+/// x.set_value(30);
 ///
-///     // The code below fails to compile because `S2` is not writable.
-///     // y.set_value(40);
-/// }
+/// // The code below fails to compile because `S2` is not writable.
+/// // y.set_value(40);
 /// ```
 pub unsafe trait Bool {}
 
@@ -567,3 +574,117 @@ pub struct False;
 
 // SAFETY: This is one of the only two implementations of `Bool`.
 unsafe impl Bool for False {}
+
+/// Types that are _always_ reference counted.
+///
+/// It allows such types to define their own custom ref increment and decrement functions.
+/// Additionally, it allows users to convert from a shared reference `&T` to an owned reference
+/// [`ARef<T>`].
+///
+/// This is usually implemented by wrappers to existing structures on the C side of the code. For
+/// Rust code, the recommendation is to use [`Ref`] to create reference-counted instances of a
+/// type.
+///
+/// # Safety
+///
+/// Implementers must ensure that increments to the reference count keeps the object alive in
+/// memory at least until a matching decrement performed.
+///
+/// Implementers must also ensure that all instances are reference-counted. (Otherwise they
+/// won't be able to honour the requirement that [`AlwaysRefCounted::inc_ref`] keep the object
+/// alive.)
+pub unsafe trait AlwaysRefCounted {
+    /// Increments the reference count on the object.
+    fn inc_ref(&self);
+
+    /// Decrements the reference count on the object.
+    ///
+    /// Frees the object when the count reaches zero.
+    ///
+    /// # Safety
+    ///
+    /// Callers must ensure that there was a previous matching increment to the reference count,
+    /// and that the object is no longer used after its reference count is decremented (as it may
+    /// result in the object being freed), unless the caller owns another increment on the refcount
+    /// (e.g., it calls [`AlwaysRefCounted::inc_ref`] twice, then calls
+    /// [`AlwaysRefCounted::dec_ref`] once).
+    unsafe fn dec_ref(obj: NonNull<Self>);
+}
+
+/// An owned reference to an always-reference-counted object.
+///
+/// The object's reference count is automatically decremented when an instance of [`ARef`] is
+/// dropped. It is also automatically incremented when a new instance is created via
+/// [`ARef::clone`].
+///
+/// # Invariants
+///
+/// The pointer stored in `ptr` is non-null and valid for the lifetime of the [`ARef`] instance. In
+/// particular, the [`ARef`] instance owns an increment on underlying object's reference count.
+pub struct ARef<T: AlwaysRefCounted> {
+    ptr: NonNull<T>,
+    _p: PhantomData<T>,
+}
+
+impl<T: AlwaysRefCounted> ARef<T> {
+    /// Creates a new instance of [`ARef`].
+    ///
+    /// It takes over an increment of the reference count on the underlying object.
+    ///
+    /// # Safety
+    ///
+    /// Callers must ensure that the reference count was incremented at least once, and that they
+    /// are properly relinquishing one increment. That is, if there is only one increment, callers
+    /// must not use the underlying object anymore -- it is only safe to do so via the newly
+    /// created [`ARef`].
+    pub unsafe fn from_raw(ptr: NonNull<T>) -> Self {
+        // INVARIANT: The safety requirements guarantee that the new instance now owns the
+        // increment on the refcount.
+        Self {
+            ptr,
+            _p: PhantomData,
+        }
+    }
+}
+
+impl<T: AlwaysRefCounted> Clone for ARef<T> {
+    fn clone(&self) -> Self {
+        self.inc_ref();
+        // SAFETY: We just incremented the refcount above.
+        unsafe { Self::from_raw(self.ptr) }
+    }
+}
+
+impl<T: AlwaysRefCounted> Deref for ARef<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        // SAFETY: The type invariants guarantee that the object is valid.
+        unsafe { self.ptr.as_ref() }
+    }
+}
+
+impl<T: AlwaysRefCounted> From<&T> for ARef<T> {
+    fn from(b: &T) -> Self {
+        b.inc_ref();
+        // SAFETY: We just incremented the refcount above.
+        unsafe { Self::from_raw(NonNull::from(b)) }
+    }
+}
+
+impl<T: AlwaysRefCounted> Drop for ARef<T> {
+    fn drop(&mut self) {
+        // SAFETY: The type invariants guarantee that the `ARef` owns the reference we're about to
+        // decrement.
+        unsafe { T::dec_ref(self.ptr) };
+    }
+}
+
+/// A sum type that always holds either a value of type `L` or `R`.
+pub enum Either<L, R> {
+    /// Constructs an instance of [`Either`] containing a value of type `L`.
+    Left(L),
+
+    /// Constructs an instance of [`Either`] containing a value of type `R`.
+    Right(R),
+}

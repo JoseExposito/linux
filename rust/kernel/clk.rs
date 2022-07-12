@@ -35,7 +35,7 @@ impl Clk {
     /// This function should not be called in atomic context.
     pub fn prepare_enable(self) -> Result<EnabledClk> {
         // SAFETY: The pointer is valid by the type invariant.
-        to_result(|| unsafe { bindings::clk_prepare_enable(self.0) })?;
+        to_result(unsafe { bindings::clk_prepare_enable(self.0) })?;
         Ok(EnabledClk(self))
     }
 }
@@ -46,6 +46,10 @@ impl Drop for Clk {
         unsafe { bindings::clk_put(self.0) };
     }
 }
+
+// SAFETY: `Clk` is not restricted to a single thread so it is safe
+// to move it between threads.
+unsafe impl Send for Clk {}
 
 /// A clock variant that is prepared and enabled.
 pub struct EnabledClk(Clk);

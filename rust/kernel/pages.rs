@@ -5,7 +5,7 @@
 //! TODO: This module is a work in progress.
 
 use crate::{
-    bindings, c_types, io_buffer::IoBufferReader, user_ptr::UserSlicePtrReader, Error, Result,
+    bindings, error::code::*, io_buffer::IoBufferReader, user_ptr::UserSlicePtrReader, Result,
     PAGE_SIZE,
 };
 use core::{marker::PhantomData, ptr};
@@ -34,7 +34,7 @@ impl<const ORDER: u32> Pages<ORDER> {
             )
         };
         if pages.is_null() {
-            return Err(Error::ENOMEM);
+            return Err(ENOMEM);
         }
         // INVARIANTS: We checked that the allocation above succeeded>
         Ok(Self { pages })
@@ -48,12 +48,12 @@ impl<const ORDER: u32> Pages<ORDER> {
         len: usize,
     ) -> Result {
         // TODO: For now this only works on the first page.
-        let end = offset.checked_add(len).ok_or(Error::EINVAL)?;
+        let end = offset.checked_add(len).ok_or(EINVAL)?;
         if end > PAGE_SIZE {
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
-        let mapping = self.kmap(0).ok_or(Error::EINVAL)?;
+        let mapping = self.kmap(0).ok_or(EINVAL)?;
 
         // SAFETY: We ensured that the buffer was valid with the check above.
         unsafe { reader.read_raw((mapping.ptr as usize + offset) as _, len) }?;
@@ -69,17 +69,17 @@ impl<const ORDER: u32> Pages<ORDER> {
     /// can be safely cast; [`crate::io_buffer::ReadableFromBytes`] has more details about it.
     pub unsafe fn read(&self, dest: *mut u8, offset: usize, len: usize) -> Result {
         // TODO: For now this only works on the first page.
-        let end = offset.checked_add(len).ok_or(Error::EINVAL)?;
+        let end = offset.checked_add(len).ok_or(EINVAL)?;
         if end > PAGE_SIZE {
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
-        let mapping = self.kmap(0).ok_or(Error::EINVAL)?;
+        let mapping = self.kmap(0).ok_or(EINVAL)?;
         unsafe { ptr::copy((mapping.ptr as *mut u8).add(offset), dest, len) };
         Ok(())
     }
 
-    /// Maps the pages and writes into them from the given bufer.
+    /// Maps the pages and writes into them from the given buffer.
     ///
     /// # Safety
     ///
@@ -89,12 +89,12 @@ impl<const ORDER: u32> Pages<ORDER> {
     /// more details about it.
     pub unsafe fn write(&self, src: *const u8, offset: usize, len: usize) -> Result {
         // TODO: For now this only works on the first page.
-        let end = offset.checked_add(len).ok_or(Error::EINVAL)?;
+        let end = offset.checked_add(len).ok_or(EINVAL)?;
         if end > PAGE_SIZE {
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
-        let mapping = self.kmap(0).ok_or(Error::EINVAL)?;
+        let mapping = self.kmap(0).ok_or(EINVAL)?;
         unsafe { ptr::copy(src, (mapping.ptr as *mut u8).add(offset), len) };
         Ok(())
     }
@@ -131,7 +131,7 @@ impl<const ORDER: u32> Drop for Pages<ORDER> {
 
 struct PageMapping<'a> {
     page: *mut bindings::page,
-    ptr: *mut c_types::c_void,
+    ptr: *mut core::ffi::c_void,
     _phantom: PhantomData<&'a i32>,
 }
 

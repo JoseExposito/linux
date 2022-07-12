@@ -15,7 +15,7 @@ pub use core::pin::Pin;
 
 pub use alloc::{boxed::Box, string::String, vec::Vec};
 
-pub use macros::module;
+pub use macros::{module, vtable};
 
 pub use super::build_assert;
 
@@ -31,6 +31,6 @@ pub use super::module_amba_driver;
 
 pub use super::static_assert;
 
-pub use super::{Error, KernelModule, Result};
+pub use super::{error::code::*, Error, Result};
 
-pub use super::{str::CStr, ThisModule};
+pub use super::{str::CStr, ARef, ThisModule};

@@ -15,9 +15,8 @@
 
 use core::sync::atomic::{AtomicU64, Ordering};
 use kernel::{
-    condvar_init, declare_file_operations,
-    file::File,
-    file_operations::{FileOperations, IoctlCommand, IoctlHandler},
+    condvar_init,
+    file::{self, File, IoctlCommand, IoctlHandler},
     io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev::Registration,
     mutex_init,
@@ -31,7 +30,7 @@ module! {
     name: b"rust_semaphore",
     author: b"Rust for Linux Contributors",
     description: b"Rust semaphore sample",
-    license: b"GPL v2",
+    license: b"GPL",
 }
 
 struct SemaphoreInner {
@@ -54,7 +53,7 @@ impl FileState {
         let mut inner = self.shared.inner.lock();
         while inner.count == 0 {
             if self.shared.changed.wait(&mut inner) {
-                return Err(Error::EINTR);
+                return Err(EINTR);
             }
         }
         inner.count -= 1;
@@ -62,11 +61,10 @@ impl FileState {
     }
 }
 
-impl FileOperations for FileState {
-    type Wrapper = Box<Self>;
+#[vtable]
+impl file::Operations for FileState {
+    type Data = Box<Self>;
     type OpenData = Ref<Semaphore>;
-
-    declare_file_operations!(read, write, ioctl);
 
     fn open(shared: &Ref<Semaphore>, _file: &File) -> Result<Box<Self>> {
         Ok(Box::try_new(Self {
@@ -107,7 +105,7 @@ struct RustSemaphore {
     _dev: Pin<Box<Registration<FileState>>>,
 }
 
-impl KernelModule for RustSemaphore {
+impl kernel::Module for RustSemaphore {
     fn init(name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust semaphore sample (init)\n");
 
@@ -156,7 +154,7 @@ impl IoctlHandler for FileState {
                 writer.write(&this.read_count.load(Ordering::Relaxed))?;
                 Ok(0)
             }
-            _ => Err(Error::EINVAL),
+            _ => Err(EINVAL),
         }
     }
 
@@ -166,7 +164,7 @@ impl IoctlHandler for FileState {
                 this.read_count.store(reader.read()?, Ordering::Relaxed);
                 Ok(0)
             }
-            _ => Err(Error::EINVAL),
+            _ => Err(EINVAL),
         }
     }
 }

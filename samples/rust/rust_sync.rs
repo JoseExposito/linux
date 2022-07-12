@@ -13,7 +13,7 @@ module! {
     name: b"rust_sync",
     author: b"Rust for Linux Contributors",
     description: b"Rust synchronisation primitives sample",
-    license: b"GPL v2",
+    license: b"GPL",
 }
 
 kernel::init_static_sync! {
@@ -23,7 +23,7 @@ kernel::init_static_sync! {
 
 struct RustSync;
 
-impl KernelModule for RustSync {
+impl kernel::Module for RustSync {
     fn init(_name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust synchronisation primitives sample (init)\n");
 

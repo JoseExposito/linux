@@ -6,17 +6,23 @@
 //! <https://github.com/alex/just-use/blob/master/src/lib.rs>.
 
 use kernel::{
-    file::{File, FileFlags},
-    file_operations::FileOperations,
+    file::{self, File, FileFlags},
     io_buffer::{IoBufferReader, IoBufferWriter},
     prelude::*,
 };
 
+module_misc_device! {
+    type: RandomFile,
+    name: b"rust_random",
+    author: b"Rust for Linux Contributors",
+    description: b"Just use /dev/urandom: Now with early-boot safety",
+    license: b"GPL",
+}
+
 struct RandomFile;
 
-impl FileOperations for RandomFile {
-    kernel::declare_file_operations!(read, write, read_iter, write_iter);
-
+#[vtable]
+impl file::Operations for RandomFile {
     fn open(_data: &(), _file: &File) -> Result {
         Ok(())
     }
@@ -51,12 +57,4 @@ impl FileOperations for RandomFile {
         }
         Ok(total_len)
     }
-}
-
-module_misc_device! {
-    type: RandomFile,
-    name: b"rust_random",
-    author: b"Rust for Linux Contributors",
-    description: b"Just use /dev/urandom: Now with early-boot safety",
-    license: b"GPL v2",
 }

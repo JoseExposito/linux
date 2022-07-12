@@ -5,7 +5,7 @@
 //! Each bus/subsystem is expected to implement [`DriverOps`], which allows drivers to register
 //! using the [`Registration`] class.
 
-use crate::{str::CStr, sync::Ref, Error, KernelModule, Result, ThisModule};
+use crate::{error::code::*, str::CStr, sync::Ref, Result, ThisModule};
 use alloc::boxed::Box;
 use core::{cell::UnsafeCell, marker::PhantomData, ops::Deref, pin::Pin};
 
@@ -80,7 +80,7 @@ impl<T: DriverOps> Registration<T> {
         let this = unsafe { self.get_unchecked_mut() };
         if this.is_registered {
             // Already registered.
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         // SAFETY: `concrete_reg` was initialised via its default constructor. It is only freed
@@ -304,7 +304,8 @@ macro_rules! second_item {
 ///
 /// # Examples
 ///
-/// ```
+// TODO: Exported but not usable by kernel modules (requires `const_trait_impl`).
+/// ```ignore
 /// #![feature(const_trait_impl)]
 /// # use kernel::{define_id_array, driver::RawDeviceId};
 ///
@@ -347,7 +348,8 @@ macro_rules! define_id_array {
 ///
 /// # Examples
 ///
-/// ```
+// TODO: Exported but not usable by kernel modules (requires `const_trait_impl`).
+/// ```ignore
 /// #![feature(const_trait_impl)]
 /// # use kernel::{define_id_table, driver::RawDeviceId};
 ///
@@ -415,7 +417,7 @@ pub struct Module<T: DriverOps> {
     _driver: Pin<Box<Registration<T>>>,
 }
 
-impl<T: DriverOps> KernelModule for Module<T> {
+impl<T: DriverOps> crate::Module for Module<T> {
     fn init(name: &'static CStr, module: &'static ThisModule) -> Result<Self> {
         Ok(Self {
             _driver: Registration::new_pinned(name, module)?,

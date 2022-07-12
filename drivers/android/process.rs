@@ -4,8 +4,7 @@ use core::{convert::TryFrom, mem::take, ops::Range};
 use kernel::{
     bindings,
     cred::Credential,
-    file::{File, FileFlags},
-    file_operations::{FileOperations, IoctlCommand, IoctlHandler, PollTable},
+    file::{self, File, FileFlags, IoctlCommand, IoctlHandler, PollTable},
     io_buffer::{IoBufferReader, IoBufferWriter},
     linked_list::List,
     mm,
@@ -15,6 +14,7 @@ use kernel::{
     sync::{Guard, Mutex, Ref, RefBorrow, UniqueRef},
     task::Task,
     user_ptr::{UserSlicePtr, UserSlicePtrReader},
+    Either,
 };
 
 use crate::{
@@ -24,7 +24,7 @@ use crate::{
     node::{Node, NodeDeath, NodeRef},
     range_alloc::RangeAllocator,
     thread::{BinderError, BinderResult, Thread},
-    DeliverToRead, DeliverToReadListAdapter, Either,
+    DeliverToRead, DeliverToReadListAdapter,
 };
 
 // TODO: Review this:
@@ -164,7 +164,7 @@ impl ProcessInner {
                 if node_cookie == cookie {
                     Ok(Some(node.clone()))
                 } else {
-                    Err(Error::EINVAL)
+                    Err(EINVAL)
                 }
             }
         }
@@ -245,10 +245,10 @@ pub(crate) struct Process {
     ctx: Ref<Context>,
 
     // The task leader (process).
-    pub(crate) task: Task,
+    pub(crate) task: ARef<Task>,
 
     // Credential associated with file when `Process` is created.
-    pub(crate) cred: Credential,
+    pub(crate) cred: ARef<Credential>,
 
     // TODO: For now this a mutex because we have allocations in RangeAllocator while holding the
     // lock. We may want to split up the process state at some point to use a spin lock for the
@@ -266,11 +266,11 @@ unsafe impl Send for Process {}
 unsafe impl Sync for Process {}
 
 impl Process {
-    fn new(ctx: Ref<Context>, cred: Credential) -> Result<Ref<Self>> {
+    fn new(ctx: Ref<Context>, cred: ARef<Credential>) -> Result<Ref<Self>> {
         let mut process = Pin::from(UniqueRef::try_new(Self {
             ctx,
             cred,
-            task: Task::current().group_leader().clone(),
+            task: Task::current().group_leader().into(),
             // SAFETY: `inner` is initialised in the call to `mutex_init` below.
             inner: unsafe { Mutex::new(ProcessInner::new()) },
             // SAFETY: `node_refs` is initialised in the call to `mutex_init` below.
@@ -288,12 +288,12 @@ impl Process {
         Ok(process.into())
     }
 
-    /// Attemps to fetch a work item from the process queue.
+    /// Attempts to fetch a work item from the process queue.
     pub(crate) fn get_work(&self) -> Option<Ref<dyn DeliverToRead>> {
         self.inner.lock().work.pop_front()
     }
 
-    /// Attemps to fetch a work item from the process queue. If none is available, it registers the
+    /// Attempts to fetch a work item from the process queue. If none is available, it registers the
     /// given thread as ready to receive work directly.
     ///
     /// This must only be called when the thread is not participating in a transaction chain; when
@@ -436,14 +436,14 @@ impl Process {
                 break;
             }
             if *handle == target {
-                target = target.checked_add(1).ok_or(Error::ENOMEM)?;
+                target = target.checked_add(1).ok_or(ENOMEM)?;
             }
         }
 
         // Ensure the process is still alive while we insert a new reference.
         let inner = self.inner.lock();
         if inner.is_dead {
-            return Err(Error::ESRCH);
+            return Err(ESRCH);
         }
         refs.by_global_id
             .insert(reserve1.into_node(node_ref.node.global_id, target));
@@ -466,7 +466,7 @@ impl Process {
             .lock()
             .by_handle
             .get(&handle)
-            .ok_or(Error::ENOENT)?
+            .ok_or(ENOENT)?
             .node_ref
             .clone(strong)
     }
@@ -482,7 +482,7 @@ impl Process {
         if inc && handle == 0 {
             if let Ok(node_ref) = self.ctx.get_manager_node(strong) {
                 if core::ptr::eq(self, &*node_ref.node.owner) {
-                    return Err(Error::EINVAL);
+                    return Err(EINVAL);
                 }
                 let _ = self.insert_or_update_handle(node_ref, true);
                 return Ok(());
@@ -601,7 +601,7 @@ impl Process {
         let mut inner = self.inner.lock();
         match &inner.mapping {
             None => inner.mapping = Some(Mapping::new(vma.start(), size, ref_pages)?),
-            Some(_) => return Err(Error::EBUSY),
+            Some(_) => return Err(EBUSY),
         }
         Ok(())
     }
@@ -653,17 +653,17 @@ impl Process {
             || out.reserved2 != 0
             || out.reserved3 != 0
         {
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         // Only the context manager is allowed to use this ioctl.
         if !self.inner.lock().is_manager {
-            return Err(Error::EPERM);
+            return Err(EPERM);
         }
 
         let node_ref = self
             .get_node_from_handle(out.handle, true)
-            .or(Err(Error::EINVAL))?;
+            .or(Err(EINVAL))?;
 
         // Get the counts from the node.
         {
@@ -705,7 +705,7 @@ impl Process {
         })?;
 
         let mut refs = self.node_refs.lock();
-        let info = refs.by_handle.get_mut(&handle).ok_or(Error::EINVAL)?;
+        let info = refs.by_handle.get_mut(&handle).ok_or(EINVAL)?;
 
         // Nothing to do if there is already a death notification request for this handle.
         if info.death.is_some() {
@@ -741,12 +741,12 @@ impl Process {
         let cookie: usize = reader.read()?;
 
         let mut refs = self.node_refs.lock();
-        let info = refs.by_handle.get_mut(&handle).ok_or(Error::EINVAL)?;
+        let info = refs.by_handle.get_mut(&handle).ok_or(EINVAL)?;
 
-        let death = info.death.take().ok_or(Error::EINVAL)?;
+        let death = info.death.take().ok_or(EINVAL)?;
         if death.cookie != cookie {
             info.death = Some(death);
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         // Update state and determine if we need to queue a work item. We only need to do it when
@@ -782,7 +782,7 @@ impl IoctlHandler for Process {
             bindings::BINDER_SET_CONTEXT_MGR_EXT => {
                 this.set_as_manager(Some(reader.read()?), &thread)?
             }
-            _ => return Err(Error::EINVAL),
+            _ => return Err(EINVAL),
         }
         Ok(0)
     }
@@ -800,23 +800,22 @@ impl IoctlHandler for Process {
             bindings::BINDER_GET_NODE_DEBUG_INFO => this.get_node_debug_info(data)?,
             bindings::BINDER_GET_NODE_INFO_FOR_REF => this.get_node_info_from_ref(data)?,
             bindings::BINDER_VERSION => this.version(data)?,
-            _ => return Err(Error::EINVAL),
+            _ => return Err(EINVAL),
         }
         Ok(0)
     }
 }
 
-impl FileOperations for Process {
-    type Wrapper = Ref<Self>;
+#[vtable]
+impl file::Operations for Process {
+    type Data = Ref<Self>;
     type OpenData = Ref<Context>;
 
-    kernel::declare_file_operations!(ioctl, compat_ioctl, mmap, poll);
-
-    fn open(ctx: &Ref<Context>, file: &File) -> Result<Self::Wrapper> {
-        Self::new(ctx.clone(), file.cred().clone())
+    fn open(ctx: &Ref<Context>, file: &File) -> Result<Self::Data> {
+        Self::new(ctx.clone(), file.cred().into())
     }
 
-    fn release(obj: Self::Wrapper, _file: &File) {
+    fn release(obj: Self::Data, _file: &File) {
         // Mark this process as dead. We'll do the same for the threads later.
         obj.inner.lock().is_dead = true;
 
@@ -906,18 +905,18 @@ impl FileOperations for Process {
 
     fn mmap(this: RefBorrow<'_, Process>, _file: &File, vma: &mut mm::virt::Area) -> Result {
         // We don't allow mmap to be used in a different process.
-        if !Task::current().group_leader().eq(&this.task) {
-            return Err(Error::EINVAL);
+        if !core::ptr::eq(Task::current().group_leader(), &*this.task) {
+            return Err(EINVAL);
         }
 
         if vma.start() == 0 {
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         let mut flags = vma.flags();
         use mm::virt::flags::*;
         if flags & WRITE != 0 {
-            return Err(Error::EPERM);
+            return Err(EPERM);
         }
 
         flags |= DONTCOPY | MIXEDMAP;

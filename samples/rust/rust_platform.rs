@@ -7,7 +7,7 @@ use kernel::{module_platform_driver, of, platform, prelude::*};
 module_platform_driver! {
     type: Driver,
     name: b"rust_platform",
-    license: b"GPL v2",
+    license: b"GPL",
 }
 
 struct Driver;

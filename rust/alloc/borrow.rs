@@ -163,7 +163,7 @@ where
 /// let readonly = [1, 2];
 /// let borrowed = Items::new((&readonly[..]).into());
 /// match borrowed {
-///     Items { values: Cow::Borrowed(b) } => println!("borrowed {:?}", b),
+///     Items { values: Cow::Borrowed(b) } => println!("borrowed {b:?}"),
 ///     _ => panic!("expect borrowed value"),
 /// }
 ///
@@ -172,7 +172,7 @@ where
 /// clone_on_write.values.to_mut().push(3);
 /// println!("clone_on_write = {:?}", clone_on_write.values);
 ///
-/// // The data was mutated. Let check it out.
+/// // The data was mutated. Let's check it out.
 /// match clone_on_write {
 ///     Items { values: Cow::Owned(_) } => println!("clone_on_write contains owned data"),
 ///     _ => panic!("expect owned data"),
@@ -294,8 +294,7 @@ impl<B: ?Sized + ToOwned> Cow<'_, B> {
     ///
     /// # Examples
     ///
-    /// Calling `into_owned` on a `Cow::Borrowed` clones the underlying data
-    /// and becomes a `Cow::Owned`:
+    /// Calling `into_owned` on a `Cow::Borrowed` returns a clone of the borrowed data:
     ///
     /// ```
     /// use std::borrow::Cow;
@@ -309,7 +308,8 @@ impl<B: ?Sized + ToOwned> Cow<'_, B> {
     /// );
     /// ```
     ///
-    /// Calling `into_owned` on a `Cow::Owned` is a no-op:
+    /// Calling `into_owned` on a `Cow::Owned` returns the owned data. The data is moved out of the
+    /// `Cow` without being cloned.
     ///
     /// ```
     /// use std::borrow::Cow;

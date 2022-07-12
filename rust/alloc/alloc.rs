@@ -16,6 +16,8 @@ use core::ptr::{self, NonNull};
 #[doc(inline)]
 pub use core::alloc::*;
 
+use core::marker::Destruct;
+
 #[cfg(test)]
 mod tests;
 
@@ -325,17 +327,21 @@ unsafe fn exchange_malloc(size: usize, align: usize) -> *mut u8 {
 
 #[cfg_attr(not(test), lang = "box_free")]
 #[inline]
+#[rustc_const_unstable(feature = "const_box", issue = "92521")]
 // This signature has to be the same as `Box`, otherwise an ICE will happen.
 // When an additional parameter to `Box` is added (like `A: Allocator`), this has to be added here as
 // well.
 // For example if `Box` is changed to  `struct Box<T: ?Sized, A: Allocator>(Unique<T>, A)`,
 // this function has to be changed to `fn box_free<T: ?Sized, A: Allocator>(Unique<T>, A)` as well.
-pub(crate) unsafe fn box_free<T: ?Sized, A: Allocator>(ptr: Unique<T>, alloc: A) {
+pub(crate) const unsafe fn box_free<T: ?Sized, A: ~const Allocator + ~const Destruct>(
+    ptr: Unique<T>,
+    alloc: A,
+) {
     unsafe {
         let size = size_of_val(ptr.as_ref());
         let align = min_align_of_val(ptr.as_ref());
         let layout = Layout::from_size_align_unchecked(size, align);
-        alloc.deallocate(ptr.cast().into(), layout)
+        alloc.deallocate(From::from(ptr.cast()), layout)
     }
 }
 
@@ -346,7 +352,6 @@ extern "Rust" {
     // This is the magic symbol to call the global alloc error handler.  rustc generates
     // it to call `__rg_oom` if there is a `#[alloc_error_handler]`, or to call the
     // default implementations below (`__rdl_oom`) otherwise.
-    #[rustc_allocator_nounwind]
     fn __rust_alloc_error_handler(size: usize, align: usize) -> !;
 }
 
@@ -363,20 +368,28 @@ extern "Rust" {
 /// [`set_alloc_error_hook`]: ../../std/alloc/fn.set_alloc_error_hook.html
 /// [`take_alloc_error_hook`]: ../../std/alloc/fn.take_alloc_error_hook.html
 #[stable(feature = "global_alloc", since = "1.28.0")]
+#[rustc_const_unstable(feature = "const_alloc_error", issue = "92523")]
 #[cfg(all(not(no_global_oom_handling), not(test)))]
-#[rustc_allocator_nounwind]
 #[cold]
-pub fn handle_alloc_error(layout: Layout) -> ! {
-    unsafe {
-        __rust_alloc_error_handler(layout.size(), layout.align());
+pub const fn handle_alloc_error(layout: Layout) -> ! {
+    const fn ct_error(_: Layout) -> ! {
+        panic!("allocation failed");
     }
+
+    fn rt_error(layout: Layout) -> ! {
+        unsafe {
+            __rust_alloc_error_handler(layout.size(), layout.align());
+        }
+    }
+
+    unsafe { core::intrinsics::const_eval_select((layout,), ct_error, rt_error) }
 }
 
 // For alloc test `std::alloc::handle_alloc_error` can be used directly.
 #[cfg(all(not(no_global_oom_handling), test))]
 pub use std::alloc::handle_alloc_error;
 
-#[cfg(all(not(no_global_oom_handling), not(any(target_os = "hermit", test))))]
+#[cfg(all(not(no_global_oom_handling), not(test)))]
 #[doc(hidden)]
 #[allow(unused_attributes)]
 #[unstable(feature = "alloc_internals", issue = "none")]
@@ -387,13 +400,13 @@ pub mod __alloc_error_handler {
 
     // if there is no `#[alloc_error_handler]`
     #[rustc_std_internal_symbol]
-    pub unsafe extern "C" fn __rdl_oom(size: usize, _align: usize) -> ! {
-        panic!("memory allocation of {} bytes failed", size)
+    pub unsafe extern "C-unwind" fn __rdl_oom(size: usize, _align: usize) -> ! {
+        panic!("memory allocation of {size} bytes failed")
     }
 
     // if there is an `#[alloc_error_handler]`
     #[rustc_std_internal_symbol]
-    pub unsafe extern "C" fn __rg_oom(size: usize, align: usize) -> ! {
+    pub unsafe extern "C-unwind" fn __rg_oom(size: usize, align: usize) -> ! {
         let layout = unsafe { Layout::from_size_align_unchecked(size, align) };
         extern "Rust" {
             #[lang = "oom"]

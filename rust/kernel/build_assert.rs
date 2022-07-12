@@ -15,6 +15,9 @@
 /// fn foo(a: usize) -> usize {
 ///     a.checked_add(1).unwrap_or_else(|| build_error!("overflow"))
 /// }
+///
+/// assert_eq!(foo(usize::MAX - 1), usize::MAX); // OK.
+/// // foo(usize::MAX); // Fails to compile.
 /// ```
 #[macro_export]
 macro_rules! build_error {
@@ -39,8 +42,8 @@ macro_rules! build_error {
 /// These examples show that different types of [`assert!`] will trigger errors
 /// at different stage of compilation. It is preferred to err as early as
 /// possible, so [`static_assert!`] should be used whenever possible.
-/// ```compile_fail
-/// # use kernel::prelude::*;
+// TODO: Could be `compile_fail` when supported.
+/// ```ignore
 /// fn foo() {
 ///     static_assert!(1 > 1); // Compile-time error
 ///     build_assert!(1 > 1); // Build-time error
@@ -50,8 +53,7 @@ macro_rules! build_error {
 ///
 /// When the condition refers to generic parameters or parameters of an inline function,
 /// [`static_assert!`] cannot be used. Use `build_assert!` in this scenario.
-/// ```no_run
-/// # use kernel::prelude::*;
+/// ```
 /// fn foo<const N: usize>() {
 ///     // `static_assert!(N > 1);` is not allowed
 ///     build_assert!(N > 1); // Build-time check

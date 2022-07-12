@@ -24,7 +24,6 @@ use core::{cell::UnsafeCell, ops::Deref, ptr};
 /// locked; we enforce at run time that the right `InnerDirectory` is locked.
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::sync::{LockedBy, Mutex};
 ///
 /// struct InnerFile {

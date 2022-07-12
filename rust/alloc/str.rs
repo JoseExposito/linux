@@ -181,12 +181,20 @@ where
 
     unsafe {
         let pos = result.len();
-        let target = result.get_unchecked_mut(pos..reserved_len);
+        let target = result.spare_capacity_mut().get_unchecked_mut(..reserved_len - pos);
+
+        // Convert the separator and slices to slices of MaybeUninit
+        // to simplify implementation in specialize_for_lengths
+        let sep_uninit = core::slice::from_raw_parts(sep.as_ptr().cast(), sep.len());
+        let iter_uninit = iter.map(|it| {
+            let it = it.borrow().as_ref();
+            core::slice::from_raw_parts(it.as_ptr().cast(), it.len())
+        });
 
         // copy separator and slices over without bounds checks
         // generate loops with hardcoded offsets for small separators
         // massive improvements possible (~ x2)
-        let remain = specialize_for_lengths!(sep, target, iter; 0, 1, 2, 3, 4);
+        let remain = specialize_for_lengths!(sep_uninit, target, iter_uninit; 0, 1, 2, 3, 4);
 
         // A weird borrow implementation may return different
         // slices for the length calculation and the actual copy.
@@ -230,7 +238,6 @@ impl ToOwned for str {
 }
 
 /// Methods for string slices.
-#[lang = "str_alloc"]
 #[cfg(not(test))]
 impl str {
     /// Converts a `Box<str>` into a `Box<[u8]>` without copying or allocating.
@@ -245,6 +252,7 @@ impl str {
     /// let boxed_bytes = boxed_str.into_boxed_bytes();
     /// assert_eq!(*boxed_bytes, *s.as_bytes());
     /// ```
+    #[rustc_allow_incoherent_impl]
     #[stable(feature = "str_box_extras", since = "1.20.0")]
     #[must_use = "`self` will be dropped if the result is not used"]
     #[inline]
@@ -275,6 +283,7 @@ impl str {
     /// assert_eq!(s, s.replace("cookie monster", "little lamb"));
     /// ```
     #[cfg(not(no_global_oom_handling))]
+    #[rustc_allow_incoherent_impl]
     #[must_use = "this returns the replaced string as a new allocation, \
                   without modifying the original"]
     #[stable(feature = "rust1", since = "1.0.0")]
@@ -315,6 +324,7 @@ impl str {
     /// assert_eq!(s, s.replacen("cookie monster", "little lamb", 10));
     /// ```
     #[cfg(not(no_global_oom_handling))]
+    #[rustc_allow_incoherent_impl]
     #[must_use = "this returns the replaced string as a new allocation, \
                   without modifying the original"]
     #[stable(feature = "str_replacen", since = "1.16.0")]
@@ -371,6 +381,7 @@ impl str {
     /// assert_eq!(new_year, new_year.to_lowercase());
     /// ```
     #[cfg(not(no_global_oom_handling))]
+    #[rustc_allow_incoherent_impl]
     #[must_use = "this returns the lowercase string as a new String, \
                   without modifying the original"]
     #[stable(feature = "unicode_case_mapping", since = "1.2.0")]
@@ -453,6 +464,7 @@ impl str {
     /// assert_eq!("TSCHÜSS", s.to_uppercase());
     /// ```
     #[cfg(not(no_global_oom_handling))]
+    #[rustc_allow_incoherent_impl]
     #[must_use = "this returns the uppercase string as a new String, \
                   without modifying the original"]
     #[stable(feature = "unicode_case_mapping", since = "1.2.0")]
@@ -488,6 +500,7 @@ impl str {
     /// assert_eq!(boxed_str.into_string(), string);
     /// ```
     #[stable(feature = "box_str", since = "1.4.0")]
+    #[rustc_allow_incoherent_impl]
     #[must_use = "`self` will be dropped if the result is not used"]
     #[inline]
     pub fn into_string(self: Box<str>) -> String {
@@ -516,6 +529,7 @@ impl str {
     /// let huge = "0123456789abcdef".repeat(usize::MAX);
     /// ```
     #[cfg(not(no_global_oom_handling))]
+    #[rustc_allow_incoherent_impl]
     #[must_use]
     #[stable(feature = "repeat_str", since = "1.16.0")]
     pub fn repeat(&self, n: usize) -> String {
@@ -544,6 +558,7 @@ impl str {
     /// [`make_ascii_uppercase`]: str::make_ascii_uppercase
     /// [`to_uppercase`]: #method.to_uppercase
     #[cfg(not(no_global_oom_handling))]
+    #[rustc_allow_incoherent_impl]
     #[must_use = "to uppercase the value in-place, use `make_ascii_uppercase()`"]
     #[stable(feature = "ascii_methods_on_intrinsics", since = "1.23.0")]
     #[inline]
@@ -576,6 +591,7 @@ impl str {
     /// [`make_ascii_lowercase`]: str::make_ascii_lowercase
     /// [`to_lowercase`]: #method.to_lowercase
     #[cfg(not(no_global_oom_handling))]
+    #[rustc_allow_incoherent_impl]
     #[must_use = "to lowercase the value in-place, use `make_ascii_lowercase()`"]
     #[stable(feature = "ascii_methods_on_intrinsics", since = "1.23.0")]
     #[inline]
@@ -596,6 +612,7 @@ impl str {
     /// let s: &str = "a";
     /// let ss: String = s.try_to_owned().unwrap();
     /// ```
+    #[rustc_allow_incoherent_impl]
     #[inline]
     #[stable(feature = "kernel", since = "1.0.0")]
     pub fn try_to_owned(&self) -> Result<String, TryReserveError> {

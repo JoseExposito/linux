@@ -10,7 +10,7 @@ use kernel::{
     irq::{self, ExtraResult, IrqData, LockedIrqData},
     power,
     prelude::*,
-    sync::{Ref, RefBorrow, SpinLock},
+    sync::{RawSpinLock, Ref, RefBorrow},
 };
 
 const GPIODIR: usize = 0x400;
@@ -41,7 +41,7 @@ struct PL061DataInner {
 
 struct PL061Data {
     dev: device::Device,
-    inner: SpinLock<PL061DataInner>,
+    inner: RawSpinLock<PL061DataInner>,
 }
 
 struct PL061Resources {
@@ -55,19 +55,12 @@ type DeviceData = device::Data<PL061Registrations, PL061Resources, PL061Data>;
 
 struct PL061Device;
 
+#[vtable]
 impl gpio::Chip for PL061Device {
     type Data = Ref<DeviceData>;
 
-    kernel::declare_gpio_chip_operations!(
-        get_direction,
-        direction_input,
-        direction_output,
-        get,
-        set
-    );
-
     fn get_direction(data: RefBorrow<'_, DeviceData>, offset: u32) -> Result<gpio::LineDirection> {
-        let pl061 = data.resources().ok_or(Error::ENXIO)?;
+        let pl061 = data.resources().ok_or(ENXIO)?;
         Ok(if pl061.base.readb(GPIODIR) & bit(offset) != 0 {
             gpio::LineDirection::Out
         } else {
@@ -77,7 +70,7 @@ impl gpio::Chip for PL061Device {
 
     fn direction_input(data: RefBorrow<'_, DeviceData>, offset: u32) -> Result {
         let _guard = data.inner.lock_irqdisable();
-        let pl061 = data.resources().ok_or(Error::ENXIO)?;
+        let pl061 = data.resources().ok_or(ENXIO)?;
         let mut gpiodir = pl061.base.readb(GPIODIR);
         gpiodir &= !bit(offset);
         pl061.base.writeb(gpiodir, GPIODIR);
@@ -87,7 +80,7 @@ impl gpio::Chip for PL061Device {
     fn direction_output(data: RefBorrow<'_, DeviceData>, offset: u32, value: bool) -> Result {
         let woffset = bit(offset + 2).into();
         let _guard = data.inner.lock_irqdisable();
-        let pl061 = data.resources().ok_or(Error::ENXIO)?;
+        let pl061 = data.resources().ok_or(ENXIO)?;
         pl061.base.try_writeb((value as u8) << offset, woffset)?;
         let mut gpiodir = pl061.base.readb(GPIODIR);
         gpiodir |= bit(offset);
@@ -100,7 +93,7 @@ impl gpio::Chip for PL061Device {
     }
 
     fn get(data: RefBorrow<'_, DeviceData>, offset: u32) -> Result<bool> {
-        let pl061 = data.resources().ok_or(Error::ENXIO)?;
+        let pl061 = data.resources().ok_or(ENXIO)?;
         Ok(pl061.base.try_readb(bit(offset + 2).into())? != 0)
     }
 
@@ -129,10 +122,9 @@ impl gpio::ChipWithIrqChip for PL061Device {
     }
 }
 
+#[vtable]
 impl irq::Chip for PL061Device {
     type Data = Ref<DeviceData>;
-
-    kernel::declare_irq_chip_operations!(set_type, set_wake);
 
     fn set_type(
         data: RefBorrow<'_, DeviceData>,
@@ -143,7 +135,7 @@ impl irq::Chip for PL061Device {
         let bit = bit(offset);
 
         if offset >= PL061_GPIO_NR.into() {
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         if trigger & (irq::Type::LEVEL_HIGH | irq::Type::LEVEL_LOW) != 0
@@ -154,11 +146,11 @@ impl irq::Chip for PL061Device {
                 "trying to configure line {} for both level and edge detection, choose one!\n",
                 offset
             );
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         let _guard = data.inner.lock_irqdisable();
-        let pl061 = data.resources().ok_or(Error::ENXIO)?;
+        let pl061 = data.resources().ok_or(ENXIO)?;
 
         let mut gpioiev = pl061.base.readb(GPIOIEV);
         let mut gpiois = pl061.base.readb(GPIOIS);
@@ -257,7 +249,7 @@ impl irq::Chip for PL061Device {
     }
 
     fn set_wake(data: RefBorrow<'_, DeviceData>, _irq_data: &IrqData, on: bool) -> Result {
-        let pl061 = data.resources().ok_or(Error::ENXIO)?;
+        let pl061 = data.resources().ok_or(ENXIO)?;
         irq::set_wake(pl061.parent_irq, on)
     }
 }
@@ -271,8 +263,8 @@ impl amba::Driver for PL061Device {
     ]}
 
     fn probe(dev: &mut amba::Device, _data: Option<&Self::IdInfo>) -> Result<Ref<DeviceData>> {
-        let res = dev.take_resource().ok_or(Error::ENXIO)?;
-        let irq = dev.irq(0).ok_or(Error::ENXIO)?;
+        let res = dev.take_resource().ok_or(ENXIO)?;
+        let irq = dev.irq(0).ok_or(ENXIO)?;
 
         let mut data = kernel::new_device_data!(
             gpio::RegistrationWithIrqChip::new(),
@@ -283,24 +275,29 @@ impl amba::Driver for PL061Device {
             },
             PL061Data {
                 dev: device::Device::from_dev(dev),
-                // SAFETY: We call `spinlock_init` below.
-                inner: unsafe { SpinLock::new(PL061DataInner::default()) },
+                // SAFETY: We call `rawspinlock_init` below.
+                inner: unsafe { RawSpinLock::new(PL061DataInner::default()) },
             },
             "PL061::Registrations"
         )?;
 
         // SAFETY: General part of the data is pinned when `data` is.
         let gen_inner = unsafe { data.as_mut().map_unchecked_mut(|d| &mut (**d).inner) };
-        kernel::spinlock_init!(gen_inner, "PL061Data::inner");
+        kernel::rawspinlock_init!(gen_inner, "PL061Data::inner");
 
         let data = Ref::<DeviceData>::from(data);
 
-        data.resources().ok_or(Error::ENXIO)?.base.writeb(0, GPIOIE); // disable irqs
+        data.resources().ok_or(ENXIO)?.base.writeb(0, GPIOIE); // disable irqs
 
-        data.registrations()
-            .ok_or(Error::ENXIO)?
-            .as_pinned_mut()
-            .register::<Self>(PL061_GPIO_NR, None, dev, data.clone(), irq)?;
+        kernel::gpio_irq_chip_register!(
+            data.registrations().ok_or(ENXIO)?.as_pinned_mut(),
+            Self,
+            PL061_GPIO_NR,
+            None,
+            dev,
+            data.clone(),
+            irq
+        )?;
 
         dev_info!(data.dev, "PL061 GPIO chip registered\n");
 
@@ -313,7 +310,7 @@ impl power::Operations for PL061Device {
 
     fn suspend(data: RefBorrow<'_, DeviceData>) -> Result {
         let mut inner = data.inner.lock();
-        let pl061 = data.resources().ok_or(Error::ENXIO)?;
+        let pl061 = data.resources().ok_or(ENXIO)?;
         inner.csave_regs.gpio_data = 0;
         inner.csave_regs.gpio_dir = pl061.base.readb(GPIODIR);
         inner.csave_regs.gpio_is = pl061.base.readb(GPIOIS);
@@ -334,7 +331,7 @@ impl power::Operations for PL061Device {
 
     fn resume(data: RefBorrow<'_, DeviceData>) -> Result {
         let inner = data.inner.lock();
-        let pl061 = data.resources().ok_or(Error::ENXIO)?;
+        let pl061 = data.resources().ok_or(ENXIO)?;
 
         for offset in 0..PL061_GPIO_NR {
             if inner.csave_regs.gpio_dir & bit(offset) != 0 {
@@ -366,5 +363,5 @@ module_amba_driver! {
     type: PL061Device,
     name: b"pl061_gpio",
     author: b"Wedson Almeida Filho",
-    license: b"GPL v2",
+    license: b"GPL",
 }

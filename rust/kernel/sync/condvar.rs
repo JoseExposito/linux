@@ -5,7 +5,7 @@
 //! This module allows Rust code to use the kernel's [`struct wait_queue_head`] as a condition
 //! variable.
 
-use super::{Guard, Lock, LockInfo, NeedsLockClass};
+use super::{Guard, Lock, LockClassKey, LockInfo, NeedsLockClass};
 use crate::{bindings, str::CStr, task::Task, Opaque};
 use core::{marker::PhantomPinned, pin::Pin};
 
@@ -127,12 +127,14 @@ impl CondVar {
 }
 
 impl NeedsLockClass for CondVar {
-    unsafe fn init(
+    fn init(
         self: Pin<&mut Self>,
         name: &'static CStr,
-        key: *mut bindings::lock_class_key,
-        _: *mut bindings::lock_class_key,
+        key: &'static LockClassKey,
+        _: &'static LockClassKey,
     ) {
-        unsafe { bindings::__init_waitqueue_head(self.wait_list.get(), name.as_char_ptr(), key) };
+        unsafe {
+            bindings::__init_waitqueue_head(self.wait_list.get(), name.as_char_ptr(), key.get())
+        };
     }
 }

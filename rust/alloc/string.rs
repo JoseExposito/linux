@@ -119,27 +119,99 @@ use crate::vec::Vec;
 ///
 /// # UTF-8
 ///
-/// `String`s are always valid UTF-8. This has a few implications, the first of
-/// which is that if you need a non-UTF-8 string, consider [`OsString`]. It is
-/// similar, but without the UTF-8 constraint. The second implication is that
-/// you cannot index into a `String`:
+/// `String`s are always valid UTF-8. If you need a non-UTF-8 string, consider
+/// [`OsString`]. It is similar, but without the UTF-8 constraint. Because UTF-8
+/// is a variable width encoding, `String`s are typically smaller than an array of
+/// the same `chars`:
+///
+/// ```
+/// use std::mem;
+///
+/// // `s` is ASCII which represents each `char` as one byte
+/// let s = "hello";
+/// assert_eq!(s.len(), 5);
+///
+/// // A `char` array with the same contents would be longer because
+/// // every `char` is four bytes
+/// let s = ['h', 'e', 'l', 'l', 'o'];
+/// let size: usize = s.into_iter().map(|c| mem::size_of_val(&c)).sum();
+/// assert_eq!(size, 20);
+///
+/// // However, for non-ASCII strings, the difference will be smaller
+/// // and sometimes they are the same
+/// let s = "💖💖💖💖💖";
+/// assert_eq!(s.len(), 20);
+///
+/// let s = ['💖', '💖', '💖', '💖', '💖'];
+/// let size: usize = s.into_iter().map(|c| mem::size_of_val(&c)).sum();
+/// assert_eq!(size, 20);
+/// ```
+///
+/// This raises interesting questions as to how `s[i]` should work.
+/// What should `i` be here? Several options include byte indices and
+/// `char` indices but, because of UTF-8 encoding, only byte indices
+/// would provide constant time indexing. Getting the `i`th `char`, for
+/// example, is available using [`chars`]:
+///
+/// ```
+/// let s = "hello";
+/// let third_character = s.chars().nth(2);
+/// assert_eq!(third_character, Some('l'));
+///
+/// let s = "💖💖💖💖💖";
+/// let third_character = s.chars().nth(2);
+/// assert_eq!(third_character, Some('💖'));
+/// ```
+///
+/// Next, what should `s[i]` return? Because indexing returns a reference
+/// to underlying data it could be `&u8`, `&[u8]`, or something else similar.
+/// Since we're only providing one index, `&u8` makes the most sense but that
+/// might not be what the user expects and can be explicitly achieved with
+/// [`as_bytes()`]:
+///
+/// ```
+/// // The first byte is 104 - the byte value of `'h'`
+/// let s = "hello";
+/// assert_eq!(s.as_bytes()[0], 104);
+/// // or
+/// assert_eq!(s.as_bytes()[0], b'h');
+///
+/// // The first byte is 240 which isn't obviously useful
+/// let s = "💖💖💖💖💖";
+/// assert_eq!(s.as_bytes()[0], 240);
+/// ```
+///
+/// Due to these ambiguities/restrictions, indexing with a `usize` is simply
+/// forbidden:
 ///
 /// ```compile_fail,E0277
 /// let s = "hello";
 ///
-/// println!("The first letter of s is {}", s[0]); // ERROR!!!
+/// // The following will not compile!
+/// println!("The first letter of s is {}", s[0]);
 /// ```
 ///
-/// [`OsString`]: ../../std/ffi/struct.OsString.html "ffi::OsString"
+/// It is more clear, however, how `&s[i..j]` should work (that is,
+/// indexing with a range). It should accept byte indices (to be constant-time)
+/// and return a `&str` which is UTF-8 encoded. This is also called "string slicing".
+/// Note this will panic if the byte indices provided are not character
+/// boundaries - see [`is_char_boundary`] for more details. See the implementations
+/// for [`SliceIndex<str>`] for more details on string slicing. For a non-panicking
+/// version of string slicing, see [`get`].
 ///
-/// Indexing is intended to be a constant-time operation, but UTF-8 encoding
-/// does not allow us to do this. Furthermore, it's not clear what sort of
-/// thing the index should return: a byte, a codepoint, or a grapheme cluster.
-/// The [`bytes`] and [`chars`] methods return iterators over the first
-/// two, respectively.
+/// [`OsString`]: ../../std/ffi/struct.OsString.html "ffi::OsString"
+/// [`SliceIndex<str>`]: core::slice::SliceIndex
+/// [`as_bytes()`]: str::as_bytes
+/// [`get`]: str::get
+/// [`is_char_boundary`]: str::is_char_boundary
+///
+/// The [`bytes`] and [`chars`] methods return iterators over the bytes and
+/// codepoints of the string, respectively. To iterate over codepoints along
+/// with byte indices, use [`char_indices`].
 ///
 /// [`bytes`]: str::bytes
 /// [`chars`]: str::chars
+/// [`char_indices`]: str::char_indices
 ///
 /// # Deref
 ///
@@ -560,13 +632,13 @@ impl String {
     pub fn from_utf8_lossy(v: &[u8]) -> Cow<'_, str> {
         let mut iter = lossy::Utf8Lossy::from_bytes(v).chunks();
 
-        let (first_valid, first_broken) = if let Some(chunk) = iter.next() {
+        let first_valid = if let Some(chunk) = iter.next() {
             let lossy::Utf8LossyChunk { valid, broken } = chunk;
-            if valid.len() == v.len() {
-                debug_assert!(broken.is_empty());
+            if broken.is_empty() {
+                debug_assert_eq!(valid.len(), v.len());
                 return Cow::Borrowed(valid);
             }
-            (valid, broken)
+            valid
         } else {
             return Cow::Borrowed("");
         };
@@ -575,9 +647,7 @@ impl String {
 
         let mut res = String::with_capacity(v.len());
         res.push_str(first_valid);
-        if !first_broken.is_empty() {
-            res.push_str(REPLACEMENT);
-        }
+        res.push_str(REPLACEMENT);
 
         for lossy::Utf8LossyChunk { valid, broken } in iter {
             res.push_str(valid);
@@ -702,7 +772,10 @@ impl String {
     /// * The first `length` bytes at `buf` need to be valid UTF-8.
     ///
     /// Violating these may cause problems like corrupting the allocator's
-    /// internal data structures.
+    /// internal data structures. For example, it is normally **not** safe to
+    /// build a `String` from a pointer to a C `char` array containing UTF-8
+    /// _unless_ you are certain that array was originally allocated by the
+    /// Rust standard library's allocator.
     ///
     /// The ownership of `buf` is effectively transferred to the
     /// `String` which may then deallocate, reallocate or change the
@@ -1042,15 +1115,15 @@ impl String {
     }
 
     /// Tries to reserve the minimum capacity for exactly `additional` more elements to
-    /// be inserted in the given `String`. After calling `reserve_exact`,
+    /// be inserted in the given `String`. After calling `try_reserve_exact`,
     /// capacity will be greater than or equal to `self.len() + additional`.
     /// Does nothing if the capacity is already sufficient.
     ///
     /// Note that the allocator may give the collection more space than it
     /// requests. Therefore, capacity can not be relied upon to be precisely
-    /// minimal. Prefer [`reserve`] if future insertions are expected.
+    /// minimal. Prefer [`try_reserve`] if future insertions are expected.
     ///
-    /// [`reserve`]: String::reserve
+    /// [`try_reserve`]: String::try_reserve
     ///
     /// # Errors
     ///
@@ -1066,7 +1139,7 @@ impl String {
     ///     let mut output = String::new();
     ///
     ///     // Pre-reserve the memory, exiting if we can't
-    ///     output.try_reserve(data.len())?;
+    ///     output.try_reserve_exact(data.len())?;
     ///
     ///     // Now we know this can't OOM in the middle of our complex work
     ///     output.push_str(data);
@@ -1632,16 +1705,23 @@ impl String {
         self.vec.clear()
     }
 
-    /// Creates a draining iterator that removes the specified range in the `String`
-    /// and yields the removed `chars`.
+    /// Removes the specified range from the string in bulk, returning all
+    /// removed characters as an iterator.
     ///
-    /// Note: The element range is removed even if the iterator is not
-    /// consumed until the end.
+    /// The returned iterator keeps a mutable borrow on the string to optimize
+    /// its implementation.
     ///
     /// # Panics
     ///
     /// Panics if the starting point or end point do not lie on a [`char`]
     /// boundary, or if they're out of bounds.
+    ///
+    /// # Leaking
+    ///
+    /// If the returned iterator goes out of scope without being dropped (due to
+    /// [`core::mem::forget`], for example), the string may still contain a copy
+    /// of any drained characters, or may have lost characters arbitrarily,
+    /// including characters outside the range.
     ///
     /// # Examples
     ///
@@ -1656,7 +1736,7 @@ impl String {
     /// assert_eq!(t, "α is alpha, ");
     /// assert_eq!(s, "β is beta");
     ///
-    /// // A full range clears the string
+    /// // A full range clears the string, like `clear()` does
     /// s.drain(..);
     /// assert_eq!(s, "");
     /// ```
@@ -2715,7 +2795,7 @@ impl From<String> for Vec<u8> {
     /// let v1 = Vec::from(s1);
     ///
     /// for b in v1 {
-    ///     println!("{}", b);
+    ///     println!("{b}");
     /// }
     /// ```
     fn from(string: String) -> Vec<u8> {

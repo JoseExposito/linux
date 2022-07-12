@@ -3,21 +3,20 @@
 //! Rust character device sample.
 
 use kernel::prelude::*;
-use kernel::{chrdev, file, file_operations::FileOperations};
+use kernel::{chrdev, file};
 
 module! {
     type: RustChrdev,
     name: b"rust_chrdev",
     author: b"Rust for Linux Contributors",
     description: b"Rust character device sample",
-    license: b"GPL v2",
+    license: b"GPL",
 }
 
 struct RustFile;
 
-impl FileOperations for RustFile {
-    kernel::declare_file_operations!();
-
+#[vtable]
+impl file::Operations for RustFile {
     fn open(_shared: &(), _file: &file::File) -> Result {
         Ok(())
     }
@@ -27,7 +26,7 @@ struct RustChrdev {
     _dev: Pin<Box<chrdev::Registration<2>>>,
 }
 
-impl KernelModule for RustChrdev {
+impl kernel::Module for RustChrdev {
     fn init(name: &'static CStr, module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust character device sample (init)\n");
 

@@ -6,8 +6,8 @@
 //! the ([`Lock`]) trait. It also contains the definition of the trait, which can be leveraged by
 //! other constructs to work on generic locking primitives.
 
-use super::NeedsLockClass;
-use crate::{bindings, str::CStr, Bool, False, True};
+use super::{LockClassKey, NeedsLockClass};
+use crate::{str::CStr, Bool, False, True};
 use core::pin::Pin;
 
 /// Allows mutual exclusion primitives that implement the [`Lock`] trait to automatically unlock
@@ -94,7 +94,7 @@ impl LockInfo for WriteLock {
 ///   may access the protected data once the lock is held, that is, between calls to `lock_noguard`
 ///   and `unlock`.
 /// - Implementers of all other markers must ensure that a mutable reference to the protected data
-///   is not active in any thread/CPU because at least one shared refence is active between calls
+///   is not active in any thread/CPU because at least one shared reference is active between calls
 ///   to `lock_noguard` and `unlock`.
 pub unsafe trait Lock<I: LockInfo = WriteLock> {
     /// The type of the data protected by the lock.
@@ -128,39 +128,32 @@ pub unsafe trait Lock<I: LockInfo = WriteLock> {
     fn locked_data(&self) -> &core::cell::UnsafeCell<Self::Inner>;
 }
 
-/// A generic mutual exclusion primitive that can be instantiated generically.
-pub trait CreatableLock {
-    /// The type of the argument passed to [`CreatableLock::new_lock`].
-    type CreateArgType: ?Sized;
+/// A creator of instances of a mutual exclusion (lock) primitive.
+pub trait LockFactory {
+    /// The parametrised type of the mutual exclusion primitive that can be created by this factory.
+    type LockedType<T>;
 
-    /// Constructs a new instance of the lock.
+    /// Constructs a new instance of the mutual exclusion primitive.
     ///
     /// # Safety
     ///
-    /// The caller must call [`CreatableLock::init_lock`] before using the lock.
-    unsafe fn new_lock(data: Self::CreateArgType) -> Self;
-
-    /// Initialises the lock type instance so that it can be safely used.
-    ///
-    /// # Safety
-    ///
-    /// `key` must point to a valid memory location that will remain valid until the lock is
-    /// dropped.
-    unsafe fn init_lock(
-        self: Pin<&mut Self>,
-        name: &'static CStr,
-        key: *mut bindings::lock_class_key,
-    );
+    /// The caller must call [`LockIniter::init_lock`] before using the lock.
+    unsafe fn new_lock<T>(data: T) -> Self::LockedType<T>;
 }
 
-impl<L: CreatableLock> NeedsLockClass for L {
-    unsafe fn init(
+/// A lock that can be initialised with a single lock class key.
+pub trait LockIniter {
+    /// Initialises the lock instance so that it can be safely used.
+    fn init_lock(self: Pin<&mut Self>, name: &'static CStr, key: &'static LockClassKey);
+}
+
+impl<L: LockIniter> NeedsLockClass for L {
+    fn init(
         self: Pin<&mut Self>,
         name: &'static CStr,
-        key: *mut bindings::lock_class_key,
-        _: *mut bindings::lock_class_key,
+        key: &'static LockClassKey,
+        _: &'static LockClassKey,
     ) {
-        // SAFETY: The safety requirements of this function satisfy those of `init_lock`.
-        unsafe { self.init_lock(name, key) };
+        self.init_lock(name, key);
     }
 }

@@ -4,17 +4,18 @@
 
 mod helpers;
 mod module;
+mod vtable;
 
 use proc_macro::TokenStream;
 
 /// Declares a kernel module.
 ///
-/// The `type` argument should be a type which implements the [`KernelModule`]
+/// The `type` argument should be a type which implements the [`Module`]
 /// trait. Also accepts various forms of kernel metadata.
 ///
 /// C header: [`include/linux/moduleparam.h`](../../../include/linux/moduleparam.h)
 ///
-/// [`KernelModule`]: ../kernel/trait.KernelModule.html
+/// [`Module`]: ../kernel/trait.Module.html
 ///
 /// # Examples
 ///
@@ -22,11 +23,11 @@ use proc_macro::TokenStream;
 /// use kernel::prelude::*;
 ///
 /// module!{
-///     type: MyKernelModule,
+///     type: MyModule,
 ///     name: b"my_kernel_module",
 ///     author: b"Rust for Linux Contributors",
 ///     description: b"My very own kernel module!",
-///     license: b"GPL v2",
+///     license: b"GPL",
 ///     params: {
 ///        my_i32: i32 {
 ///            default: 42,
@@ -41,9 +42,9 @@ use proc_macro::TokenStream;
 ///    },
 /// }
 ///
-/// struct MyKernelModule;
+/// struct MyModule;
 ///
-/// impl KernelModule for MyKernelModule {
+/// impl kernel::Module for MyModule {
 ///     fn init() -> Result<Self> {
 ///         // If the parameter is writeable, then the kparam lock must be
 ///         // taken to read the parameter:
@@ -54,13 +55,13 @@ use proc_macro::TokenStream;
 ///         // If the parameter is read only, it can be read without locking
 ///         // the kernel parameters:
 ///         pr_info!("i32 param is:  {}\n", my_i32.read());
-///         Ok(MyKernelModule)
+///         Ok(Self)
 ///     }
 /// }
 /// ```
 ///
 /// # Supported argument types
-///   - `type`: type which implements the [`KernelModule`] trait (required).
+///   - `type`: type which implements the [`Module`] trait (required).
 ///   - `name`: byte array of the name of the kernel module (required).
 ///   - `author`: byte array of the author of the kernel module.
 ///   - `description`: byte array of the description of the kernel module.
@@ -91,4 +92,55 @@ use proc_macro::TokenStream;
 #[proc_macro]
 pub fn module(ts: TokenStream) -> TokenStream {
     module::module(ts)
+}
+
+/// Declares or implements a vtable trait.
+///
+/// Linux's use of pure vtables is very close to Rust traits, but they differ
+/// in how unimplemented functions are represented. In Rust, traits can provide
+/// default implementation for all non-required methods (and the default
+/// implementation could just return `Error::EINVAL`); Linux typically use C
+/// `NULL` pointers to represent these functions.
+///
+/// This attribute is intended to close the gap. Traits can be declared and
+/// implemented with the `#[vtable]` attribute, and a `HAS_*` associated constant
+/// will be generated for each method in the trait, indicating if the implementor
+/// has overriden a method.
+///
+/// This attribute is not needed if all methods are required.
+///
+/// # Examples
+///
+/// ```ignore
+/// use kernel::prelude::*;
+///
+/// // Declares a `#[vtable]` trait
+/// #[vtable]
+/// pub trait Operations: Send + Sync + Sized {
+///     fn foo(&self) -> Result<()> {
+///         Err(EINVAL)
+///     }
+///
+///     fn bar(&self) -> Result<()> {
+///         Err(EINVAL)
+///     }
+/// }
+///
+/// struct Foo;
+///
+/// // Implements the `#[vtable]` trait
+/// #[vtable]
+/// impl Operations for Foo {
+///     fn foo(&self) -> Result<()> {
+/// #        Err(EINVAL)
+///         /* ... */
+///     }
+/// }
+///
+/// assert_eq!(<Foo as Operations>::HAS_FOO, true);
+/// assert_eq!(<Foo as Operations>::HAS_BAR, false);
+/// ```
+#[proc_macro_attribute]
+pub fn vtable(attr: TokenStream, ts: TokenStream) -> TokenStream {
+    vtable::vtable(attr, ts)
 }

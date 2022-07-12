@@ -5,8 +5,8 @@
 //! C header: [`include/linux/amba/bus.h`](../../../../include/linux/amba/bus.h)
 
 use crate::{
-    bindings, c_types, device, driver, error::from_kernel_result, io_mem::Resource, power,
-    str::CStr, to_result, types::PointerWrapper, Result, ThisModule,
+    bindings, device, driver, error::from_kernel_result, io_mem::Resource, power, str::CStr,
+    to_result, types::PointerWrapper, Result, ThisModule,
 };
 
 /// A registration of an amba driver.
@@ -77,7 +77,7 @@ impl<T: Driver> driver::DriverOps for Adapter<T> {
         name: &'static CStr,
         module: &'static ThisModule,
     ) -> Result {
-        // SAFETY: By the safety requirements of this function (defined in the trait defintion),
+        // SAFETY: By the safety requirements of this function (defined in the trait definition),
         // `reg` is non-null and valid.
         let amba = unsafe { &mut *reg };
         amba.drv.name = name.as_char_ptr();
@@ -95,7 +95,7 @@ impl<T: Driver> driver::DriverOps for Adapter<T> {
         }
         // SAFETY: By the safety requirements of this function, `reg` is valid and fully
         // initialised.
-        to_result(|| unsafe { bindings::amba_driver_register(reg) })
+        to_result(unsafe { bindings::amba_driver_register(reg) })
     }
 
     unsafe fn unregister(reg: *mut bindings::amba_driver) {
@@ -108,7 +108,7 @@ impl<T: Driver> driver::DriverOps for Adapter<T> {
 unsafe extern "C" fn probe_callback<T: Driver>(
     adev: *mut bindings::amba_device,
     aid: *const bindings::amba_id,
-) -> c_types::c_int {
+) -> core::ffi::c_int {
     from_kernel_result! {
         // SAFETY: `adev` is valid by the contract with the C code. `dev` is alive only for the
         // duration of this call, so it is guaranteed to remain alive for the lifetime of `dev`.
@@ -204,7 +204,6 @@ unsafe impl device::RawDevice for Device {
 /// # Examples
 ///
 /// ```ignore
-/// # use kernel::prelude::*;
 /// # use kernel::{amba, define_amba_id_table, module_amba_driver};
 /// #
 /// struct MyDriver;
@@ -222,7 +221,7 @@ unsafe impl device::RawDevice for Device {
 ///     type: MyDriver,
 ///     name: b"module_name",
 ///     author: b"Author name",
-///     license: b"GPL v2",
+///     license: b"GPL",
 /// }
 /// ```
 #[macro_export]
@@ -237,7 +236,6 @@ macro_rules! module_amba_driver {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// # use kernel::{amba, define_amba_id_table};
 /// #
 /// # struct Sample;

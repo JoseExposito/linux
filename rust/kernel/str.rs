@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use core::fmt::{self, Write};
 use core::ops::{self, Deref, Index};
 
-use crate::{bindings, c_types, Error};
+use crate::{bindings, error::code::*, Error};
 
 /// Byte string without UTF-8 validity guarantee.
 ///
@@ -23,7 +23,7 @@ pub type BStr = [u8];
 /// ```
 /// # use kernel::b_str;
 /// # use kernel::str::BStr;
-/// const MY_BSTR: &'static BStr = b_str!("My awesome BStr!");
+/// const MY_BSTR: &BStr = b_str!("My awesome BStr!");
 /// ```
 #[macro_export]
 macro_rules! b_str {
@@ -44,10 +44,10 @@ pub enum CStrConvertError {
     NotNulTerminated,
 }
 
-impl From<CStrConvertError> for crate::Error {
+impl From<CStrConvertError> for Error {
     #[inline]
-    fn from(_: CStrConvertError) -> crate::Error {
-        crate::Error::EINVAL
+    fn from(_: CStrConvertError) -> Error {
+        EINVAL
     }
 }
 
@@ -91,7 +91,7 @@ impl CStr {
     /// last at least `'a`. When `CStr` is alive, the memory pointed by `ptr`
     /// must not be mutated.
     #[inline]
-    pub unsafe fn from_char_ptr<'a>(ptr: *const c_types::c_char) -> &'a Self {
+    pub unsafe fn from_char_ptr<'a>(ptr: *const core::ffi::c_char) -> &'a Self {
         // SAFETY: The safety precondition guarantees `ptr` is a valid pointer
         // to a `NUL`-terminated C string.
         let len = unsafe { bindings::strlen(ptr) } + 1;
@@ -153,7 +153,7 @@ impl CStr {
 
     /// Returns a C pointer to the string.
     #[inline]
-    pub const fn as_char_ptr(&self) -> *const c_types::c_char {
+    pub const fn as_char_ptr(&self) -> *const core::ffi::c_char {
         self.0.as_ptr() as _
     }
 
@@ -216,11 +216,14 @@ impl fmt::Display for CStr {
     /// ```
     /// # use kernel::c_str;
     /// # use kernel::str::CStr;
+    /// # use kernel::str::CString;
     /// let penguin = c_str!("🐧");
-    /// assert_eq!(format!("{}", penguin), "\\xf0\\x9f\\x90\\xa7");
+    /// let s = CString::try_from_fmt(fmt!("{}", penguin)).unwrap();
+    /// assert_eq!(s.as_bytes_with_nul(), "\\xf0\\x9f\\x90\\xa7\0".as_bytes());
     ///
     /// let ascii = c_str!("so \"cool\"");
-    /// assert_eq!(format!("{}", ascii), "so \"cool\"");
+    /// let s = CString::try_from_fmt(fmt!("{}", ascii)).unwrap();
+    /// assert_eq!(s.as_bytes_with_nul(), "so \"cool\"\0".as_bytes());
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for &c in self.as_bytes() {
@@ -241,12 +244,15 @@ impl fmt::Debug for CStr {
     /// ```
     /// # use kernel::c_str;
     /// # use kernel::str::CStr;
+    /// # use kernel::str::CString;
     /// let penguin = c_str!("🐧");
-    /// assert_eq!(format!("{:?}", penguin), "\"\\xf0\\x9f\\x90\\xa7\"");
+    /// let s = CString::try_from_fmt(fmt!("{:?}", penguin)).unwrap();
+    /// assert_eq!(s.as_bytes_with_nul(), "\"\\xf0\\x9f\\x90\\xa7\"\0".as_bytes());
     ///
-    /// // embedded double quotes are escaped
+    /// // Embedded double quotes are escaped.
     /// let ascii = c_str!("so \"cool\"");
-    /// assert_eq!(format!("{:?}", ascii), "\"so \\\"cool\\\"\"");
+    /// let s = CString::try_from_fmt(fmt!("{:?}", ascii)).unwrap();
+    /// assert_eq!(s.as_bytes_with_nul(), "\"so \\\"cool\\\"\"\0".as_bytes());
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("\"")?;
@@ -334,7 +340,7 @@ where
 /// ```
 /// # use kernel::c_str;
 /// # use kernel::str::CStr;
-/// const MY_CSTR: &'static CStr = c_str!("My awesome CStr!");
+/// const MY_CSTR: &CStr = c_str!("My awesome CStr!");
 /// ```
 #[macro_export]
 macro_rules! c_str {
@@ -522,7 +528,6 @@ impl fmt::Write for Formatter {
 /// # Examples
 ///
 /// ```
-/// # use kernel::prelude::*;
 /// use kernel::str::CString;
 ///
 /// let s = CString::try_from_fmt(fmt!("{}{}{}", "abc", 10, 20)).unwrap();
@@ -566,7 +571,7 @@ impl CString {
         // so `f.bytes_written() - 1` doesn't underflow.
         let ptr = unsafe { bindings::memchr(buf.as_ptr().cast(), 0, (f.bytes_written() - 1) as _) };
         if !ptr.is_null() {
-            return Err(Error::EINVAL);
+            return Err(EINVAL);
         }
 
         // INVARIANT: We wrote the `NUL` terminator and checked above that no other `NUL` bytes

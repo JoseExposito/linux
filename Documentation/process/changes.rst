@@ -7,7 +7,7 @@ Intro
 =====
 
 This document is designed to provide a list of the minimum levels of
-software necessary to run the 4.x kernels.
+software necessary to run the current kernel version.
 
 This document is originally based on my "Changes" file for 2.0.x kernels
 and therefore owes credit to the same people as that file (Jared Mauch,
@@ -31,9 +31,10 @@ you probably needn't concern yourself with pcmciautils.
 ====================== ===============  ========================================
 GNU C                  5.1              gcc --version
 Clang/LLVM (optional)  11.0.0           clang --version
-Rust (optional)        1.58.0           rustc --version
+Rust (optional)        1.62.0           rustc --version
 bindgen (optional)     0.56.0           bindgen --version
 GNU make               3.81             make --version
+bash                   4.2              bash --version
 binutils               2.23             ld -v
 flex                   2.5.35           flex --version
 bison                  2.0              bison --version
@@ -58,6 +59,7 @@ iptables               1.4.2            iptables -V
 openssl & libcrypto    1.0.0            openssl version
 bc                     1.06.95          bc --version
 Sphinx\ [#f1]_         1.7              sphinx-build --version
+cpio                   any              cpio --version
 ====================== ===============  ========================================
 
 .. [#f1] Sphinx is needed only to build the Kernel documentation
@@ -92,10 +94,10 @@ Each Rust toolchain comes with several "components", some of which are required
 is optional) needs to be installed to build the kernel. Other components are
 useful for developing.
 
-Please see :ref:`Documentation/rust/quick-start.rst <rust_quick_start>` for
-instructions on how to satify the build requirements of Rust support. In
-particular, the Makefile target 'rustavailable' is useful to check why the Rust
-toolchain may not be detected.
+Please see Documentation/rust/quick-start.rst for instructions on how to
+satisfy the build requirements of Rust support. In particular, the ``Makefile``
+target ``rustavailable`` is useful to check why the Rust toolchain may not
+be detected.
 
 bindgen (optional)
 ------------------
@@ -107,6 +109,12 @@ Make
 ----
 
 You will need GNU make 3.81 or later to build the kernel.
+
+Bash
+----
+
+Some bash scripts are used for the kernel build.
+Bash 4.2 or newer is needed.
 
 Binutils
 --------
@@ -369,8 +377,7 @@ rustdoc
 -------
 
 ``rustdoc`` is used to generate the documentation for Rust code. Please see
-:ref:`Documentation/rust/general-information.rst <rust_general_information>`
-for more information.
+Documentation/rust/general-information.rst for more information.
 
 Getting updated software
 ========================
@@ -391,17 +398,22 @@ Clang/LLVM
 Rust
 ----
 
-- :ref:`Documentation/rust/quick-start.rst <rust_quick_start>`.
+- Documentation/rust/quick-start.rst.
 
 bindgen
 -------
 
-- :ref:`Documentation/rust/quick-start.rst <rust_quick_start>`.
+- Documentation/rust/quick-start.rst.
 
 Make
 ----
 
 - <ftp://ftp.gnu.org/gnu/make/>
+
+Bash
+----
+
+- <ftp://ftp.gnu.org/gnu/bash/>
 
 Binutils
 --------
@@ -499,6 +511,11 @@ mcelog
 ------
 
 - <http://www.mcelog.org/>
+
+cpio
+----
+
+- <https://www.gnu.org/software/cpio/>
 
 Networking
 **********
