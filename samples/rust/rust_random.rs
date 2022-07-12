@@ -6,7 +6,7 @@
 //! <https://github.com/alex/just-use/blob/master/src/lib.rs>.
 
 use kernel::{
-    file::{self, File, FileFlags},
+    file::{self, File},
     io_buffer::{IoBufferReader, IoBufferWriter},
     prelude::*,
 };
@@ -34,7 +34,7 @@ impl file::Operations for RandomFile {
         while !buf.is_empty() {
             let len = chunkbuf.len().min(buf.len());
             let chunk = &mut chunkbuf[0..len];
-            let blocking = (file.flags() & FileFlags::O_NONBLOCK) == 0;
+            let blocking = (file.flags() & file::flags::O_NONBLOCK) == 0;
 
             if blocking {
                 kernel::random::getrandom(chunk)?;
