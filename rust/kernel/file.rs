@@ -22,12 +22,7 @@ use core::{cell::UnsafeCell, marker, mem, ptr};
 use macros::vtable;
 
 /// Flags associated with a [`File`].
-///
-/// It is tagged with `non_exhaustive` to prevent users from instantiating it.
-#[non_exhaustive]
-pub struct FileFlags;
-
-impl FileFlags {
+pub mod flags {
     /// File is opened in append mode.
     pub const O_APPEND: u32 = bindings::O_APPEND;
 
@@ -46,7 +41,7 @@ impl FileFlags {
     /// File must be a directory.
     pub const O_DIRECTORY: u32 = bindings::O_DIRECTORY;
 
-    /// Like `Self::O_SYNC` except metadata is not synced.
+    /// Like [`O_SYNC`] except metadata is not synced.
     pub const O_DSYNC: u32 = bindings::O_DSYNC;
 
     /// Ensure that this file is created with the `open(2)` call.
@@ -69,7 +64,7 @@ impl FileFlags {
 
     /// Also known as `O_NDELAY`.
     ///
-    /// This is effectively the same flag as [`Self::O_NONBLOCK`] on all architectures
+    /// This is effectively the same flag as [`O_NONBLOCK`] on all architectures
     /// except SPARC64.
     pub const O_NDELAY: u32 = bindings::O_NDELAY;
 
@@ -90,10 +85,10 @@ impl FileFlags {
     /// # Examples
     ///
     /// ```
-    /// use kernel::file::FileFlags;
+    /// use kernel::file;
     /// # fn do_something() {}
     /// # let flags = 0;
-    /// if (flags & FileFlags::O_ACCMODE) == FileFlags::O_RDONLY {
+    /// if (flags & file::flags::O_ACCMODE) == file::flags::O_RDONLY {
     ///     do_something();
     /// }
     /// ```
@@ -163,7 +158,7 @@ impl File {
 
     /// Returns the flags associated with the file.
     ///
-    /// The flags are a combination of the constants in [`FileFlags`].
+    /// The flags are a combination of the constants in [`flags`].
     pub fn flags(&self) -> u32 {
         // SAFETY: The file is valid because the shared reference guarantees a nonzero refcount.
         unsafe { core::ptr::addr_of!((*self.0.get()).f_flags).read() }

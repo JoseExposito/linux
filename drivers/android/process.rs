@@ -4,7 +4,7 @@ use core::{convert::TryFrom, mem::take, ops::Range};
 use kernel::{
     bindings,
     cred::Credential,
-    file::{self, File, FileFlags, IoctlCommand, IoctlHandler, PollTable},
+    file::{self, File, IoctlCommand, IoctlHandler, PollTable},
     io_buffer::{IoBufferReader, IoBufferWriter},
     linked_list::List,
     mm,
@@ -794,7 +794,7 @@ impl IoctlHandler for Process {
         data: UserSlicePtr,
     ) -> Result<i32> {
         let thread = this.get_thread(Task::current().pid())?;
-        let blocking = (file.flags() & FileFlags::O_NONBLOCK) == 0;
+        let blocking = (file.flags() & file::flags::O_NONBLOCK) == 0;
         match cmd {
             bindings::BINDER_WRITE_READ => thread.write_read(data, blocking)?,
             bindings::BINDER_GET_NODE_DEBUG_INFO => this.get_node_debug_info(data)?,
