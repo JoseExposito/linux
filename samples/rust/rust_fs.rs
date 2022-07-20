@@ -5,8 +5,8 @@
 use kernel::prelude::*;
 use kernel::{c_str, fs};
 
-module! {
-    type: FsModule,
+module_fs! {
+    type: RustFs,
     name: b"rust_fs",
     author: b"Rust for Linux Contributors",
     license: b"GPL",
@@ -55,17 +55,5 @@ impl fs::Type for RustFs {
         )?;
         let sb = sb.init_root()?;
         Ok(sb)
-    }
-}
-
-struct FsModule {
-    _fs: Pin<Box<fs::Registration>>,
-}
-
-impl kernel::Module for FsModule {
-    fn init(_name: &'static CStr, module: &'static ThisModule) -> Result<Self> {
-        let mut reg = Pin::from(Box::try_new(fs::Registration::new())?);
-        reg.as_mut().register::<RustFs>(module)?;
-        Ok(Self { _fs: reg })
     }
 }
