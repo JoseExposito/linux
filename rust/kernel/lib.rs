@@ -194,7 +194,7 @@ impl<'a> Drop for KParamGuard<'a> {
 
 /// Calculates the offset of a field from the beginning of the struct it belongs to.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
 /// # use kernel::prelude::*;
@@ -232,7 +232,7 @@ macro_rules! offset_of {
 /// as opposed to a pointer to another object of the same type. If this condition is not met,
 /// any dereference of the resulting pointer is UB.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
 /// # use kernel::container_of;
