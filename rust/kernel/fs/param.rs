@@ -434,6 +434,7 @@ macro_rules! count_brace_items {
 /// Defines the file system parameters of a given file system context.
 ///
 /// # Examples
+///
 /// ```
 /// # use kernel::prelude::*;
 /// # use kernel::{c_str, fs, str::CString};
