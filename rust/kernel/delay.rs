@@ -52,7 +52,7 @@ fn coarse_sleep_conversion(duration: Duration) -> core::ffi::c_uint {
 /// coarse_sleep(Duration::new(1, 2));              // Equivalent to `msleep(1001)`.
 /// ```
 pub fn coarse_sleep(duration: Duration) {
-    // SAFETY: msleep is safe for all values of an `unsigned int`.
+    // SAFETY: `msleep` is safe for all values of an `unsigned int`.
     unsafe { bindings::msleep(coarse_sleep_conversion(duration)) }
 }
 
