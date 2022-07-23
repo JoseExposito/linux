@@ -297,7 +297,7 @@ else
 bindgen_c_flags_lto = $(bindgen_c_flags)
 endif
 
-bindgen_c_flags_final = $(bindgen_c_flags_lto)
+bindgen_c_flags_final = $(bindgen_c_flags_lto) -D__BINDGEN__
 
 quiet_cmd_bindgen = BINDGEN $@
       cmd_bindgen = \
