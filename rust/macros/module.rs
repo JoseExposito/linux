@@ -80,7 +80,7 @@ impl<'a> ModInfoBuilder<'a> {
             } else {
                 "#[cfg(MODULE)]"
             },
-            module = self.module,
+            module = self.module.to_uppercase(),
             counter = self.counter,
             length = string.len(),
             string = Literal::byte_string(string.as_bytes()),
