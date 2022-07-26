@@ -66,7 +66,7 @@ pub(crate) fn vtable(_attr: TokenStream, ts: TokenStream) -> TokenStream {
             // so we have to generate a const for all methods.
             write!(
                 const_items,
-                "/// Indicates if the `{f}` method is overriden by the implementor.
+                "/// Indicates if the `{f}` method is overridden by the implementor.
                 const {gen_const_name}: bool = false;",
             )
             .unwrap();

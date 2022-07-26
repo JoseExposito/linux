@@ -106,7 +106,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
 /// This attribute is intended to close the gap. Traits can be declared and
 /// implemented with the `#[vtable]` attribute, and a `HAS_*` associated constant
 /// will be generated for each method in the trait, indicating if the implementor
-/// has overriden a method.
+/// has overridden a method.
 ///
 /// This attribute is not needed if all methods are required.
 ///

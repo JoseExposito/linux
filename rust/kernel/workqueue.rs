@@ -129,7 +129,7 @@ macro_rules! init_work_item_adapter {
 /// ```
 ///
 /// The following example is used to create a work item and enqueue it several times. We note that
-/// enqueing while the work item is already queued is a no-op, so we enqueue it when it is not
+/// enqueuing while the work item is already queued is a no-op, so we enqueue it when it is not
 /// enqueued yet.
 ///
 /// ```
@@ -420,7 +420,7 @@ impl BoxedQueue {
     ///
     /// # Safety
     ///
-    /// `ptr` must be non-null and valid. Additionaly, ownership must be handed over to new
+    /// `ptr` must be non-null and valid. Additionally, ownership must be handed over to new
     /// instance of [`BoxedQueue`].
     unsafe fn new(ptr: *mut bindings::workqueue_struct) -> Self {
         Self {
