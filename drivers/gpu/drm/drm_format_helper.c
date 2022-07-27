@@ -131,63 +131,48 @@ static int drm_fb_xfrm_toio(void __iomem *dst, unsigned long dst_pitch, unsigned
 
 /**
  * drm_fb_memcpy - Copy clip buffer
- * @dst: Destination buffer
- * @dst_pitch: Number of bytes between two consecutive scanlines within dst
- * @vaddr: Source buffer
+ * @dst: Array of destination buffers
+ * @dst_pitch: Array of numbers of bytes between two consecutive scanlines within dst
+ * @vmap: Array of source buffers
  * @fb: DRM framebuffer
  * @clip: Clip rectangle area to copy
  *
  * This function does not apply clipping on dst, i.e. the destination
  * is at the top-left corner.
  */
-void drm_fb_memcpy(void *dst, unsigned int dst_pitch, const void *vaddr,
-		   const struct drm_framebuffer *fb, const struct drm_rect *clip)
+void drm_fb_memcpy(struct iosys_map *dst, const unsigned int *dst_pitch,
+		   const struct iosys_map *vmap, const struct drm_framebuffer *fb,
+		   const struct drm_rect *clip)
 {
-	unsigned int cpp = fb->format->cpp[0];
-	size_t len = (clip->x2 - clip->x1) * cpp;
-	unsigned int y, lines = clip->y2 - clip->y1;
+	static const unsigned int default_dst_pitch[DRM_FORMAT_MAX_PLANES] = {
+		0, 0, 0, 0
+	};
+
+	const struct drm_format_info *format = fb->format;
+	unsigned int i, y, lines = drm_rect_height(clip);
 
 	if (!dst_pitch)
-		dst_pitch = len;
+		dst_pitch = default_dst_pitch;
 
-	vaddr += clip_offset(clip, fb->pitches[0], cpp);
-	for (y = 0; y < lines; y++) {
-		memcpy(dst, vaddr, len);
-		vaddr += fb->pitches[0];
-		dst += dst_pitch;
+	for (i = 0; i < format->num_planes; ++i) {
+		unsigned int cpp_i = format->cpp[i];
+		size_t len_i = drm_rect_width(clip) * cpp_i;
+		unsigned int dst_pitch_i = dst_pitch[i];
+		struct iosys_map dst_i = dst[i];
+		struct iosys_map vmap_i = vmap[i];
+
+		if (!dst_pitch_i)
+			dst_pitch_i = len_i;
+
+		iosys_map_incr(&vmap_i, clip_offset(clip, fb->pitches[i], cpp_i));
+		for (y = 0; y < lines; y++) {
+			iosys_map_memcpy_to(&dst_i, 0, vmap_i.vaddr, len_i);
+			iosys_map_incr(&vmap_i, fb->pitches[i]);
+			iosys_map_incr(&dst_i, dst_pitch_i);
+		}
 	}
 }
 EXPORT_SYMBOL(drm_fb_memcpy);
-
-/**
- * drm_fb_memcpy_toio - Copy clip buffer
- * @dst: Destination buffer (iomem)
- * @dst_pitch: Number of bytes between two consecutive scanlines within dst
- * @vaddr: Source buffer
- * @fb: DRM framebuffer
- * @clip: Clip rectangle area to copy
- *
- * This function does not apply clipping on dst, i.e. the destination
- * is at the top-left corner.
- */
-void drm_fb_memcpy_toio(void __iomem *dst, unsigned int dst_pitch, const void *vaddr,
-			const struct drm_framebuffer *fb, const struct drm_rect *clip)
-{
-	unsigned int cpp = fb->format->cpp[0];
-	size_t len = (clip->x2 - clip->x1) * cpp;
-	unsigned int y, lines = clip->y2 - clip->y1;
-
-	if (!dst_pitch)
-		dst_pitch = len;
-
-	vaddr += clip_offset(clip, fb->pitches[0], cpp);
-	for (y = 0; y < lines; y++) {
-		memcpy_toio(dst, vaddr, len);
-		vaddr += fb->pitches[0];
-		dst += dst_pitch;
-	}
-}
-EXPORT_SYMBOL(drm_fb_memcpy_toio);
 
 static void drm_fb_swab16_line(void *dbuf, const void *sbuf, unsigned int pixels)
 {
@@ -584,7 +569,7 @@ int drm_fb_blit(struct iosys_map *dst, const unsigned int *dst_pitch, uint32_t d
 		dst_format = DRM_FORMAT_XRGB2101010;
 
 	if (dst_format == fb_format) {
-		drm_fb_memcpy_toio(dst[0].vaddr_iomem, dst_pitch[0], vmap[0].vaddr, fb, clip);
+		drm_fb_memcpy(dst, dst_pitch, vmap, fb, clip);
 		return 0;
 
 	} else if (dst_format == DRM_FORMAT_RGB565) {

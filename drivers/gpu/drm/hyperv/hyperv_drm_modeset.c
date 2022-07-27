@@ -21,19 +21,20 @@
 #include "hyperv_drm.h"
 
 static int hyperv_blit_to_vram_rect(struct drm_framebuffer *fb,
-				    const struct iosys_map *map,
+				    const struct iosys_map *vmap,
 				    struct drm_rect *rect)
 {
 	struct hyperv_drm_device *hv = to_hv(fb->dev);
-	void __iomem *dst = hv->vram;
-	void *vmap = map->vaddr; /* TODO: Use mapping abstraction properly */
+	struct iosys_map dst;
 	int idx;
 
 	if (!drm_dev_enter(&hv->dev, &idx))
 		return -ENODEV;
 
-	dst += drm_fb_clip_offset(fb->pitches[0], fb->format, rect);
-	drm_fb_memcpy_toio(dst, fb->pitches[0], vmap, fb, rect);
+	iosys_map_set_vaddr_iomem(&dst, hv->vram);
+	iosys_map_incr(&dst, drm_fb_clip_offset(fb->pitches[0], fb->format, rect));
+
+	drm_fb_memcpy(&dst, fb->pitches, vmap, fb, rect);
 
 	drm_dev_exit(idx);
 
