@@ -56,7 +56,6 @@ impl Resource {
 ///
 ///     Ok(())
 /// }
-///
 /// ```
 pub struct IoMem<const SIZE: usize> {
     ptr: usize,

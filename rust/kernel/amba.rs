@@ -243,9 +243,9 @@ macro_rules! module_amba_driver {
 /// #   fn probe(_dev: &mut amba::Device, _id: Option<&Self::IdInfo>) -> Result {
 /// #       Ok(())
 /// #   }
-///     define_amba_id_table! {(), [
-///         ({ id: 0x00041061, mask: 0x000fffff }, None),
-///     ]}
+/// define_amba_id_table! {(), [
+///     ({ id: 0x00041061, mask: 0x000fffff }, None),
+/// ]}
 /// # }
 /// ```
 #[macro_export]

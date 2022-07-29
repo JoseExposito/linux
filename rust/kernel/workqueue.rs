@@ -134,8 +134,8 @@ macro_rules! init_work_item_adapter {
 ///
 /// ```
 /// # use kernel::workqueue::{self, Work};
-/// use kernel::sync::UniqueRef;
 /// use core::sync::atomic::{AtomicU32, Ordering};
+/// use kernel::sync::UniqueRef;
 ///
 /// struct Example {
 ///     count: AtomicU32,
@@ -174,8 +174,8 @@ macro_rules! init_work_item_adapter {
 ///
 /// ```
 /// # use kernel::workqueue::{self, Work, WorkAdapter};
-/// use kernel::sync::{Ref, UniqueRef};
 /// use core::sync::atomic::{AtomicU32, Ordering};
+/// use kernel::sync::{Ref, UniqueRef};
 ///
 /// struct Example {
 ///     work1: Work,

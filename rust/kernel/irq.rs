@@ -395,8 +395,7 @@ pub trait Handler {
 /// }
 ///
 /// fn request_irq(irq: u32, data: Box<u32>) -> Result<irq::Registration<Example>> {
-///     irq::Registration::try_new(
-///         irq, data, irq::flags::SHARED, fmt!("example_{irq}"))
+///     irq::Registration::try_new(irq, data, irq::flags::SHARED, fmt!("example_{irq}"))
 /// }
 /// ```
 pub struct Registration<H: Handler>(InternalRegistration<H::Data>);
@@ -450,7 +449,10 @@ pub trait ThreadedHandler {
 ///
 /// ```
 /// # use kernel::prelude::*;
-/// use kernel::{irq, sync::{Ref, RefBorrow}};
+/// use kernel::{
+///     irq,
+///     sync::{Ref, RefBorrow},
+/// };
 ///
 /// struct Example;
 ///
@@ -463,8 +465,7 @@ pub trait ThreadedHandler {
 /// }
 ///
 /// fn request_irq(irq: u32, data: Ref<u32>) -> Result<irq::ThreadedRegistration<Example>> {
-///     irq::ThreadedRegistration::try_new(
-///         irq, data, irq::flags::SHARED, fmt!("example_{irq}"))
+///     irq::ThreadedRegistration::try_new(irq, data, irq::flags::SHARED, fmt!("example_{irq}"))
 /// }
 /// ```
 pub struct ThreadedRegistration<H: ThreadedHandler>(InternalRegistration<H::Data>);

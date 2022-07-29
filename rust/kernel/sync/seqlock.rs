@@ -18,8 +18,8 @@ use core::{cell::UnsafeCell, marker::PhantomPinned, ops::Deref, pin::Pin};
 /// # Examples
 ///
 ///```
-/// use kernel::sync::{SeqLock, SpinLock};
 /// use core::sync::atomic::{AtomicU32, Ordering};
+/// use kernel::sync::{SeqLock, SpinLock};
 ///
 /// struct Example {
 ///     a: AtomicU32,
