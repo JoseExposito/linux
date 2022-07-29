@@ -17,7 +17,7 @@ use core::{cell::UnsafeCell, marker::PhantomPinned, ops::Deref, pin::Pin};
 ///
 /// # Examples
 ///
-///```
+/// ```
 /// use core::sync::atomic::{AtomicU32, Ordering};
 /// use kernel::sync::{SeqLock, SpinLock};
 ///

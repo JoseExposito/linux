@@ -196,10 +196,10 @@ impl Transaction {
 
 impl DeliverToRead for Transaction {
     fn do_work(self: Ref<Self>, thread: &Thread, writer: &mut UserSlicePtrWriter) -> Result<bool> {
-        /* TODO: Initialise the following fields from tr:
-            pub sender_pid: pid_t,
-            pub sender_euid: uid_t,
-        */
+        // TODO: Initialise the following fields from `tr`:
+        //   - `pub sender_pid: pid_t`.
+        //   - `pub sender_euid: uid_t`.
+
         let send_failed_reply = ScopeGuard::new(|| {
             if self.node_ref.is_some() && self.flags & TF_ONE_WAY == 0 {
                 let reply = Either::Right(BR_FAILED_REPLY);
