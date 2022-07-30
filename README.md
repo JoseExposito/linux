@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-kunit-drm-format-helper](https://github.com/JoseExposito/linux/tree/patch-kunit-drm-format-helper) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) + [Move to struct iosys_map](https://lore.kernel.org/dri-devel/20220727113312.22407-1-tzimmermann@suse.de/T/) | KUnit tests for RGB888, XRGB2101010 and GRAY8 | 🔨 |
 | [patch-uclogic-digitalizer-suffix](https://github.com/JoseExposito/linux/tree/patch-uclogic-digitalizer-suffix) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | UCLogic: Fix digitalizer suffix | ⏳ |
 | [patch-uclogic_rdesc_template_apply-sparse-warning](https://github.com/JoseExposito/linux/tree/patch-uclogic_rdesc_template_apply-sparse-warning) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | UCLogic: Fix Sparse warning | ⏳ |
 | [patch-drm-format-helper-rgb565-kunit](https://github.com/JoseExposito/linux/tree/patch-drm-format-helper-rgb565-kunit) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | KUnit tests for drm_format_helper (DRM_FORMAT_RGB565) | 🔀 |
