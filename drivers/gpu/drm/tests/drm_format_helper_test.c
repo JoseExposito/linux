@@ -197,8 +197,9 @@ static void xrgb8888_to_rgb332_test(struct kunit *test)
 	const struct convert_xrgb8888_case *params = test->param_value;
 	const struct convert_to_rgb332_result *result = &params->rgb332_result;
 	size_t dst_size;
-	__u8 *dst = NULL;
-	__u32 *src = NULL;
+	__u32 *src_buf = NULL;
+	__u16 *dst_buf = NULL;
+	struct iosys_map src, dst;
 
 	struct drm_framebuffer fb = {
 		.format = drm_format_info(DRM_FORMAT_XRGB8888),
@@ -209,15 +210,17 @@ static void xrgb8888_to_rgb332_test(struct kunit *test)
 				       &params->clip);
 	KUNIT_ASSERT_GT(test, dst_size, 0);
 
-	dst = kunit_kzalloc(test, dst_size, GFP_KERNEL);
-	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, dst);
+	dst_buf = kunit_kzalloc(test, dst_size, GFP_KERNEL);
+	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, dst_buf);
 
-	src = le32buf_to_cpu(test, params->xrgb8888, TEST_BUF_SIZE);
-	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, src);
+	src_buf = le32buf_to_cpu(test, params->xrgb8888, TEST_BUF_SIZE);
+	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, src_buf);
 
-	drm_fb_xrgb8888_to_rgb332(dst, result->dst_pitch, src, &fb,
+	iosys_map_set_vaddr(&dst, dst_buf);
+	iosys_map_set_vaddr(&src, (void __force *)src_buf);
+	drm_fb_xrgb8888_to_rgb332(&dst, &result->dst_pitch, &src, &fb,
 				  &params->clip);
-	KUNIT_EXPECT_EQ(test, memcmp(dst, result->expected, dst_size), 0);
+	KUNIT_EXPECT_EQ(test, memcmp(dst_buf, result->expected, dst_size), 0);
 }
 
 static void xrgb8888_to_rgb565_test(struct kunit *test)
@@ -225,8 +228,9 @@ static void xrgb8888_to_rgb565_test(struct kunit *test)
 	const struct convert_xrgb8888_case *params = test->param_value;
 	const struct convert_to_rgb565_result *result = &params->rgb565_result;
 	size_t dst_size;
-	__u16 *dst = NULL;
-	__u32 *src = NULL;
+	__u32 *src_buf = NULL;
+	__u16 *dst_buf = NULL;
+	struct iosys_map src, dst;
 
 	struct drm_framebuffer fb = {
 		.format = drm_format_info(DRM_FORMAT_XRGB8888),
@@ -237,19 +241,21 @@ static void xrgb8888_to_rgb565_test(struct kunit *test)
 				       &params->clip);
 	KUNIT_ASSERT_GT(test, dst_size, 0);
 
-	dst = kunit_kzalloc(test, dst_size, GFP_KERNEL);
-	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, dst);
+	dst_buf = kunit_kzalloc(test, dst_size, GFP_KERNEL);
+	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, dst_buf);
 
-	src = le32buf_to_cpu(test, params->xrgb8888, TEST_BUF_SIZE);
-	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, src);
+	src_buf = le32buf_to_cpu(test, params->xrgb8888, TEST_BUF_SIZE);
+	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, src_buf);
 
-	drm_fb_xrgb8888_to_rgb565(dst, result->dst_pitch, src, &fb,
+	iosys_map_set_vaddr(&dst, dst_buf);
+	iosys_map_set_vaddr(&src, (void __force *)src_buf);
+	drm_fb_xrgb8888_to_rgb565(&dst, &result->dst_pitch, &src, &fb,
 				  &params->clip, false);
-	KUNIT_EXPECT_EQ(test, memcmp(dst, result->expected, dst_size), 0);
+	KUNIT_EXPECT_EQ(test, memcmp(dst_buf, result->expected, dst_size), 0);
 
-	drm_fb_xrgb8888_to_rgb565(dst, result->dst_pitch, src, &fb,
+	drm_fb_xrgb8888_to_rgb565(&dst, &result->dst_pitch, &src, &fb,
 				  &params->clip, true);
-	KUNIT_EXPECT_EQ(test, memcmp(dst, result->expected_swab, dst_size), 0);
+	KUNIT_EXPECT_EQ(test, memcmp(dst_buf, result->expected_swab, dst_size), 0);
 }
 
 static struct kunit_case drm_format_helper_test_cases[] = {
