@@ -134,7 +134,8 @@ if [ "$1" = -v ]; then
 		)
 		if [ "$clang_version" != "$bindgen_libclang_version" ]; then
 			echo >&2 "***"
-			echo >&2 "*** libclang (used by the Rust bindings generator '$BINDGEN') version does not match Clang's. This may be a problem."
+			echo >&2 "*** libclang (used by the Rust bindings generator '$BINDGEN')"
+			echo >&2 "*** version does not match Clang's. This may be a problem."
 			echo >&2 "***   libclang version: $bindgen_libclang_version"
 			echo >&2 "***   Clang version:    $clang_version"
 			echo >&2 "***"

@@ -326,7 +326,8 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
         offset: *mut bindings::loff_t,
     ) -> core::ffi::c_ssize_t {
         from_kernel_result! {
-            let mut data = unsafe { UserSlicePtr::new(buf as *mut core::ffi::c_void, len).writer() };
+            let mut data =
+                unsafe { UserSlicePtr::new(buf as *mut core::ffi::c_void, len).writer() };
             // SAFETY: `private_data` was initialised by `open_callback` with a value returned by
             // `T::Data::into_pointer`. `T::Data::from_pointer` is only called by the
             // `release` callback, which the C API guarantees that will be called only when all
@@ -374,7 +375,8 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
         offset: *mut bindings::loff_t,
     ) -> core::ffi::c_ssize_t {
         from_kernel_result! {
-            let mut data = unsafe { UserSlicePtr::new(buf as *mut core::ffi::c_void, len).reader() };
+            let mut data =
+                unsafe { UserSlicePtr::new(buf as *mut core::ffi::c_void, len).reader() };
             // SAFETY: `private_data` was initialised by `open_callback` with a value returned by
             // `T::Data::into_pointer`. `T::Data::from_pointer` is only called by the
             // `release` callback, which the C API guarantees that will be called only when all

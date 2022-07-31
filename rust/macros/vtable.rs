@@ -53,8 +53,12 @@ pub(crate) fn vtable(_attr: TokenStream, ts: TokenStream) -> TokenStream {
 
     let mut const_items;
     if is_trait {
-        const_items =  "/// A marker to prevent implementors from forgetting to use [`#[vtable]`](vtable) attribute when implementing this trait.
-        const USE_VTABLE_ATTR: ();".to_owned();
+        const_items = "
+                /// A marker to prevent implementors from forgetting to use [`#[vtable]`](vtable)
+                /// attribute when implementing this trait.
+                const USE_VTABLE_ATTR: ();
+        "
+        .to_owned();
 
         for f in functions {
             let gen_const_name = format!("HAS_{}", f.to_uppercase());
