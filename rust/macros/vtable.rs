@@ -7,7 +7,7 @@ use std::fmt::Write;
 pub(crate) fn vtable(_attr: TokenStream, ts: TokenStream) -> TokenStream {
     let mut tokens: Vec<_> = ts.into_iter().collect();
 
-    // Scan for the `trait` or `impl` keyword
+    // Scan for the `trait` or `impl` keyword.
     let is_trait = tokens
         .iter()
         .find_map(|token| match token {

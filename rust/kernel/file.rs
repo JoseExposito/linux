@@ -47,7 +47,7 @@ pub mod flags {
     /// Ensure that this file is created with the `open(2)` call.
     pub const O_EXCL: u32 = bindings::O_EXCL;
 
-    /// Large file size enabled (`off64_t` over `off_t`)
+    /// Large file size enabled (`off64_t` over `off_t`).
     pub const O_LARGEFILE: u32 = bindings::O_LARGEFILE;
 
     /// Do not update the file last access time.

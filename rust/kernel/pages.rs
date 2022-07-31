@@ -36,7 +36,7 @@ impl<const ORDER: u32> Pages<ORDER> {
         if pages.is_null() {
             return Err(ENOMEM);
         }
-        // INVARIANTS: We checked that the allocation above succeeded>
+        // INVARIANTS: We checked that the allocation above succeeded.
         Ok(Self { pages })
     }
 
