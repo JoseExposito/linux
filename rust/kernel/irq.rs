@@ -213,7 +213,11 @@ unsafe extern "C" fn irq_set_type_callback<T: Chip>(
 
         // SAFETY: The value returned by `IrqData` is only valid until the end of this function, and
         // `irq_data` is guaranteed to be valid until then (by the contract with C code).
-        let ret = T::set_type(data, &mut LockedIrqData(unsafe { IrqData::from_ptr(irq_data) }), flow_type)?;
+        let ret = T::set_type(
+            data,
+            &mut LockedIrqData(unsafe { IrqData::from_ptr(irq_data) }),
+            flow_type,
+        )?;
         Ok(ret as _)
     }
 }

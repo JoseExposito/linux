@@ -361,8 +361,12 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // references to `file` have been released, so we know it can't be called while this
             // function is running.
             let f = unsafe { T::Data::borrow((*file).private_data) };
-            let read =
-                T::read(f, unsafe { File::from_ptr(file) }, &mut iter, offset.try_into()?)?;
+            let read = T::read(
+                f,
+                unsafe { File::from_ptr(file) },
+                &mut iter,
+                offset.try_into()?,
+            )?;
             unsafe { (*iocb).ki_pos += bindings::loff_t::try_from(read).unwrap() };
             Ok(read as _)
         }
@@ -389,7 +393,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
                 f,
                 unsafe { File::from_ptr(file) },
                 &mut data,
-                unsafe { *offset }.try_into()?
+                unsafe { *offset }.try_into()?,
             )?;
             unsafe { (*offset) += bindings::loff_t::try_from(written).unwrap() };
             Ok(written as _)
@@ -410,8 +414,12 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // references to `file` have been released, so we know it can't be called while this
             // function is running.
             let f = unsafe { T::Data::borrow((*file).private_data) };
-            let written =
-                T::write(f, unsafe { File::from_ptr(file) }, &mut iter, offset.try_into()?)?;
+            let written = T::write(
+                f,
+                unsafe { File::from_ptr(file) },
+                &mut iter,
+                offset.try_into()?,
+            )?;
             unsafe { (*iocb).ki_pos += bindings::loff_t::try_from(written).unwrap() };
             Ok(written as _)
         }

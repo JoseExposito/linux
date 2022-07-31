@@ -120,7 +120,11 @@ unsafe extern "C" fn probe_callback<T: Driver>(
         } else {
             // SAFETY: The offset comes from a previous call to `offset_from` in `IdArray::new`,
             // which guarantees that the resulting pointer is within the table.
-            let ptr = unsafe { aid.cast::<u8>().offset(offset as _).cast::<Option<T::IdInfo>>() };
+            let ptr = unsafe {
+                aid.cast::<u8>()
+                    .offset(offset as _)
+                    .cast::<Option<T::IdInfo>>()
+            };
             // SAFETY: The id table has a static lifetime, so `ptr` is guaranteed to be valid for
             // read.
             unsafe { (&*ptr).as_ref() }

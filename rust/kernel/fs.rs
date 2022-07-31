@@ -166,7 +166,10 @@ impl<T: Type + ?Sized> Tables<T> {
             // SAFETY: The callback contract guarantees the parameter key to be valid and last at
             // least the duration of the callback.
             T::Context::parse_unknown_param(
-                &mut data, unsafe { CStr::from_char_ptr(param.key) }, val)?;
+                &mut data,
+                unsafe { CStr::from_char_ptr(param.key) },
+                val,
+            )?;
             Ok(0)
         }
     }
@@ -291,8 +294,9 @@ impl<T: Type + ?Sized> Tables<T> {
                 // SAFETY: Both `fc` and `buf` are guaranteed to be valid; the former because the
                 // callback is still ongoing and the latter because its lifefime is tied to that of
                 // `page`, which is also valid for the duration of the callback.
-                to_result(
-                    unsafe { bindings::generic_parse_monolithic(fc, buf.as_mut_ptr().cast()) })?;
+                to_result(unsafe {
+                    bindings::generic_parse_monolithic(fc, buf.as_mut_ptr().cast())
+                })?;
             }
             Ok(0)
         }
