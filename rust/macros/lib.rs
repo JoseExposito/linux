@@ -135,7 +135,7 @@ pub fn module(ts: TokenStream) -> TokenStream {
 /// impl Operations for Foo {
 ///     fn foo(&self) -> Result<()> {
 /// #        Err(EINVAL)
-///         /* ... */
+///         // ...
 ///     }
 /// }
 ///
