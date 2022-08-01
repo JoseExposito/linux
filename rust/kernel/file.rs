@@ -335,7 +335,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // function is running.
             let f = unsafe { T::Data::borrow((*file).private_data) };
             // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
-            // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
+            // See <https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113>.
             let read = T::read(
                 f,
                 unsafe { File::from_ptr(file) },
@@ -388,7 +388,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // function is running.
             let f = unsafe { T::Data::borrow((*file).private_data) };
             // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
-            // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
+            // See <https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113>.
             let written = T::write(
                 f,
                 unsafe { File::from_ptr(file) },

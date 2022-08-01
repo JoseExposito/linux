@@ -262,7 +262,6 @@ fn panic(info: &core::panic::PanicInfo<'_>) -> ! {
     // SAFETY: FFI call.
     unsafe { bindings::BUG() };
     // Bindgen currently does not recognize `__noreturn` so `BUG` returns `()`
-    // instead of `!`.
-    // https://github.com/rust-lang/rust-bindgen/issues/2094
+    // instead of `!`. See <https://github.com/rust-lang/rust-bindgen/issues/2094>.
     loop {}
 }
