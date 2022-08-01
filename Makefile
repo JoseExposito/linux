@@ -819,27 +819,19 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, address-of-packed-member)
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
 KBUILD_CFLAGS += -O2
-KBUILD_RUSTFLAGS_OPT_LEVEL_MAP := 2
+KBUILD_RUSTFLAGS += -Copt-level=2
 else ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3
 KBUILD_CFLAGS += -O3
-KBUILD_RUSTFLAGS_OPT_LEVEL_MAP := 3
+KBUILD_RUSTFLAGS += -Copt-level=3
 else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS += -Os
-KBUILD_RUSTFLAGS_OPT_LEVEL_MAP := s
+KBUILD_RUSTFLAGS += -Copt-level=s
 endif
 
 # Always set `debug-assertions` and `overflow-checks` because their default
 # depends on `opt-level` and `debug-assertions`, respectively.
 KBUILD_RUSTFLAGS += -Cdebug-assertions=$(if $(CONFIG_RUST_DEBUG_ASSERTIONS),y,n)
 KBUILD_RUSTFLAGS += -Coverflow-checks=$(if $(CONFIG_RUST_OVERFLOW_CHECKS),y,n)
-KBUILD_RUSTFLAGS += -Copt-level=$\
-	$(if $(CONFIG_RUST_OPT_LEVEL_SIMILAR_AS_CHOSEN_FOR_C),$(KBUILD_RUSTFLAGS_OPT_LEVEL_MAP))$\
-	$(if $(CONFIG_RUST_OPT_LEVEL_0),0)$\
-	$(if $(CONFIG_RUST_OPT_LEVEL_1),1)$\
-	$(if $(CONFIG_RUST_OPT_LEVEL_2),2)$\
-	$(if $(CONFIG_RUST_OPT_LEVEL_3),3)$\
-	$(if $(CONFIG_RUST_OPT_LEVEL_S),s)$\
-	$(if $(CONFIG_RUST_OPT_LEVEL_Z),z)
 
 # Tell gcc to never replace conditional load with a non-conditional one
 ifdef CONFIG_CC_IS_GCC
