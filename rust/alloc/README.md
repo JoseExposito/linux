@@ -1,9 +1,9 @@
 # `alloc`
 
 These source files come from the Rust standard library, hosted in
-the https://github.com/rust-lang/rust repository, licensed under
+the <https://github.com/rust-lang/rust> repository, licensed under
 "Apache-2.0 OR MIT" and adapted for kernel use. For copyright details,
-see https://github.com/rust-lang/rust/blob/master/COPYRIGHT.
+see <https://github.com/rust-lang/rust/blob/master/COPYRIGHT>.
 
 Please note that these files should be kept as close as possible to
 upstream. In general, only additions should be performed (e.g. new
