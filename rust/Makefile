@@ -81,12 +81,15 @@ quiet_cmd_rustdoc = RUSTDOC $(if $(rustdoc_host),H, ) $<
 # and then retouch the generated files.
 rustdoc: rustdoc-core rustdoc-macros rustdoc-compiler_builtins \
     rustdoc-alloc rustdoc-kernel
-	$(Q)cp $(srctree)/Documentation/images/logo.gif $(objtree)/$(obj)/doc
+	$(Q)cp $(srctree)/Documentation/images/logo.svg $(objtree)/$(obj)/doc
+	$(Q)cp $(srctree)/Documentation/images/COPYING-logo $(objtree)/$(obj)/doc
 	$(Q)find $(objtree)/$(obj)/doc -name '*.html' -type f -print0 | xargs -0 sed -Ei \
-		-e 's:rust-logo\.svg:logo.gif:g' \
-		-e 's:rust-logo\.png:logo.gif:g' \
-		-e 's:favicon\.svg:logo.gif:g' \
+		-e 's:rust-logo\.svg:logo.svg:g' \
+		-e 's:rust-logo\.png:logo.svg:g' \
+		-e 's:favicon\.svg:logo.svg:g' \
 		-e 's:<link rel="alternate icon" type="image/png" href="[./]*favicon-(16x16|32x32)\.png">::g'
+	$(Q)echo '.logo-container > img { object-fit: contain; }' \
+		>> $(objtree)/$(obj)/doc/rustdoc.css
 
 rustdoc-macros: private rustdoc_host = yes
 rustdoc-macros: private rustc_target_flags = --crate-type proc-macro \
