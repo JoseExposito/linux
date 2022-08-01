@@ -130,5 +130,6 @@ My personal working configs are save in `config-*` branches:
 | [config-5.16.0-elementaryOS6](https://github.com/JoseExposito/linux/tree/config-5.16.0-elementaryOS6) | 5.16.0 | elementary OS 6 |
 | [config-5.17.0-elementaryOS6](https://github.com/JoseExposito/linux/tree/config-5.17.0-elementaryOS6) | 5.17.0 | elementary OS 6 |
 | [config-5.18.0-elementaryOS6](https://github.com/JoseExposito/linux/tree/config-5.18.0-elementaryOS6) | 5.18.0 | elementary OS 6 |
+| [config-5.19.0-elementaryOS6](https://github.com/JoseExposito/linux/tree/config-5.19.0-elementaryOS6) | 5.19.0 | elementary OS 6 |
 | [config-5.10.y-raspberrypi4](https://github.com/JoseExposito/linux/tree/config-5.10.y-raspberrypi4) | 5.10.y | Raspberry Pi 4 |
 | [config-5.15.y-raspberrypi4](https://github.com/JoseExposito/linux/tree/config-5.15.y-raspberrypi4) | 5.15.y | Raspberry Pi 4 |
