@@ -79,7 +79,10 @@ pub trait Chip {
 ///
 /// ```
 /// # use kernel::prelude::*;
-/// use kernel::{device::RawDevice, gpio::{self, Registration}};
+/// use kernel::{
+///     device::RawDevice,
+///     gpio::{self, Registration},
+/// };
 ///
 /// struct MyGpioChip;
 /// #[vtable]

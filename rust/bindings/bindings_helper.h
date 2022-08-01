@@ -13,6 +13,7 @@
 #include <linux/errname.h>
 #include <linux/file.h>
 #include <linux/fs.h>
+#include <linux/fs_parser.h>
 #include <linux/gpio/driver.h>
 #include <linux/hw_random.h>
 #include <linux/interrupt.h>
@@ -36,7 +37,6 @@
 #include <linux/uaccess.h>
 #include <linux/uio.h>
 #include <uapi/linux/android/binder.h>
-#include <linux/fs_parser.h>
 
 /* `bindgen` gets confused at certain things. */
 const gfp_t BINDINGS_GFP_KERNEL = GFP_KERNEL;

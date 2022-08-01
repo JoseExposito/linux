@@ -417,12 +417,12 @@ impl<S, T: Fn(&mut S, &bindings::fs_parameter, &bindings::fs_parse_result) -> Re
 /// # use kernel::count_brace_items;
 ///
 /// assert_eq!(0, count_brace_items!());
-/// assert_eq!(1, count_brace_items!({A}));
-/// assert_eq!(1, count_brace_items!({A},));
-/// assert_eq!(2, count_brace_items!({A}, {B}));
-/// assert_eq!(2, count_brace_items!({A}, {B},));
-/// assert_eq!(3, count_brace_items!({A}, {B}, {C}));
-/// assert_eq!(3, count_brace_items!({A}, {B}, {C},));
+/// assert_eq!(1, count_brace_items!({ A }));
+/// assert_eq!(1, count_brace_items!({ A },));
+/// assert_eq!(2, count_brace_items!({ A }, { B }));
+/// assert_eq!(2, count_brace_items!({ A }, { B },));
+/// assert_eq!(3, count_brace_items!({ A }, { B }, { C }));
+/// assert_eq!(3, count_brace_items!({ A }, { B }, { C },));
 /// ```
 #[macro_export]
 macro_rules! count_brace_items {
@@ -434,6 +434,7 @@ macro_rules! count_brace_items {
 /// Defines the file system parameters of a given file system context.
 ///
 /// # Examples
+///
 /// ```
 /// # use kernel::prelude::*;
 /// # use kernel::{c_str, fs, str::CString};
@@ -461,7 +462,7 @@ macro_rules! count_brace_items {
 /// impl fs::Context<Self> for Example {
 ///     type Data = Box<State>;
 ///
-///     kernel::define_fs_params!{Box<State>,
+///     kernel::define_fs_params! {Box<State>,
 ///         {flag, "flag", |s, v| { s.flag = Some(v); Ok(()) } },
 ///         {flag_no, "flagno", |s, v| { s.flag_no = Some(v); Ok(()) } },
 ///         {bool, "bool", |s, v| { s.bool_value = Some(v); Ok(()) } },

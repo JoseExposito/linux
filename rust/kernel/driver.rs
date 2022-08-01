@@ -280,16 +280,16 @@ macro_rules! first_item {
 /// assert_eq!([] as [u32; 0], second_item!());
 /// assert_eq!([10u32], second_item!((X, 10u32)));
 /// assert_eq!([10u32], second_item!((X, 10u32),));
-/// assert_eq!([10u32], second_item!(({X}, 10u32)));
-/// assert_eq!([10u32], second_item!(({X}, 10u32),));
+/// assert_eq!([10u32], second_item!(({ X }, 10u32)));
+/// assert_eq!([10u32], second_item!(({ X }, 10u32),));
 /// assert_eq!([10u32, 20], second_item!((X, 10u32), (X, 20)));
 /// assert_eq!([10u32, 20], second_item!((X, 10u32), (X, 20),));
-/// assert_eq!([10u32, 20], second_item!(({X}, 10u32), ({X}, 20)));
-/// assert_eq!([10u32, 20], second_item!(({X}, 10u32), ({X}, 20),));
+/// assert_eq!([10u32, 20], second_item!(({ X }, 10u32), ({ X }, 20)));
+/// assert_eq!([10u32, 20], second_item!(({ X }, 10u32), ({ X }, 20),));
 /// assert_eq!([10u32, 20, 30], second_item!((X, 10u32), (X, 20), (X, 30)));
 /// assert_eq!([10u32, 20, 30], second_item!((X, 10u32), (X, 20), (X, 30),));
-/// assert_eq!([10u32, 20, 30], second_item!(({X}, 10u32), ({X}, 20), ({X}, 30)));
-/// assert_eq!([10u32, 20, 30], second_item!(({X}, 10u32), ({X}, 20), ({X}, 30),));
+/// assert_eq!([10u32, 20, 30], second_item!(({ X }, 10u32), ({ X }, 20), ({ X }, 30)));
+/// assert_eq!([10u32, 20, 30], second_item!(({ X }, 10u32), ({ X }, 20), ({ X }, 30),));
 /// ```
 #[macro_export]
 macro_rules! second_item {

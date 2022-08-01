@@ -14,20 +14,20 @@
 #![no_std]
 #![feature(allocator_api)]
 #![feature(associated_type_defaults)]
+#![feature(coerce_unsized)]
 #![feature(const_mut_refs)]
 #![feature(const_ptr_offset_from)]
 #![feature(const_refs_to_cell)]
 #![feature(const_trait_impl)]
 #![feature(core_ffi_c)]
 #![feature(c_size_t)]
+#![feature(dispatch_from_dyn)]
 #![feature(doc_cfg)]
+#![feature(duration_constants)]
 #![feature(generic_associated_types)]
 #![feature(ptr_metadata)]
 #![feature(receiver_trait)]
-#![feature(coerce_unsized)]
-#![feature(dispatch_from_dyn)]
 #![feature(unsize)]
-#![feature(duration_constants)]
 
 // Ensure conditional compilation based on the kernel configuration works;
 // otherwise we may silently break things like initcall handling.
@@ -194,7 +194,7 @@ impl<'a> Drop for KParamGuard<'a> {
 
 /// Calculates the offset of a field from the beginning of the struct it belongs to.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
 /// # use kernel::prelude::*;
@@ -232,7 +232,7 @@ macro_rules! offset_of {
 /// as opposed to a pointer to another object of the same type. If this condition is not met,
 /// any dereference of the resulting pointer is UB.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
 /// # use kernel::container_of;
@@ -262,7 +262,6 @@ fn panic(info: &core::panic::PanicInfo<'_>) -> ! {
     // SAFETY: FFI call.
     unsafe { bindings::BUG() };
     // Bindgen currently does not recognize `__noreturn` so `BUG` returns `()`
-    // instead of `!`.
-    // https://github.com/rust-lang/rust-bindgen/issues/2094
+    // instead of `!`. See <https://github.com/rust-lang/rust-bindgen/issues/2094>.
     loop {}
 }

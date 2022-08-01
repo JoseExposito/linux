@@ -21,7 +21,7 @@ pub struct Guard<'a, L: Lock<I> + ?Sized, I: LockInfo = WriteLock> {
 
 // SAFETY: `Guard` is sync when the data protected by the lock is also sync. This is more
 // conservative than the default compiler implementation; more details can be found on
-// https://github.com/rust-lang/rust/issues/41622 -- it refers to `MutexGuard` from the standard
+// <https://github.com/rust-lang/rust/issues/41622> -- it refers to `MutexGuard` from the standard
 // library.
 unsafe impl<L, I> Sync for Guard<'_, L, I>
 where

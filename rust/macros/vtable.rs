@@ -7,7 +7,7 @@ use std::fmt::Write;
 pub(crate) fn vtable(_attr: TokenStream, ts: TokenStream) -> TokenStream {
     let mut tokens: Vec<_> = ts.into_iter().collect();
 
-    // Scan for the `trait` or `impl` keyword
+    // Scan for the `trait` or `impl` keyword.
     let is_trait = tokens
         .iter()
         .find_map(|token| match token {
@@ -53,8 +53,12 @@ pub(crate) fn vtable(_attr: TokenStream, ts: TokenStream) -> TokenStream {
 
     let mut const_items;
     if is_trait {
-        const_items =  "/// A marker to prevent implementors from forgetting to use [`#[vtable]`](vtable) attribute when implementing this trait.
-        const USE_VTABLE_ATTR: ();".to_owned();
+        const_items = "
+                /// A marker to prevent implementors from forgetting to use [`#[vtable]`](vtable)
+                /// attribute when implementing this trait.
+                const USE_VTABLE_ATTR: ();
+        "
+        .to_owned();
 
         for f in functions {
             let gen_const_name = format!("HAS_{}", f.to_uppercase());
@@ -66,7 +70,7 @@ pub(crate) fn vtable(_attr: TokenStream, ts: TokenStream) -> TokenStream {
             // so we have to generate a const for all methods.
             write!(
                 const_items,
-                "/// Indicates if the `{f}` method is overriden by the implementor.
+                "/// Indicates if the `{f}` method is overridden by the implementor.
                 const {gen_const_name}: bool = false;",
             )
             .unwrap();

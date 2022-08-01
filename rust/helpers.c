@@ -23,6 +23,7 @@
 #include <linux/build_bug.h>
 #include <linux/clk.h>
 #include <linux/errname.h>
+#include <linux/fs_parser.h>
 #include <linux/gfp.h>
 #include <linux/highmem.h>
 #include <linux/io.h>
@@ -38,7 +39,6 @@
 #include <linux/skbuff.h>
 #include <linux/uaccess.h>
 #include <linux/uio.h>
-#include <linux/fs_parser.h>
 
 __noreturn void rust_helper_BUG(void)
 {

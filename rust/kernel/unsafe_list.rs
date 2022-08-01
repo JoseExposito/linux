@@ -4,7 +4,7 @@
 //!
 //! We don't use the C version for two main reasons:
 //! - Next/prev pointers do not support `?Sized` types, so wouldn't be able to have a list of, for
-//!    example, dyn Trait.
+//!   example, `dyn Trait`.
 //! - It would require the list head to be pinned (in addition to the list entries).
 
 use core::{cell::UnsafeCell, iter, marker::PhantomPinned, mem::MaybeUninit, ptr::NonNull};

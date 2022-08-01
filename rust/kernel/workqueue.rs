@@ -129,13 +129,13 @@ macro_rules! init_work_item_adapter {
 /// ```
 ///
 /// The following example is used to create a work item and enqueue it several times. We note that
-/// enqueing while the work item is already queued is a no-op, so we enqueue it when it is not
+/// enqueuing while the work item is already queued is a no-op, so we enqueue it when it is not
 /// enqueued yet.
 ///
 /// ```
 /// # use kernel::workqueue::{self, Work};
-/// use kernel::sync::UniqueRef;
 /// use core::sync::atomic::{AtomicU32, Ordering};
+/// use kernel::sync::UniqueRef;
 ///
 /// struct Example {
 ///     count: AtomicU32,
@@ -174,8 +174,8 @@ macro_rules! init_work_item_adapter {
 ///
 /// ```
 /// # use kernel::workqueue::{self, Work, WorkAdapter};
-/// use kernel::sync::{Ref, UniqueRef};
 /// use core::sync::atomic::{AtomicU32, Ordering};
+/// use kernel::sync::{Ref, UniqueRef};
 ///
 /// struct Example {
 ///     work1: Work,
@@ -420,7 +420,7 @@ impl BoxedQueue {
     ///
     /// # Safety
     ///
-    /// `ptr` must be non-null and valid. Additionaly, ownership must be handed over to new
+    /// `ptr` must be non-null and valid. Additionally, ownership must be handed over to new
     /// instance of [`BoxedQueue`].
     unsafe fn new(ptr: *mut bindings::workqueue_struct) -> Self {
         Self {

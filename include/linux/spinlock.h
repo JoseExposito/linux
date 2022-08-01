@@ -338,11 +338,11 @@ static inline void __spin_lock_init(spinlock_t *lock, const char *name,
 	__raw_spin_lock_init(spinlock_check(lock), name, key, LD_WAIT_CONFIG);
 }
 
-# define spin_lock_init(lock)			\
-do {						\
-	static struct lock_class_key __key;	\
-						\
-	__spin_lock_init(lock, #lock, &__key);	\
+# define spin_lock_init(lock)					\
+do {								\
+	static struct lock_class_key __key;			\
+								\
+	__spin_lock_init(lock, #lock, &__key);			\
 } while (0)
 
 #else

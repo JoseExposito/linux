@@ -41,7 +41,7 @@ use core::{cell::UnsafeCell, fmt, marker::PhantomData, ops::Deref, ptr};
 /// incremented when creating `State` and decremented when it is dropped:
 ///
 /// ```
-/// use kernel::{ARef, task::Task};
+/// use kernel::{task::Task, ARef};
 ///
 /// struct State {
 ///     creator: ARef<Task>,
@@ -113,9 +113,9 @@ impl Task {
     /// Launches 10 threads and waits for them to complete.
     ///
     /// ```
-    /// use kernel::task::Task;
-    /// use kernel::sync::{CondVar, Mutex};
     /// use core::sync::atomic::{AtomicU32, Ordering};
+    /// use kernel::sync::{CondVar, Mutex};
+    /// use kernel::task::Task;
     ///
     /// kernel::init_static_sync! {
     ///     static COUNT: Mutex<u32> = 0;
@@ -133,7 +133,7 @@ impl Task {
     ///
     /// // Set count to 10 and spawn 10 threads.
     /// *COUNT.lock() = 10;
-    /// for i in 0..10  {
+    /// for i in 0..10 {
     ///     Task::spawn(fmt!("test{i}"), threadfn).unwrap();
     /// }
     ///

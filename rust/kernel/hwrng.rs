@@ -96,7 +96,8 @@ impl<T: Operations> Registration<T> {
 
         let name = CString::try_from_fmt(name)?;
 
-        // SAFETY: Registration is pinned and contains allocated and set to zero `bindings::hwrng` structure.
+        // SAFETY: Registration is pinned and contains allocated and set to zero
+        // `bindings::hwrng` structure.
         Self::init_hwrng(
             unsafe { &mut *this.hwrng.get() },
             &name,

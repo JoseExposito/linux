@@ -199,7 +199,7 @@ impl<'a, Out, F: FnMut() -> Result<Out> + Send + 'a> SocketFuture<'a, Out, F> {
         // There is a potential soundness issue here because we're generating a shared reference to
         // `Self` while `Self::poll` has a mutable (unique) reference. However, for `!Unpin` types
         // (like `Self`), `&mut T` is treated as `*mut T` per
-        // https://github.com/rust-lang/rust/issues/63818 -- so we avoid the unsoundness. Once a
+        // <https://github.com/rust-lang/rust/issues/63818> -- so we avoid the unsoundness. Once a
         // more definitive solution is available, we can change this to use it.
         let s = unsafe { &*crate::container_of!(wq_entry, Self, wq_entry) };
         if mask & s.mask == 0 {

@@ -47,7 +47,7 @@ pub mod flags {
     /// Ensure that this file is created with the `open(2)` call.
     pub const O_EXCL: u32 = bindings::O_EXCL;
 
-    /// Large file size enabled (`off64_t` over `off_t`)
+    /// Large file size enabled (`off64_t` over `off_t`).
     pub const O_LARGEFILE: u32 = bindings::O_LARGEFILE;
 
     /// Do not update the file last access time.
@@ -326,7 +326,8 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
         offset: *mut bindings::loff_t,
     ) -> core::ffi::c_ssize_t {
         from_kernel_result! {
-            let mut data = unsafe { UserSlicePtr::new(buf as *mut core::ffi::c_void, len).writer() };
+            let mut data =
+                unsafe { UserSlicePtr::new(buf as *mut core::ffi::c_void, len).writer() };
             // SAFETY: `private_data` was initialised by `open_callback` with a value returned by
             // `T::Data::into_pointer`. `T::Data::from_pointer` is only called by the
             // `release` callback, which the C API guarantees that will be called only when all
@@ -334,7 +335,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // function is running.
             let f = unsafe { T::Data::borrow((*file).private_data) };
             // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
-            // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
+            // See <https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113>.
             let read = T::read(
                 f,
                 unsafe { File::from_ptr(file) },
@@ -360,8 +361,12 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // references to `file` have been released, so we know it can't be called while this
             // function is running.
             let f = unsafe { T::Data::borrow((*file).private_data) };
-            let read =
-                T::read(f, unsafe { File::from_ptr(file) }, &mut iter, offset.try_into()?)?;
+            let read = T::read(
+                f,
+                unsafe { File::from_ptr(file) },
+                &mut iter,
+                offset.try_into()?,
+            )?;
             unsafe { (*iocb).ki_pos += bindings::loff_t::try_from(read).unwrap() };
             Ok(read as _)
         }
@@ -374,7 +379,8 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
         offset: *mut bindings::loff_t,
     ) -> core::ffi::c_ssize_t {
         from_kernel_result! {
-            let mut data = unsafe { UserSlicePtr::new(buf as *mut core::ffi::c_void, len).reader() };
+            let mut data =
+                unsafe { UserSlicePtr::new(buf as *mut core::ffi::c_void, len).reader() };
             // SAFETY: `private_data` was initialised by `open_callback` with a value returned by
             // `T::Data::into_pointer`. `T::Data::from_pointer` is only called by the
             // `release` callback, which the C API guarantees that will be called only when all
@@ -382,12 +388,12 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // function is running.
             let f = unsafe { T::Data::borrow((*file).private_data) };
             // No `FMODE_UNSIGNED_OFFSET` support, so `offset` must be in [0, 2^63).
-            // See discussion in https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113
+            // See <https://github.com/fishinabarrel/linux-kernel-module-rust/pull/113>.
             let written = T::write(
                 f,
                 unsafe { File::from_ptr(file) },
                 &mut data,
-                unsafe { *offset }.try_into()?
+                unsafe { *offset }.try_into()?,
             )?;
             unsafe { (*offset) += bindings::loff_t::try_from(written).unwrap() };
             Ok(written as _)
@@ -408,8 +414,12 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             // references to `file` have been released, so we know it can't be called while this
             // function is running.
             let f = unsafe { T::Data::borrow((*file).private_data) };
-            let written =
-                T::write(f, unsafe { File::from_ptr(file) }, &mut iter, offset.try_into()?)?;
+            let written = T::write(
+                f,
+                unsafe { File::from_ptr(file) },
+                &mut iter,
+                offset.try_into()?,
+            )?;
             unsafe { (*iocb).ki_pos += bindings::loff_t::try_from(written).unwrap() };
             Ok(written as _)
         }

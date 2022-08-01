@@ -9,6 +9,7 @@
 /// be called, a build error will be triggered.
 ///
 /// # Examples
+///
 /// ```
 /// # use kernel::build_error;
 /// #[inline]

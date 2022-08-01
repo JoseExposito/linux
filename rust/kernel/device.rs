@@ -31,8 +31,9 @@ use crate::c_str;
 /// related to `self`, that is, actions on it will affect `self`. For example, if one calls
 /// `get_device`, then the refcount on the device represented by `self` will be incremented.
 ///
-/// Additionally, implementers must ensure that the device is never renamed. Commit a5462516aa994
-/// has details on why `device_rename` should not be used.
+/// Additionally, implementers must ensure that the device is never renamed. Commit a5462516aa99
+/// ("driver-core: document restrictions on device_rename()") has details on why `device_rename`
+/// should not be used.
 pub unsafe trait RawDevice {
     /// Returns the raw `struct device` related to `self`.
     fn raw_device(&self) -> *mut bindings::device;

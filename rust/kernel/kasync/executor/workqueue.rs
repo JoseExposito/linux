@@ -174,8 +174,8 @@ struct ExecutorInner {
 /// ```
 /// # use kernel::prelude::*;
 /// use kernel::kasync::executor::workqueue::Executor;
-/// use kernel::workqueue;
 /// use kernel::spawn_task;
+/// use kernel::workqueue;
 ///
 /// fn example_shared_workqueue() -> Result {
 ///     let mut handle = Executor::try_new(workqueue::system())?;

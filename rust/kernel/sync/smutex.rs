@@ -71,7 +71,7 @@ const LOCKED: usize = 1;
 ///     b: u32,
 /// }
 ///
-/// static EXAMPLE: Mutex<Example> = Mutex::new(Example{ a: 10, b: 20 });
+/// static EXAMPLE: Mutex<Example> = Mutex::new(Example { a: 10, b: 20 });
 ///
 /// fn inc_a(example: &Mutex<Example>) {
 ///     let mut guard = example.lock();
@@ -84,7 +84,7 @@ const LOCKED: usize = 1;
 /// }
 ///
 /// fn try_new(a: u32, b: u32) -> Result<Ref<Mutex<Example>>> {
-///     Ref::try_new(Mutex::new(Example {a, b}))
+///     Ref::try_new(Mutex::new(Example { a, b }))
 /// }
 ///
 /// assert_eq!(EXAMPLE.lock().a, 10);

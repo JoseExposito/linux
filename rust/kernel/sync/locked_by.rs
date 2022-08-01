@@ -15,7 +15,7 @@ use core::{cell::UnsafeCell, ops::Deref, ptr};
 /// [`LockedBy`] wraps the data in lieu of another locking primitive, and only allows access to it
 /// when the caller shows evidence that 'external' lock is locked.
 ///
-/// # Example
+/// # Examples
 ///
 /// The following is an example for illustrative purposes: `InnerDirectory::bytes_used` is an
 /// aggregate of all `InnerFile::bytes_used` and must be kept consistent; so we wrap `InnerFile` in

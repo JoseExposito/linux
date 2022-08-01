@@ -30,7 +30,7 @@ const CONTENDED: u8 = 2;
 ///     b: u32,
 /// }
 ///
-/// let x = NoWaitLock::new(Example{ a: 10, b: 20 });
+/// let x = NoWaitLock::new(Example { a: 10, b: 20 });
 ///
 /// // Modifying the protected value.
 /// {
@@ -72,7 +72,7 @@ const CONTENDED: u8 = 2;
 ///     b: u32,
 /// }
 ///
-/// let x = NoWaitLock::new(Example{ a: 10, b: 20 });
+/// let x = NoWaitLock::new(Example { a: 10, b: 20 });
 ///
 /// // No contention when lock is released.
 /// let guard = x.try_lock().unwrap();

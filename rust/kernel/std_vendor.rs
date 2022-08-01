@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-//! The contents of this file come from the Rust standard library, hosted in the
-//! <https://github.com/rust-lang/rust> repository. For copyright details, see
-//! <https://github.com/rust-lang/rust/blob/master/COPYRIGHT>.
+//! The contents of this file come from the Rust standard library, hosted in
+//! the <https://github.com/rust-lang/rust> repository, licensed under
+//! "Apache-2.0 OR MIT" and adapted for kernel use. For copyright details,
+//! see <https://github.com/rust-lang/rust/blob/master/COPYRIGHT>.
 
 /// [`std::dbg`], but using [`pr_info`] instead of [`eprintln`].
 ///
