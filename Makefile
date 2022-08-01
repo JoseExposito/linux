@@ -1716,8 +1716,9 @@ help:
 	@echo  '  rust-analyzer	  - Generate rust-project.json rust-analyzer support file'
 	@echo  '		    (requires kernel .config)'
 	@echo  '  dir/file.[os]   - Build specified target only'
-	@echo  '  dir/file.rsi    - Build macro expanded source, similar to C preprocessing'
-	@echo  '                    (run with RUSTFMT=n to skip reformatting if needed)'
+	@echo  '  dir/file.rsi    - Build macro expanded source, similar to C preprocessing.'
+	@echo  '                    Run with RUSTFMT=n to skip reformatting if needed.'
+	@echo  '                    The output is not intended to be compilable.'
 	@echo  '  dir/file.ll     - Build the LLVM assembly file'
 	@echo  ''
 	@$(if $(dtstree), \
