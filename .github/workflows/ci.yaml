@@ -404,12 +404,12 @@ jobs:
           rm ${{ env.BUILD_DIR }}samples/rust/rust_minimal.o
 
           make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_LLVM_IAS }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 samples/rust/rust_minimal.o
-          make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_LLVM_IAS }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 samples/rust/rust_minimal.i
+          make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_LLVM_IAS }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 samples/rust/rust_minimal.rsi
           make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_LLVM_IAS }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 samples/rust/rust_minimal.s
           make ${{ env.MAKE_ARCH }} ${{ env.MAKE_CROSS_COMPILE }} ${{ env.MAKE_LLVM_IAS }} ${{ env.MAKE_TOOLCHAIN }} ${{ env.MAKE_OUTPUT }} ${{ env.MAKE_SYSROOT }} -j3 samples/rust/rust_minimal.ll
 
           file ${{ env.BUILD_DIR }}samples/rust/rust_minimal.o | grep -F 'ELF'
-          grep -F '#![feature(prelude_import)]' ${{ env.BUILD_DIR }}samples/rust/rust_minimal.i
+          grep -F '#![feature(prelude_import)]' ${{ env.BUILD_DIR }}samples/rust/rust_minimal.rsi
           grep -F '.text'                       ${{ env.BUILD_DIR }}samples/rust/rust_minimal.s
           grep -F '; ModuleID'                  ${{ env.BUILD_DIR }}samples/rust/rust_minimal.ll
 
