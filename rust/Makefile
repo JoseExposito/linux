@@ -266,9 +266,10 @@ else
 bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-mskip-rax-setup -mgeneral-regs-only -msign-return-address=% \
 	-mindirect-branch=thunk-extern -mindirect-branch-register \
-	-mrecord-mcount -mabi=lp64 -mstack-protector-guard% -mtraceback=no \
-	-mno-pointers-to-nested-functions -mno-string -mno-strict-align \
-	-mstrict-align \
+	-mfunction-return=thunk-extern -mrecord-mcount -mabi=lp64 \
+	-mstack-protector-guard% -mtraceback=no \
+	-mno-pointers-to-nested-functions -mno-string \
+	-mno-strict-align -mstrict-align \
 	-fconserve-stack -falign-jumps=% -falign-loops=% \
 	-femit-struct-debug-baseonly -fno-ipa-cp-clone -fno-ipa-sra \
 	-fno-partial-inlining -fplugin-arg-arm_ssp_per_task_plugin-% \
