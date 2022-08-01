@@ -15,11 +15,9 @@ support corresponds to ``S`` values in the ``MAINTAINERS`` file.
 ============  ================  ==============================================
 Architecture  Level of support  Constraints
 ============  ================  ==============================================
-``arm``       Maintained        ``armv6`` and compatible only,
-                                ``RUST_OPT_LEVEL >= 2``.
+``arm``       Maintained        ``armv6`` and compatible only.
 ``arm64``     Maintained        None.
-``powerpc``   Maintained        ``ppc64le`` only, ``RUST_OPT_LEVEL < 2``
-                                requires ``CONFIG_THREAD_SHIFT=15``.
+``powerpc``   Maintained        ``ppc64le`` only.
 ``riscv``     Maintained        ``riscv64`` only.
 ``x86``       Maintained        ``x86_64`` only.
 ============  ================  ==============================================
