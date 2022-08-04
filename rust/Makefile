@@ -267,7 +267,7 @@ bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-mskip-rax-setup -mgeneral-regs-only -msign-return-address=% \
 	-mindirect-branch=thunk-extern -mindirect-branch-register \
 	-mfunction-return=thunk-extern -mrecord-mcount -mabi=lp64 \
-	-mstack-protector-guard% -mtraceback=no \
+	-mindirect-branch-cs-prefix -mstack-protector-guard% -mtraceback=no \
 	-mno-pointers-to-nested-functions -mno-string \
 	-mno-strict-align -mstrict-align \
 	-fconserve-stack -falign-jumps=% -falign-loops=% \
