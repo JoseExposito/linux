@@ -7,9 +7,9 @@ use kernel::{c_str, fs};
 
 module_fs! {
     type: RustFs,
-    name: b"rust_fs",
-    author: b"Rust for Linux Contributors",
-    license: b"GPL",
+    name: "rust_fs",
+    author: "Rust for Linux Contributors",
+    license: "GPL",
 }
 
 struct RustFs;

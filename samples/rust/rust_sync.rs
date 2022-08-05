@@ -10,10 +10,10 @@ use kernel::{
 
 module! {
     type: RustSync,
-    name: b"rust_sync",
-    author: b"Rust for Linux Contributors",
-    description: b"Rust synchronisation primitives sample",
-    license: b"GPL",
+    name: "rust_sync",
+    author: "Rust for Linux Contributors",
+    description: "Rust synchronisation primitives sample",
+    license: "GPL",
 }
 
 kernel::init_static_sync! {

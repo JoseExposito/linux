@@ -8,10 +8,10 @@ use kernel::prelude::*;
 
 module! {
     type: RustSelftests,
-    name: b"rust_selftests",
-    author: b"Rust for Linux Contributors",
-    description: b"Self test cases for Rust",
-    license: b"GPL",
+    name: "rust_selftests",
+    author: "Rust for Linux Contributors",
+    description: "Self test cases for Rust",
+    license: "GPL",
 }
 
 struct RustSelftests;
