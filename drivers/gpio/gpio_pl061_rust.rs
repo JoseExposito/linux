@@ -361,7 +361,7 @@ impl power::Operations for PL061Device {
 
 module_amba_driver! {
     type: PL061Device,
-    name: b"pl061_gpio",
-    author: b"Wedson Almeida Filho",
-    license: b"GPL",
+    name: "pl061_gpio",
+    author: "Wedson Almeida Filho",
+    license: "GPL",
 }

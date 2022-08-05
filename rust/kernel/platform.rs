@@ -210,9 +210,9 @@ unsafe impl device::RawDevice for Device {
 ///
 /// module_platform_driver! {
 ///     type: MyDriver,
-///     name: b"module_name",
-///     author: b"Author name",
-///     license: b"GPL",
+///     name: "module_name",
+///     author: "Author name",
+///     license: "GPL",
 /// }
 /// ```
 #[macro_export]

@@ -13,10 +13,10 @@ use kernel::{
 
 module_misc_device! {
     type: RandomFile,
-    name: b"rust_random",
-    author: b"Rust for Linux Contributors",
-    description: b"Just use /dev/urandom: Now with early-boot safety",
-    license: b"GPL",
+    name: "rust_random",
+    author: "Rust for Linux Contributors",
+    description: "Just use /dev/urandom: Now with early-boot safety",
+    license: "GPL",
 }
 
 struct RandomFile;

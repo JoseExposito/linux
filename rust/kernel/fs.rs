@@ -799,10 +799,10 @@ impl<T: Type + Sync> crate::Module for Module<T> {
 ///
 /// module_fs! {
 ///     type: MyFs,
-///     name: b"my_fs_kernel_module",
-///     author: b"Rust for Linux Contributors",
-///     description: b"My very own file system kernel module!",
-///     license: b"GPL",
+///     name: "my_fs_kernel_module",
+///     author: "Rust for Linux Contributors",
+///     description: "My very own file system kernel module!",
+///     license: "GPL",
 /// }
 ///
 /// struct MyFs;

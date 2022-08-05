@@ -7,10 +7,10 @@ use kernel::{chrdev, file};
 
 module! {
     type: RustChrdev,
-    name: b"rust_chrdev",
-    author: b"Rust for Linux Contributors",
-    description: b"Rust character device sample",
-    license: b"GPL",
+    name: "rust_chrdev",
+    author: "Rust for Linux Contributors",
+    description: "Rust character device sample",
+    license: "GPL",
 }
 
 struct RustFile;

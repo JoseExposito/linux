@@ -27,10 +27,10 @@ use {context::Context, thread::Thread};
 
 module! {
     type: BinderModule,
-    name: b"rust_binder",
-    author: b"Wedson Almeida Filho",
-    description: b"Android Binder",
-    license: b"GPL",
+    name: "rust_binder",
+    author: "Wedson Almeida Filho",
+    description: "Android Binder",
+    license: "GPL",
 }
 
 trait DeliverToRead {

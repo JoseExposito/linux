@@ -256,13 +256,13 @@ impl ModuleInfo {
 
             match key.as_str() {
                 "type" => info.type_ = expect_ident(it),
-                "name" => info.name = expect_byte_string(it),
-                "author" => info.author = Some(expect_byte_string(it)),
-                "description" => info.description = Some(expect_byte_string(it)),
-                "license" => info.license = expect_byte_string(it),
-                "alias" => info.alias = Some(expect_byte_string(it)),
+                "name" => info.name = expect_string_ascii(it),
+                "author" => info.author = Some(expect_string(it)),
+                "description" => info.description = Some(expect_string(it)),
+                "license" => info.license = expect_string_ascii(it),
+                "alias" => info.alias = Some(expect_string_ascii(it)),
                 "alias_rtnl_link" => {
-                    info.alias = Some(format!("rtnl-link-{}", expect_byte_string(it)))
+                    info.alias = Some(format!("rtnl-link-{}", expect_string_ascii(it)))
                 }
                 "params" => info.params = Some(expect_group(it)),
                 _ => panic!(
@@ -347,7 +347,7 @@ pub(crate) fn module(ts: TokenStream) -> TokenStream {
             let mut param_it = group.stream().into_iter();
             let param_default = get_default(&param_type, &mut param_it);
             let param_permissions = get_literal(&mut param_it, "permissions");
-            let param_description = get_byte_string(&mut param_it, "description");
+            let param_description = get_string(&mut param_it, "description");
             expect_end(&mut param_it);
 
             // TODO: More primitive types.

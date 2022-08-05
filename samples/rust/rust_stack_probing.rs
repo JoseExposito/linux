@@ -6,10 +6,10 @@ use kernel::prelude::*;
 
 module! {
     type: RustStackProbing,
-    name: b"rust_stack_probing",
-    author: b"Rust for Linux Contributors",
-    description: b"Rust stack probing sample",
-    license: b"GPL",
+    name: "rust_stack_probing",
+    author: "Rust for Linux Contributors",
+    description: "Rust stack probing sample",
+    license: "GPL",
 }
 
 struct RustStackProbing;

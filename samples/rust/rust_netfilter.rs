@@ -8,10 +8,10 @@ use kernel::prelude::*;
 
 module! {
     type: RustNetfilter,
-    name: b"rust_netfilter",
-    author: b"Rust for Linux Contributors",
-    description: b"Rust netfilter sample",
-    license: b"GPL",
+    name: "rust_netfilter",
+    author: "Rust for Linux Contributors",
+    description: "Rust netfilter sample",
+    license: "GPL",
 }
 
 struct RustNetfilter {
