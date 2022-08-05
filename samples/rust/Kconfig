@@ -130,6 +130,7 @@ config SAMPLE_RUST_FS
 
 config SAMPLE_RUST_NETFILTER
 	tristate "Network filter module"
+	depends on NETFILTER
 	help
 	  This option builds the Rust netfilter module sample.
 
