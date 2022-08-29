@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-xppen-deco-pro-sw](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-pro-sw) | [upstream-hid-for-next](https://github.com/JoseExposito/linux/tree/upstream-hid-for-next) | XP-PEN Deco Pro SW drawing tablet support | 🔨 |
 | [patch-kunit-drm-format-helper](https://github.com/JoseExposito/linux/tree/patch-kunit-drm-format-helper) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | KUnit tests for RGB888, XRGB2101010 and GRAY8 | ⏳ |
 | [patch-uclogic-digitalizer-suffix](https://github.com/JoseExposito/linux/tree/patch-uclogic-digitalizer-suffix) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | UCLogic: Fix digitalizer suffix | 🔀 |
 | [patch-uclogic_rdesc_template_apply-sparse-warning](https://github.com/JoseExposito/linux/tree/patch-uclogic_rdesc_template_apply-sparse-warning) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | UCLogic: Fix Sparse warning | 🔀 |
