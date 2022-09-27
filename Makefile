@@ -596,6 +596,7 @@ ifdef RUST_LIB_SRC
 	export RUST_LIB_SRC
 endif
 
+# Allows the usage of unstable features in stable compilers.
 export RUSTC_BOOTSTRAP := 1
 
 export ARCH SRCARCH CONFIG_SHELL BASH HOSTCC KBUILD_HOSTCFLAGS CROSS_COMPILE LD CC HOSTPKG_CONFIG
