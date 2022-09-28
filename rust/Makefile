@@ -278,6 +278,11 @@ bindgen_skip_c_flags := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
 	-fno-inline-functions-called-once \
 	--param=% --param asan-%
 
+# Ignore RISC-V extensions that Clang does not recognize.
+bindgen_c_flags_patsubst2 = $(patsubst -march=rv%_zihintpause,-march=rv%,$(c_flags))
+bindgen_c_flags_patsubst1 = $(patsubst -march=rv%_zicbom,-march=rv%,$(bindgen_c_flags_patsubst2))
+bindgen_c_flags_patsubst  = $(patsubst -march=rv%_zicsr_zifencei,-march=rv%,$(bindgen_c_flags_patsubst1))
+
 # Derived from `scripts/Makefile.clang`.
 BINDGEN_TARGET_arm	:= arm-linux-gnueabi
 BINDGEN_TARGET_arm64	:= aarch64-linux-gnu
@@ -291,7 +296,7 @@ BINDGEN_TARGET		:= $(BINDGEN_TARGET_$(SRCARCH))
 # some configurations, with new GCC versions, etc.
 bindgen_extra_c_flags = -w --target=$(BINDGEN_TARGET)
 
-bindgen_c_flags = $(filter-out $(bindgen_skip_c_flags), $(c_flags)) \
+bindgen_c_flags = $(filter-out $(bindgen_skip_c_flags), $(bindgen_c_flags_patsubst)) \
 	$(bindgen_extra_c_flags)
 endif
 
