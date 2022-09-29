@@ -355,7 +355,7 @@ pub struct Bit<T> {
 ///
 /// assert_eq!(y | bit(35), 0xc00000000);
 /// ```
-pub fn bit<T: Copy>(index: T) -> Bit<T> {
+pub const fn bit<T: Copy>(index: T) -> Bit<T> {
     Bit {
         index,
         inverted: false,
