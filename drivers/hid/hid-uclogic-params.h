@@ -18,6 +18,7 @@
 
 #include <linux/usb.h>
 #include <linux/hid.h>
+#include <linux/list.h>
 
 /* Types of pen in-range reporting */
 enum uclogic_params_pen_inrange {
@@ -174,6 +175,19 @@ struct uclogic_params_frame {
 };
 
 /*
+ * Event list to be ignored when received from the tablet.
+ *
+ * Some UGEE v2 devices, like the XP-PEN Deco Pro SW, send an event after probe.
+ * This invalid event is interpreted as a pen report and it moves the cursor to
+ * the 0,0 coordinates. This list allows us to ignore such events.
+ */
+struct uclogic_filter_raw_event {
+	__u8 *event;
+	size_t size;
+	struct list_head list;
+};
+
+/*
  * Tablet interface report parameters.
  *
  * Must use declarative (descriptive) language, not imperative, to simplify
@@ -213,6 +227,10 @@ struct uclogic_params {
 	 * parts. Only valid, if "invalid" is false.
 	 */
 	struct uclogic_params_frame frame_list[3];
+	/*
+	 * List of events to be ignored when received.
+	 */
+	struct uclogic_filter_raw_event *filter_events;
 };
 
 /* Initialize a tablet interface and discover its parameters */

@@ -615,6 +615,30 @@ cleanup:
 }
 
 /**
+ * uclogic_params_filter_events_cleanup - free resources used by struct
+ * uclogic_filter_raw_event (list of raw events to be ignored).
+ * Can be called repeatedly.
+ *
+ * @params:	Input parameters to cleanup. Cannot be NULL.
+ */
+static void uclogic_params_filter_events_cleanup(struct uclogic_params *params)
+{
+	struct uclogic_filter_raw_event *curr, *n;
+
+	if (!params->filter_events)
+		return;
+
+	list_for_each_entry_safe(curr, n, &params->filter_events->list, list) {
+		list_del(&curr->list);
+		kfree(curr->event);
+		kfree(curr);
+	}
+
+	kfree(params->filter_events);
+	params->filter_events = NULL;
+}
+
+/**
  * uclogic_params_cleanup - free resources used by struct uclogic_params
  * (tablet interface's parameters).
  * Can be called repeatedly.
@@ -630,6 +654,7 @@ void uclogic_params_cleanup(struct uclogic_params *params)
 		for (i = 0; i < ARRAY_SIZE(params->frame_list); i++)
 			uclogic_params_frame_cleanup(&params->frame_list[i]);
 
+		uclogic_params_filter_events_cleanup(params);
 		memset(params, 0, sizeof(*params));
 	}
 }
@@ -1212,6 +1237,45 @@ static int uclogic_params_ugee_v2_init_frame_mouse(struct uclogic_params *p)
 }
 
 /**
+ * uclogic_params_ugee_v2_init_filter_events() - initialize the list of events
+ * to be ignored by UGEE v2 devices.
+ * @p:	Parameters to fill in, cannot be NULL.
+ *
+ * Returns:
+ *	Zero, if successful. A negative errno code on error.
+ */
+static int uclogic_params_ugee_v2_init_filter_events(struct uclogic_params *p)
+{
+	struct uclogic_filter_raw_event *filter_event;
+	__u8 event[] = {
+		/* Response to uclogic_probe_interface() */
+		0x02, 0xb1, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	};
+
+	if (!p)
+		return -EINVAL;
+
+	p->filter_events = kzalloc(sizeof(*p->filter_events), GFP_KERNEL);
+	if (!p->filter_events)
+		return -ENOMEM;
+
+	INIT_LIST_HEAD(&p->filter_events->list);
+
+	filter_event = kzalloc(sizeof(*filter_event), GFP_KERNEL);
+	if (!filter_event)
+		return -ENOMEM;
+
+	filter_event->size = ARRAY_SIZE(event);
+	filter_event->event = kmemdup(event, filter_event->size, GFP_KERNEL);
+	if (!filter_event->event)
+		return -ENOMEM;
+
+	list_add_tail(&filter_event->list, &p->filter_events->list);
+
+	return 0;
+}
+
+/**
  * uclogic_params_ugee_v2_init() - initialize a UGEE graphics tablets by
  * discovering their parameters.
  *
@@ -1333,6 +1397,13 @@ static int uclogic_params_ugee_v2_init(struct uclogic_params *params,
 
 	if (rc)
 		goto cleanup;
+
+	/* Create a list of raw events to be ignored */
+	rc = uclogic_params_ugee_v2_init_filter_events(&p);
+	if (rc) {
+		hid_err(hdev, "error initializing filter event list: %d\n", rc);
+		goto cleanup;
+	}
 
 output:
 	/* Output parameters */

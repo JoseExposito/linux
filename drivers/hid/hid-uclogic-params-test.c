@@ -174,9 +174,25 @@ static void uclogic_parse_ugee_v2_desc_test(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, params->frame_type, frame_type);
 }
 
+static void uclogic_filter_events_cleanup_test(struct kunit *test)
+{
+	int res, n;
+	struct uclogic_params p = {0, };
+
+	res = uclogic_params_ugee_v2_init_filter_events(&p);
+	KUNIT_ASSERT_EQ(test, res, 0);
+
+	/* Check that the function can be called repeatedly */
+	for (n = 0; n < 4; n++) {
+		uclogic_params_filter_events_cleanup(&p);
+		KUNIT_EXPECT_PTR_EQ(test, p.filter_events, NULL);
+	}
+}
+
 static struct kunit_case hid_uclogic_params_test_cases[] = {
 	KUNIT_CASE_PARAM(uclogic_parse_ugee_v2_desc_test,
 			 uclogic_parse_ugee_v2_desc_gen_params),
+	KUNIT_CASE(uclogic_filter_events_cleanup_test),
 	{}
 };
 
