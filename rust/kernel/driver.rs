@@ -5,7 +5,7 @@
 //! Each bus/subsystem is expected to implement [`DriverOps`], which allows drivers to register
 //! using the [`Registration`] class.
 
-use crate::{error::code::*, str::CStr, sync::Ref, Result, ThisModule};
+use crate::{error::code::*, str::CStr, sync::Arc, Result, ThisModule};
 use alloc::boxed::Box;
 use core::{cell::UnsafeCell, marker::PhantomData, ops::Deref, pin::Pin};
 
@@ -397,7 +397,7 @@ impl DeviceRemoval for () {
     fn device_remove(&self) {}
 }
 
-impl<T: DeviceRemoval> DeviceRemoval for Ref<T> {
+impl<T: DeviceRemoval> DeviceRemoval for Arc<T> {
     fn device_remove(&self) {
         self.deref().device_remove();
     }

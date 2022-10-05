@@ -2,7 +2,7 @@
 
 use core::mem::{replace, size_of, MaybeUninit};
 use kernel::{
-    bindings, linked_list::List, pages::Pages, prelude::*, sync::Ref, user_ptr::UserSlicePtrReader,
+    bindings, linked_list::List, pages::Pages, prelude::*, sync::Arc, user_ptr::UserSlicePtrReader,
 };
 
 use crate::{
@@ -17,7 +17,7 @@ pub(crate) struct Allocation<'a> {
     pub(crate) offset: usize,
     size: usize,
     pub(crate) ptr: usize,
-    pages: Ref<[Pages<0>]>,
+    pages: Arc<[Pages<0>]>,
     pub(crate) process: &'a Process,
     allocation_info: Option<AllocationInfo>,
     free_on_drop: bool,
@@ -30,7 +30,7 @@ impl<'a> Allocation<'a> {
         offset: usize,
         size: usize,
         ptr: usize,
-        pages: Ref<[Pages<0>]>,
+        pages: Arc<[Pages<0>]>,
     ) -> Self {
         Self {
             process,

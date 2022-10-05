@@ -8,7 +8,7 @@ use alloc::boxed::Box;
 use core::ptr::NonNull;
 
 pub use crate::raw_list::{Cursor, GetLinks, Links};
-use crate::{raw_list, raw_list::RawList, sync::Ref};
+use crate::{raw_list, raw_list::RawList, sync::Arc};
 
 // TODO: Use the one from `kernel::file_operations::PointerWrapper` instead.
 /// Wraps an object to be inserted in a linked list.
@@ -41,14 +41,14 @@ impl<T: ?Sized> Wrapper<T> for Box<T> {
     }
 }
 
-impl<T: ?Sized> Wrapper<T> for Ref<T> {
+impl<T: ?Sized> Wrapper<T> for Arc<T> {
     fn into_pointer(self) -> NonNull<T> {
-        NonNull::new(Ref::into_raw(self) as _).unwrap()
+        NonNull::new(Arc::into_raw(self) as _).unwrap()
     }
 
     unsafe fn from_pointer(ptr: NonNull<T>) -> Self {
-        // SAFETY: The safety requirements of `from_pointer` satisfy the ones from `Ref::from_raw`.
-        unsafe { Ref::from_raw(ptr.as_ptr() as _) }
+        // SAFETY: The safety requirements of `from_pointer` satisfy the ones from `Arc::from_raw`.
+        unsafe { Arc::from_raw(ptr.as_ptr() as _) }
     }
 
     fn as_ref(&self) -> &T {
@@ -90,14 +90,14 @@ impl<T: GetLinks + ?Sized> GetLinks for Box<T> {
     }
 }
 
-impl<T: ?Sized> GetLinksWrapped for Ref<T>
+impl<T: ?Sized> GetLinksWrapped for Arc<T>
 where
-    Ref<T>: GetLinks,
+    Arc<T>: GetLinks,
 {
-    type Wrapped = Ref<<Ref<T> as GetLinks>::EntryType>;
+    type Wrapped = Arc<<Arc<T> as GetLinks>::EntryType>;
 }
 
-impl<T: GetLinks + ?Sized> GetLinks for Ref<T> {
+impl<T: GetLinks + ?Sized> GetLinks for Arc<T> {
     type EntryType = T::EntryType;
 
     fn get_links(data: &Self::EntryType) -> &Links<Self::EntryType> {

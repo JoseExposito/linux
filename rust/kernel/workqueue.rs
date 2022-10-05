@@ -7,7 +7,7 @@
 use crate::{
     bindings, c_str,
     error::code::*,
-    sync::{LockClassKey, Ref, UniqueRef},
+    sync::{Arc, LockClassKey, UniqueArc},
     Opaque, Result,
 };
 use core::{fmt, ops::Deref, ptr::NonNull};
@@ -66,8 +66,8 @@ macro_rules! impl_work_adapter {
         unsafe impl $crate::workqueue::WorkAdapter for $adapter {
             type Target = $work_type;
             const FIELD_OFFSET: isize = $crate::offset_of!(Self::Target, $field);
-            fn run(w: $crate::sync::Ref<Self::Target>) {
-                let closure: fn($crate::sync::Ref<Self::Target>) = $closure;
+            fn run(w: $crate::sync::Arc<Self::Target>) {
+                let closure: fn($crate::sync::Arc<Self::Target>) = $closure;
                 closure(w);
                 return;
 
@@ -135,7 +135,7 @@ macro_rules! init_work_item_adapter {
 /// ```
 /// # use kernel::workqueue::{self, Work};
 /// use core::sync::atomic::{AtomicU32, Ordering};
-/// use kernel::sync::UniqueRef;
+/// use kernel::sync::UniqueArc;
 ///
 /// struct Example {
 ///     count: AtomicU32,
@@ -153,7 +153,7 @@ macro_rules! init_work_item_adapter {
 /// });
 ///
 /// # fn example() -> Result {
-/// let e = UniqueRef::try_new(Example {
+/// let e = UniqueArc::try_new(Example {
 ///     count: AtomicU32::new(0),
 ///     // SAFETY: `work` is initialised below.
 ///     work: unsafe { Work::new() },
@@ -175,7 +175,7 @@ macro_rules! init_work_item_adapter {
 /// ```
 /// # use kernel::workqueue::{self, Work, WorkAdapter};
 /// use core::sync::atomic::{AtomicU32, Ordering};
-/// use kernel::sync::{Ref, UniqueRef};
+/// use kernel::sync::{Arc, UniqueArc};
 ///
 /// struct Example {
 ///     work1: Work,
@@ -188,7 +188,7 @@ macro_rules! init_work_item_adapter {
 /// kernel::impl_work_adapter!(SecondAdapter, Example, work2, |_| pr_info!("Second work\n"));
 ///
 /// # fn example() -> Result {
-/// let e = UniqueRef::try_new(Example {
+/// let e = UniqueArc::try_new(Example {
 ///     // SAFETY: `work1` is initialised below.
 ///     work1: unsafe { Work::new() },
 ///     // SAFETY: `work2` is initialised below.
@@ -198,7 +198,7 @@ macro_rules! init_work_item_adapter {
 /// kernel::init_work_item!(&e);
 /// kernel::init_work_item_adapter!(SecondAdapter, &e);
 ///
-/// let e = Ref::from(e);
+/// let e = Arc::from(e);
 ///
 /// // Enqueue the two different work items.
 /// workqueue::system().enqueue(e.clone());
@@ -243,7 +243,7 @@ impl Queue {
     ///
     /// Returns `true` if the work item was successfully enqueue; returns `false` if it had already
     /// been (and continued to be) enqueued.
-    pub fn enqueue<T: WorkAdapter<Target = T>>(&self, w: Ref<T>) -> bool {
+    pub fn enqueue<T: WorkAdapter<Target = T>>(&self, w: Arc<T>) -> bool {
         self.enqueue_adapter::<T>(w)
     }
 
@@ -251,8 +251,8 @@ impl Queue {
     ///
     /// Returns `true` if the work item was successfully enqueue; returns `false` if it had already
     /// been (and continued to be) enqueued.
-    pub fn enqueue_adapter<A: WorkAdapter + ?Sized>(&self, w: Ref<A::Target>) -> bool {
-        let ptr = Ref::into_raw(w);
+    pub fn enqueue_adapter<A: WorkAdapter + ?Sized>(&self, w: Arc<A::Target>) -> bool {
+        let ptr = Arc::into_raw(w);
         let field_ptr =
             (ptr as *const u8).wrapping_offset(A::FIELD_OFFSET) as *mut bindings::work_struct;
 
@@ -268,7 +268,7 @@ impl Queue {
             // SAFETY: `ptr` comes from a previous call to `into_raw`. Additionally, given that
             // `queue_work_on` returned `false`, we know that no-one is going to use the result of
             // `into_raw`, so we must drop it here to avoid a reference leak.
-            unsafe { Ref::from_raw(ptr) };
+            unsafe { Arc::from_raw(ptr) };
         }
 
         ret
@@ -283,7 +283,7 @@ impl Queue {
         key: &'static LockClassKey,
         func: T,
     ) -> Result {
-        let w = UniqueRef::<ClosureAdapter<T>>::try_new(ClosureAdapter {
+        let w = UniqueArc::<ClosureAdapter<T>>::try_new(ClosureAdapter {
             // SAFETY: `work` is initialised below.
             work: unsafe { Work::new() },
             func,
@@ -304,7 +304,7 @@ unsafe impl<T: Fn() + Send> WorkAdapter for ClosureAdapter<T> {
     type Target = Self;
     const FIELD_OFFSET: isize = crate::offset_of!(Self, work);
 
-    fn run(w: Ref<Self::Target>) {
+    fn run(w: Arc<Self::Target>) {
         (w.func)();
     }
 }
@@ -330,7 +330,7 @@ pub unsafe trait WorkAdapter {
 
     /// Runs when the work item is picked up for execution after it has been enqueued to some work
     /// queue.
-    fn run(w: Ref<Self::Target>);
+    fn run(w: Arc<Self::Target>);
 }
 
 /// A work item.
@@ -358,7 +358,7 @@ impl Work {
     ///
     /// Users should prefer the [`init_work_item`] macro because it automatically defines a new
     /// lock class key.
-    pub fn init<T: WorkAdapter<Target = T>>(obj: &UniqueRef<T>, key: &'static LockClassKey) {
+    pub fn init<T: WorkAdapter<Target = T>>(obj: &UniqueArc<T>, key: &'static LockClassKey) {
         Self::init_with_adapter::<T>(obj, key)
     }
 
@@ -367,13 +367,13 @@ impl Work {
     /// Users should prefer the [`init_work_item_adapter`] macro because it automatically defines a
     /// new lock class key.
     pub fn init_with_adapter<A: WorkAdapter>(
-        obj: &UniqueRef<A::Target>,
+        obj: &UniqueArc<A::Target>,
         key: &'static LockClassKey,
     ) {
         let ptr = &**obj as *const _ as *const u8;
         let field_ptr = ptr.wrapping_offset(A::FIELD_OFFSET) as *mut bindings::work_struct;
 
-        // SAFETY: `work` is valid for writes -- the `UniqueRef` instance guarantees that it has
+        // SAFETY: `work` is valid for writes -- the `UniqueArc` instance guarantees that it has
         // been allocated and there is only one pointer to it. Additionally, `work_func` is a valid
         // callback for the work item.
         unsafe {
@@ -391,7 +391,7 @@ impl Work {
             // SAFETY: When the work was queued, a call to `into_raw` was made. We just canceled
             // the work without it having the chance to run, so we need to explicitly destroy this
             // reference (which would have happened in `work_func` if it did run).
-            unsafe { Ref::from_raw(&*self) };
+            unsafe { Arc::from_raw(&*self) };
         }
     }
 
@@ -401,7 +401,7 @@ impl Work {
 
         // SAFETY: This callback is only ever used by the `init_with_adapter` method, so it is
         // always the case that the work item is embedded in a `Work` (Self) struct.
-        let w = unsafe { Ref::from_raw(ptr) };
+        let w = unsafe { Arc::from_raw(ptr) };
         A::run(w);
     }
 }

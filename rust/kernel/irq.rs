@@ -455,20 +455,20 @@ pub trait ThreadedHandler {
 /// # use kernel::prelude::*;
 /// use kernel::{
 ///     irq,
-///     sync::{Ref, RefBorrow},
+///     sync::{Arc, ArcBorrow},
 /// };
 ///
 /// struct Example;
 ///
 /// impl irq::ThreadedHandler for Example {
-///     type Data = Ref<u32>;
+///     type Data = Arc<u32>;
 ///
-///     fn handle_threaded_irq(_data: RefBorrow<'_, u32>) -> irq::Return {
+///     fn handle_threaded_irq(_data: ArcBorrow<'_, u32>) -> irq::Return {
 ///         irq::Return::None
 ///     }
 /// }
 ///
-/// fn request_irq(irq: u32, data: Ref<u32>) -> Result<irq::ThreadedRegistration<Example>> {
+/// fn request_irq(irq: u32, data: Arc<u32>) -> Result<irq::ThreadedRegistration<Example>> {
 ///     irq::ThreadedRegistration::try_new(irq, data, irq::flags::SHARED, fmt!("example_{irq}"))
 /// }
 /// ```

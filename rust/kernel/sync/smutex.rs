@@ -64,7 +64,7 @@ const LOCKED: usize = 1;
 /// # Examples
 ///
 /// ```
-/// # use kernel::{Result, sync::Ref, sync::smutex::Mutex};
+/// # use kernel::{Result, sync::Arc, sync::smutex::Mutex};
 ///
 /// struct Example {
 ///     a: u32,
@@ -83,8 +83,8 @@ const LOCKED: usize = 1;
 ///     guard.a + guard.b
 /// }
 ///
-/// fn try_new(a: u32, b: u32) -> Result<Ref<Mutex<Example>>> {
-///     Ref::try_new(Mutex::new(Example { a, b }))
+/// fn try_new(a: u32, b: u32) -> Result<Arc<Mutex<Example>>> {
+///     Arc::try_new(Mutex::new(Example { a, b }))
 /// }
 ///
 /// assert_eq!(EXAMPLE.lock().a, 10);
