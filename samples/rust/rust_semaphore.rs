@@ -21,7 +21,7 @@ use kernel::{
     miscdev::Registration,
     mutex_init,
     prelude::*,
-    sync::{CondVar, Mutex, Ref, UniqueRef},
+    sync::{Arc, CondVar, Mutex, UniqueArc},
     user_ptr::{UserSlicePtrReader, UserSlicePtrWriter},
 };
 
@@ -45,7 +45,7 @@ struct Semaphore {
 
 struct FileState {
     read_count: AtomicU64,
-    shared: Ref<Semaphore>,
+    shared: Arc<Semaphore>,
 }
 
 impl FileState {
@@ -64,9 +64,9 @@ impl FileState {
 #[vtable]
 impl file::Operations for FileState {
     type Data = Box<Self>;
-    type OpenData = Ref<Semaphore>;
+    type OpenData = Arc<Semaphore>;
 
-    fn open(shared: &Ref<Semaphore>, _file: &File) -> Result<Box<Self>> {
+    fn open(shared: &Arc<Semaphore>, _file: &File) -> Result<Box<Self>> {
         Ok(Box::try_new(Self {
             read_count: AtomicU64::new(0),
             shared: shared.clone(),
@@ -109,7 +109,7 @@ impl kernel::Module for RustSemaphore {
     fn init(name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
         pr_info!("Rust semaphore sample (init)\n");
 
-        let mut sema = Pin::from(UniqueRef::try_new(Semaphore {
+        let mut sema = Pin::from(UniqueArc::try_new(Semaphore {
             // SAFETY: `condvar_init!` is called below.
             changed: unsafe { CondVar::new() },
 

@@ -3,7 +3,7 @@
 //! Kernel support for executing futures.
 
 use crate::{
-    sync::{LockClassKey, Ref, RefBorrow},
+    sync::{Arc, ArcBorrow, LockClassKey},
     types::PointerWrapper,
     Result,
 };
@@ -36,7 +36,7 @@ pub trait Task {
     ///
     /// Callers must not call this from within the task itself as it will likely lead to a
     /// deadlock.
-    fn sync_stop(self: Ref<Self>);
+    fn sync_stop(self: Arc<Self>);
 }
 
 /// An environment for executing tasks.
@@ -46,10 +46,10 @@ pub trait Executor: Sync + Send {
     /// Callers are encouraged to use the [`spawn_task`] macro because it automatically defines a
     /// new lock class key.
     fn spawn(
-        self: RefBorrow<'_, Self>,
+        self: ArcBorrow<'_, Self>,
         lock_class_key: &'static LockClassKey,
         future: impl Future + 'static + Send,
-    ) -> Result<Ref<dyn Task>>
+    ) -> Result<Arc<dyn Task>>
     where
         Self: Sized;
 
@@ -60,22 +60,22 @@ pub trait Executor: Sync + Send {
     fn stop(&self);
 }
 
-/// A waker that is wrapped in [`Ref`] for its reference counting.
+/// A waker that is wrapped in [`Arc`] for its reference counting.
 ///
 /// Types that implement this trait can get a [`Waker`] by calling [`ref_waker`].
-pub trait RefWake: Send + Sync {
+pub trait ArcWake: Send + Sync {
     /// Wakes a task up.
-    fn wake_by_ref(self: RefBorrow<'_, Self>);
+    fn wake_by_ref(self: ArcBorrow<'_, Self>);
 
     /// Wakes a task up and consumes a reference.
-    fn wake(self: Ref<Self>) {
-        self.as_ref_borrow().wake_by_ref();
+    fn wake(self: Arc<Self>) {
+        self.as_arc_borrow().wake_by_ref();
     }
 }
 
-/// Creates a [`Waker`] from a [`Ref<T>`], where `T` implements the [`RefWake`] trait.
-pub fn ref_waker<T: 'static + RefWake>(w: Ref<T>) -> Waker {
-    fn raw_waker<T: 'static + RefWake>(w: Ref<T>) -> RawWaker {
+/// Creates a [`Waker`] from a [`Arc<T>`], where `T` implements the [`ArcWake`] trait.
+pub fn ref_waker<T: 'static + ArcWake>(w: Arc<T>) -> Waker {
+    fn raw_waker<T: 'static + ArcWake>(w: Arc<T>) -> RawWaker {
         let data = w.into_pointer();
         RawWaker::new(
             data.cast(),
@@ -83,27 +83,27 @@ pub fn ref_waker<T: 'static + RefWake>(w: Ref<T>) -> Waker {
         )
     }
 
-    unsafe fn clone<T: 'static + RefWake>(ptr: *const ()) -> RawWaker {
+    unsafe fn clone<T: 'static + ArcWake>(ptr: *const ()) -> RawWaker {
         // SAFETY: The data stored in the raw waker is the result of a call to `into_pointer`.
-        let w = unsafe { Ref::<T>::borrow(ptr.cast()) };
+        let w = unsafe { Arc::<T>::borrow(ptr.cast()) };
         raw_waker(w.into())
     }
 
-    unsafe fn wake<T: 'static + RefWake>(ptr: *const ()) {
+    unsafe fn wake<T: 'static + ArcWake>(ptr: *const ()) {
         // SAFETY: The data stored in the raw waker is the result of a call to `into_pointer`.
-        let w = unsafe { Ref::<T>::from_pointer(ptr.cast()) };
+        let w = unsafe { Arc::<T>::from_pointer(ptr.cast()) };
         w.wake();
     }
 
-    unsafe fn wake_by_ref<T: 'static + RefWake>(ptr: *const ()) {
+    unsafe fn wake_by_ref<T: 'static + ArcWake>(ptr: *const ()) {
         // SAFETY: The data stored in the raw waker is the result of a call to `into_pointer`.
-        let w = unsafe { Ref::<T>::borrow(ptr.cast()) };
+        let w = unsafe { Arc::<T>::borrow(ptr.cast()) };
         w.wake_by_ref();
     }
 
-    unsafe fn drop<T: 'static + RefWake>(ptr: *const ()) {
+    unsafe fn drop<T: 'static + ArcWake>(ptr: *const ()) {
         // SAFETY: The data stored in the raw waker is the result of a call to `into_pointer`.
-        unsafe { Ref::<T>::from_pointer(ptr.cast()) };
+        unsafe { Arc::<T>::from_pointer(ptr.cast()) };
     }
 
     let raw = raw_waker(w);
@@ -113,12 +113,12 @@ pub fn ref_waker<T: 'static + RefWake>(w: Ref<T>) -> Waker {
 
 /// A handle to an executor that automatically stops it on drop.
 pub struct AutoStopHandle<T: Executor + ?Sized> {
-    executor: Option<Ref<T>>,
+    executor: Option<Arc<T>>,
 }
 
 impl<T: Executor + ?Sized> AutoStopHandle<T> {
     /// Creates a new instance of an [`AutoStopHandle`].
-    pub fn new(executor: Ref<T>) -> Self {
+    pub fn new(executor: Arc<T>) -> Self {
         Self {
             executor: Some(executor),
         }
@@ -127,15 +127,15 @@ impl<T: Executor + ?Sized> AutoStopHandle<T> {
     /// Detaches from the auto-stop handle.
     ///
     /// That is, extracts the executor from the handle and doesn't stop it anymore.
-    pub fn detach(mut self) -> Ref<T> {
+    pub fn detach(mut self) -> Arc<T> {
         self.executor.take().unwrap()
     }
 
     /// Returns the executor associated with the auto-stop handle.
     ///
     /// This is so that callers can, for example, spawn new tasks.
-    pub fn executor(&self) -> RefBorrow<'_, T> {
-        self.executor.as_ref().unwrap().as_ref_borrow()
+    pub fn executor(&self) -> ArcBorrow<'_, T> {
+        self.executor.as_ref().unwrap().as_arc_borrow()
     }
 }
 

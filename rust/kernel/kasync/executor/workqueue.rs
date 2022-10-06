@@ -2,12 +2,12 @@
 
 //! Kernel support for executing futures in C workqueues (`struct workqueue_struct`).
 
-use super::{AutoStopHandle, RefWake};
+use super::{ArcWake, AutoStopHandle};
 use crate::{
     error::code::*,
     mutex_init,
     revocable::AsyncRevocable,
-    sync::{LockClassKey, Mutex, Ref, RefBorrow, UniqueRef},
+    sync::{Arc, ArcBorrow, LockClassKey, Mutex, UniqueArc},
     unsafe_list,
     workqueue::{BoxedQueue, Queue, Work, WorkAdapter},
     Either, Left, Result, Right,
@@ -16,7 +16,7 @@ use core::{cell::UnsafeCell, future::Future, marker::PhantomPinned, pin::Pin, ta
 
 trait RevocableTask {
     fn revoke(&self);
-    fn flush(self: Ref<Self>);
+    fn flush(self: Arc<Self>);
     fn to_links(&self) -> &unsafe_list::Links<dyn RevocableTask>;
 }
 
@@ -30,7 +30,7 @@ unsafe impl unsafe_list::Adapter for dyn RevocableTask {
 
 struct Task<T: 'static + Send + Future> {
     links: unsafe_list::Links<dyn RevocableTask>,
-    executor: Ref<Executor>,
+    executor: Arc<Executor>,
     work: Work,
     future: AsyncRevocable<UnsafeCell<T>>,
 }
@@ -45,11 +45,11 @@ unsafe impl<T: 'static + Send + Future> Send for Task<T> {}
 
 impl<T: 'static + Send + Future> Task<T> {
     fn try_new(
-        executor: Ref<Executor>,
+        executor: Arc<Executor>,
         key: &'static LockClassKey,
         future: T,
-    ) -> Result<Ref<Self>> {
-        let task = UniqueRef::try_new(Self {
+    ) -> Result<Arc<Self>> {
+        let task = UniqueArc::try_new(Self {
             executor: executor.clone(),
             links: unsafe_list::Links::new(),
             // SAFETY: `work` is initialised below.
@@ -59,7 +59,7 @@ impl<T: 'static + Send + Future> Task<T> {
 
         Work::init(&task, key);
 
-        let task = Ref::from(task);
+        let task = Arc::from(task);
 
         // Add task to list.
         {
@@ -70,11 +70,11 @@ impl<T: 'static + Send + Future> Task<T> {
 
             // Convert one reference into a pointer so that we hold on to a ref count while the
             // task is in the list.
-            Ref::into_raw(task.clone());
+            Arc::into_raw(task.clone());
 
             // SAFETY: The task was just created, so it is not in any other lists. It remains alive
             // because we incremented the refcount to account for it being in the list. It never
-            // moves because it's pinned behind a `Ref`.
+            // moves because it's pinned behind a `Arc`.
             unsafe { guard.tasks.push_back(&*task) };
         }
 
@@ -85,7 +85,7 @@ impl<T: 'static + Send + Future> Task<T> {
 unsafe impl<T: 'static + Send + Future> WorkAdapter for Task<T> {
     type Target = Self;
     const FIELD_OFFSET: isize = crate::offset_of!(Self, work);
-    fn run(task: Ref<Task<T>>) {
+    fn run(task: Arc<Task<T>>) {
         let waker = super::ref_waker(task.clone());
         let mut ctx = Context::from_waker(&waker);
 
@@ -96,7 +96,7 @@ unsafe impl<T: 'static + Send + Future> WorkAdapter for Task<T> {
         };
 
         // SAFETY: `future` is pinned when the task is. The task is pinned because it's behind a
-        // `Ref`, which is always pinned.
+        // `Arc`, which is always pinned.
         //
         // Work queues guarantee no reentrancy and this is the only place where the future is
         // dereferenced, so it's ok to do it mutably.
@@ -109,7 +109,7 @@ unsafe impl<T: 'static + Send + Future> WorkAdapter for Task<T> {
 }
 
 impl<T: 'static + Send + Future> super::Task for Task<T> {
-    fn sync_stop(self: Ref<Self>) {
+    fn sync_stop(self: Arc<Self>) {
         self.revoke();
         self.flush();
     }
@@ -130,10 +130,10 @@ impl<T: 'static + Send + Future> RevocableTask for Task<T> {
         // Decrement the refcount now that the task is no longer in the list.
         //
         // SAFETY: `into_raw` was called from `try_new` when the task was added to the list.
-        unsafe { Ref::from_raw(self) };
+        unsafe { Arc::from_raw(self) };
     }
 
-    fn flush(self: Ref<Self>) {
+    fn flush(self: Arc<Self>) {
         self.work.cancel();
     }
 
@@ -142,8 +142,8 @@ impl<T: 'static + Send + Future> RevocableTask for Task<T> {
     }
 }
 
-impl<T: 'static + Send + Future> RefWake for Task<T> {
-    fn wake(self: Ref<Self>) {
+impl<T: 'static + Send + Future> ArcWake for Task<T> {
+    fn wake(self: Arc<Self>) {
         if self.future.is_revoked() {
             return;
         }
@@ -155,8 +155,8 @@ impl<T: 'static + Send + Future> RefWake for Task<T> {
         .enqueue(self.clone());
     }
 
-    fn wake_by_ref(self: RefBorrow<'_, Self>) {
-        Ref::from(self).wake();
+    fn wake_by_ref(self: ArcBorrow<'_, Self>) {
+        Arc::from(self).wake();
     }
 }
 
@@ -220,7 +220,7 @@ impl Executor {
     ///
     /// It uses the given work queue to run its tasks.
     fn new_internal(queue: Either<BoxedQueue, &'static Queue>) -> Result<AutoStopHandle<Self>> {
-        let mut e = Pin::from(UniqueRef::try_new(Self {
+        let mut e = Pin::from(UniqueArc::try_new(Self {
             queue,
             _pin: PhantomPinned,
             // SAFETY: `mutex_init` is called below.
@@ -241,10 +241,10 @@ impl Executor {
 
 impl super::Executor for Executor {
     fn spawn(
-        self: RefBorrow<'_, Self>,
+        self: ArcBorrow<'_, Self>,
         key: &'static LockClassKey,
         future: impl Future + 'static + Send,
-    ) -> Result<Ref<dyn super::Task>> {
+    ) -> Result<Arc<dyn super::Task>> {
         let task = Task::try_new(self.into(), key, future)?;
         task.clone().wake();
         Ok(task)
@@ -273,13 +273,13 @@ impl super::Executor for Executor {
 
             // Get a new reference to the task.
             //
-            // SAFETY: We know all entries in the list are of type `Ref<dyn RevocableTask>` and
+            // SAFETY: We know all entries in the list are of type `Arc<dyn RevocableTask>` and
             // that a reference exists while the entry is in the list, and since we are holding the
             // list lock, we know it cannot go away. The `into_raw` call below ensures that we
             // don't decrement the refcount accidentally.
-            let tasktmp = unsafe { Ref::<dyn RevocableTask>::from_raw(front.as_ptr()) };
+            let tasktmp = unsafe { Arc::<dyn RevocableTask>::from_raw(front.as_ptr()) };
             let task = tasktmp.clone();
-            Ref::into_raw(tasktmp);
+            Arc::into_raw(tasktmp);
 
             // Release the mutex before revoking the task.
             drop(guard);

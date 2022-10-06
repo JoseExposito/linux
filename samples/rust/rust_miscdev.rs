@@ -7,7 +7,7 @@ use kernel::{
     file::{self, File},
     io_buffer::{IoBufferReader, IoBufferWriter},
     miscdev,
-    sync::{CondVar, Mutex, Ref, RefBorrow, UniqueRef},
+    sync::{Arc, ArcBorrow, CondVar, Mutex, UniqueArc},
 };
 
 module! {
@@ -30,8 +30,8 @@ struct SharedState {
 }
 
 impl SharedState {
-    fn try_new() -> Result<Ref<Self>> {
-        let mut state = Pin::from(UniqueRef::try_new(Self {
+    fn try_new() -> Result<Arc<Self>> {
+        let mut state = Pin::from(UniqueArc::try_new(Self {
             // SAFETY: `condvar_init!` is called below.
             state_changed: unsafe { CondVar::new() },
             // SAFETY: `mutex_init!` is called below.
@@ -53,15 +53,15 @@ impl SharedState {
 struct Token;
 #[vtable]
 impl file::Operations for Token {
-    type Data = Ref<SharedState>;
-    type OpenData = Ref<SharedState>;
+    type Data = Arc<SharedState>;
+    type OpenData = Arc<SharedState>;
 
-    fn open(shared: &Ref<SharedState>, _file: &File) -> Result<Self::Data> {
+    fn open(shared: &Arc<SharedState>, _file: &File) -> Result<Self::Data> {
         Ok(shared.clone())
     }
 
     fn read(
-        shared: RefBorrow<'_, SharedState>,
+        shared: ArcBorrow<'_, SharedState>,
         _: &File,
         data: &mut impl IoBufferWriter,
         offset: u64,
@@ -94,7 +94,7 @@ impl file::Operations for Token {
     }
 
     fn write(
-        shared: RefBorrow<'_, SharedState>,
+        shared: ArcBorrow<'_, SharedState>,
         _: &File,
         data: &mut impl IoBufferReader,
         _offset: u64,

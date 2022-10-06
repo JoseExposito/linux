@@ -4,7 +4,7 @@
 
 use kernel::{
     device, file, file::File, io_buffer::IoBufferWriter, miscdev, module_platform_driver, of,
-    platform, prelude::*, sync::Ref,
+    platform, prelude::*, sync::Arc,
 };
 
 module_platform_driver! {
@@ -38,7 +38,7 @@ type DeviceData = device::Data<miscdev::Registration<RngDevice>, (), ()>;
 
 struct RngDriver;
 impl platform::Driver for RngDriver {
-    type Data = Ref<DeviceData>;
+    type Data = Arc<DeviceData>;
 
     kernel::define_of_id_table! {(), [
         (of::DeviceId::Compatible(b"brcm,bcm2835-rng"), None),

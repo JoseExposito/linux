@@ -6,7 +6,7 @@
 
 use crate::{
     bindings,
-    sync::{Ref, RefBorrow},
+    sync::{Arc, ArcBorrow},
 };
 use alloc::boxed::Box;
 use core::{
@@ -104,22 +104,22 @@ impl<T: 'static> PointerWrapper for Box<T> {
     }
 }
 
-impl<T: 'static> PointerWrapper for Ref<T> {
-    type Borrowed<'a> = RefBorrow<'a, T>;
+impl<T: 'static> PointerWrapper for Arc<T> {
+    type Borrowed<'a> = ArcBorrow<'a, T>;
 
     fn into_pointer(self) -> *const core::ffi::c_void {
-        Ref::into_usize(self) as _
+        Arc::into_usize(self) as _
     }
 
-    unsafe fn borrow<'a>(ptr: *const core::ffi::c_void) -> RefBorrow<'a, T> {
+    unsafe fn borrow<'a>(ptr: *const core::ffi::c_void) -> ArcBorrow<'a, T> {
         // SAFETY: The safety requirements for this function ensure that the underlying object
         // remains valid for the lifetime of the returned value.
-        unsafe { Ref::borrow_usize(ptr as _) }
+        unsafe { Arc::borrow_usize(ptr as _) }
     }
 
     unsafe fn from_pointer(ptr: *const core::ffi::c_void) -> Self {
         // SAFETY: The passed pointer comes from a previous call to [`Self::into_pointer()`].
-        unsafe { Ref::from_usize(ptr as _) }
+        unsafe { Arc::from_usize(ptr as _) }
     }
 }
 
@@ -597,7 +597,7 @@ unsafe impl Bool for False {}
 /// [`ARef<T>`].
 ///
 /// This is usually implemented by wrappers to existing structures on the C side of the code. For
-/// Rust code, the recommendation is to use [`Ref`] to create reference-counted instances of a
+/// Rust code, the recommendation is to use [`Arc`] to create reference-counted instances of a
 /// type.
 ///
 /// # Safety

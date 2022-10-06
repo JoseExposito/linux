@@ -5,7 +5,7 @@ use kernel::{
     io_buffer::IoBufferWriter,
     linked_list::{GetLinks, Links, List},
     prelude::*,
-    sync::{Guard, LockedBy, Mutex, Ref, SpinLock},
+    sync::{Arc, Guard, LockedBy, Mutex, SpinLock},
     user_ptr::UserSlicePtrWriter,
 };
 
@@ -40,7 +40,7 @@ impl CountState {
 struct NodeInner {
     strong: CountState,
     weak: CountState,
-    death_list: List<Ref<NodeDeath>>,
+    death_list: List<Arc<NodeDeath>>,
 }
 
 struct NodeDeathInner {
@@ -55,8 +55,8 @@ struct NodeDeathInner {
 }
 
 pub(crate) struct NodeDeath {
-    node: Ref<Node>,
-    process: Ref<Process>,
+    node: Arc<Node>,
+    process: Arc<Process>,
     // TODO: Make this private.
     pub(crate) cookie: usize,
     work_links: Links<dyn DeliverToRead>,
@@ -72,7 +72,7 @@ impl NodeDeath {
     /// # Safety
     ///
     /// The caller must call `NodeDeath::init` before using the notification object.
-    pub(crate) unsafe fn new(node: Ref<Node>, process: Ref<Process>, cookie: usize) -> Self {
+    pub(crate) unsafe fn new(node: Arc<Node>, process: Arc<Process>, cookie: usize) -> Self {
         Self {
             node,
             process,
@@ -102,7 +102,7 @@ impl NodeDeath {
     /// once.
     ///
     /// Returns whether it needs to be queued.
-    pub(crate) fn set_cleared(self: &Ref<Self>, abort: bool) -> bool {
+    pub(crate) fn set_cleared(self: &Arc<Self>, abort: bool) -> bool {
         let (needs_removal, needs_queueing) = {
             // Update state and determine if we need to queue a work item. We only need to do it
             // when the node is not dead or if the user already completed the death notification.
@@ -127,7 +127,7 @@ impl NodeDeath {
     /// Sets the 'notification done' flag to `true`.
     ///
     /// Returns whether it needs to be queued.
-    pub(crate) fn set_notification_done(self: Ref<Self>, thread: &Thread) {
+    pub(crate) fn set_notification_done(self: Arc<Self>, thread: &Thread) {
         let needs_queueing = {
             let mut inner = self.inner.lock();
             inner.notification_done = true;
@@ -140,7 +140,7 @@ impl NodeDeath {
     }
 
     /// Sets the 'dead' flag to `true` and queues work item if needed.
-    pub(crate) fn set_dead(self: Ref<Self>) {
+    pub(crate) fn set_dead(self: Arc<Self>) {
         let needs_queueing = {
             let mut inner = self.inner.lock();
             if inner.cleared {
@@ -168,7 +168,7 @@ impl GetLinks for NodeDeath {
 }
 
 impl DeliverToRead for NodeDeath {
-    fn do_work(self: Ref<Self>, _thread: &Thread, writer: &mut UserSlicePtrWriter) -> Result<bool> {
+    fn do_work(self: Arc<Self>, _thread: &Thread, writer: &mut UserSlicePtrWriter) -> Result<bool> {
         let done = {
             let inner = self.inner.lock();
             if inner.aborted {
@@ -211,13 +211,13 @@ pub(crate) struct Node {
     ptr: usize,
     cookie: usize,
     pub(crate) flags: u32,
-    pub(crate) owner: Ref<Process>,
+    pub(crate) owner: Arc<Process>,
     inner: LockedBy<NodeInner, Mutex<ProcessInner>>,
     links: Links<dyn DeliverToRead>,
 }
 
 impl Node {
-    pub(crate) fn new(ptr: usize, cookie: usize, flags: u32, owner: Ref<Process>) -> Self {
+    pub(crate) fn new(ptr: usize, cookie: usize, flags: u32, owner: Arc<Process>) -> Self {
         static NEXT_ID: AtomicU64 = AtomicU64::new(1);
         let inner = LockedBy::new(
             &owner.inner,
@@ -245,13 +245,13 @@ impl Node {
     pub(crate) fn next_death(
         &self,
         guard: &mut Guard<'_, Mutex<ProcessInner>>,
-    ) -> Option<Ref<NodeDeath>> {
+    ) -> Option<Arc<NodeDeath>> {
         self.inner.access_mut(guard).death_list.pop_front()
     }
 
     pub(crate) fn add_death(
         &self,
-        death: Ref<NodeDeath>,
+        death: Arc<NodeDeath>,
         guard: &mut Guard<'_, Mutex<ProcessInner>>,
     ) {
         self.inner.access_mut(guard).death_list.push_back(death);
@@ -296,7 +296,7 @@ impl Node {
         }
     }
 
-    pub(crate) fn update_refcount(self: &Ref<Self>, inc: bool, strong: bool) {
+    pub(crate) fn update_refcount(self: &Arc<Self>, inc: bool, strong: bool) {
         self.owner
             .inner
             .lock()
@@ -344,7 +344,7 @@ impl Node {
 }
 
 impl DeliverToRead for Node {
-    fn do_work(self: Ref<Self>, _thread: &Thread, writer: &mut UserSlicePtrWriter) -> Result<bool> {
+    fn do_work(self: Arc<Self>, _thread: &Thread, writer: &mut UserSlicePtrWriter) -> Result<bool> {
         let mut owner_inner = self.owner.inner.lock();
         let inner = self.inner.access_mut(&mut owner_inner);
         let strong = inner.strong.count > 0;
@@ -396,13 +396,13 @@ impl DeliverToRead for Node {
 }
 
 pub(crate) struct NodeRef {
-    pub(crate) node: Ref<Node>,
+    pub(crate) node: Arc<Node>,
     strong_count: usize,
     weak_count: usize,
 }
 
 impl NodeRef {
-    pub(crate) fn new(node: Ref<Node>, strong_count: usize, weak_count: usize) -> Self {
+    pub(crate) fn new(node: Arc<Node>, strong_count: usize, weak_count: usize) -> Self {
         Self {
             node,
             strong_count,

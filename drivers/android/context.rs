@@ -4,7 +4,7 @@ use kernel::{
     bindings,
     prelude::*,
     security,
-    sync::{Mutex, Ref, UniqueRef},
+    sync::{Arc, Mutex, UniqueArc},
 };
 
 use crate::{
@@ -26,8 +26,8 @@ unsafe impl Send for Context {}
 unsafe impl Sync for Context {}
 
 impl Context {
-    pub(crate) fn new() -> Result<Ref<Self>> {
-        let mut ctx = Pin::from(UniqueRef::try_new(Self {
+    pub(crate) fn new() -> Result<Arc<Self>> {
+        let mut ctx = Pin::from(UniqueArc::try_new(Self {
             // SAFETY: Init is called below.
             manager: unsafe {
                 Mutex::new(Manager {

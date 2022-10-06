@@ -12,7 +12,7 @@ use kernel::{
     linked_list::{GetLinks, Links, List},
     prelude::*,
     security,
-    sync::{CondVar, Ref, SpinLock, UniqueRef},
+    sync::{Arc, CondVar, SpinLock, UniqueArc},
     user_ptr::{UserSlicePtr, UserSlicePtrWriter},
     Either,
 };
@@ -76,18 +76,18 @@ struct InnerThread {
     /// Work item used to deliver error codes to the thread that started a transaction. When set to
     /// `Some(x)`, it will hold the only reference to the object so that it can update the error
     /// code to be delivered before queuing it.
-    reply_work: Option<Ref<ThreadError>>,
+    reply_work: Option<Arc<ThreadError>>,
 
     /// Work item used to deliver error codes to the current thread. When set to `Some(x)`, it will
     /// hold the only reference to the object so that it can update the error code to be delivered
     /// before queuing.
-    return_work: Option<Ref<ThreadError>>,
+    return_work: Option<Arc<ThreadError>>,
 
     /// Determines whether the work list below should be processed. When set to false, `work_list`
     /// is treated as if it were empty.
     process_work_list: bool,
     work_list: List<DeliverToReadListAdapter>,
-    current_transaction: Option<Ref<Transaction>>,
+    current_transaction: Option<Arc<Transaction>>,
 }
 
 impl InnerThread {
@@ -103,7 +103,7 @@ impl InnerThread {
         }
     }
 
-    fn set_reply_work(&mut self, reply_work: Ref<ThreadError>) {
+    fn set_reply_work(&mut self, reply_work: Arc<ThreadError>) {
         self.reply_work = Some(reply_work);
     }
 
@@ -112,7 +112,7 @@ impl InnerThread {
         self.push_existing_work(work, code);
     }
 
-    fn set_return_work(&mut self, return_work: Ref<ThreadError>) {
+    fn set_return_work(&mut self, return_work: Arc<ThreadError>) {
         self.return_work = Some(return_work);
     }
 
@@ -121,7 +121,7 @@ impl InnerThread {
         self.push_existing_work(work, code);
     }
 
-    fn push_existing_work(&mut self, owork: Option<Ref<ThreadError>>, code: u32) {
+    fn push_existing_work(&mut self, owork: Option<Arc<ThreadError>>, code: u32) {
         // TODO: Write some warning when the following fails. It should not happen, and
         // if it does, there is likely something wrong.
         if let Some(work) = owork {
@@ -134,7 +134,7 @@ impl InnerThread {
         }
     }
 
-    fn pop_work(&mut self) -> Option<Ref<dyn DeliverToRead>> {
+    fn pop_work(&mut self) -> Option<Arc<dyn DeliverToRead>> {
         if !self.process_work_list {
             return None;
         }
@@ -146,11 +146,11 @@ impl InnerThread {
         ret
     }
 
-    fn push_work_deferred(&mut self, work: Ref<dyn DeliverToRead>) {
+    fn push_work_deferred(&mut self, work: Arc<dyn DeliverToRead>) {
         self.work_list.push_back(work);
     }
 
-    fn push_work(&mut self, work: Ref<dyn DeliverToRead>) {
+    fn push_work(&mut self, work: Arc<dyn DeliverToRead>) {
         self.push_work_deferred(work);
         self.process_work_list = true;
     }
@@ -162,7 +162,7 @@ impl InnerThread {
     /// Fetches the transaction the thread can reply to. If the thread has a pending transaction
     /// (that it could respond to) but it has also issued a transaction, it must first wait for the
     /// previously-issued transaction to complete.
-    fn pop_transaction_to_reply(&mut self, thread: &Thread) -> Result<Ref<Transaction>> {
+    fn pop_transaction_to_reply(&mut self, thread: &Thread) -> Result<Arc<Transaction>> {
         let transaction = self.current_transaction.take().ok_or(EINVAL)?;
 
         if core::ptr::eq(thread, transaction.from.as_ref()) {
@@ -175,11 +175,11 @@ impl InnerThread {
         Ok(transaction)
     }
 
-    fn pop_transaction_replied(&mut self, transaction: &Ref<Transaction>) -> bool {
+    fn pop_transaction_replied(&mut self, transaction: &Arc<Transaction>) -> bool {
         match self.current_transaction.take() {
             None => false,
             Some(old) => {
-                if !Ref::ptr_eq(transaction, &old) {
+                if !Arc::ptr_eq(transaction, &old) {
                     self.current_transaction = Some(old);
                     return false;
                 }
@@ -231,17 +231,17 @@ impl InnerThread {
 
 pub(crate) struct Thread {
     pub(crate) id: i32,
-    pub(crate) process: Ref<Process>,
+    pub(crate) process: Arc<Process>,
     inner: SpinLock<InnerThread>,
     work_condvar: CondVar,
     links: Links<Thread>,
 }
 
 impl Thread {
-    pub(crate) fn new(id: i32, process: Ref<Process>) -> Result<Ref<Self>> {
-        let return_work = Ref::try_new(ThreadError::new(InnerThread::set_return_work))?;
-        let reply_work = Ref::try_new(ThreadError::new(InnerThread::set_reply_work))?;
-        let mut thread = Pin::from(UniqueRef::try_new(Self {
+    pub(crate) fn new(id: i32, process: Arc<Process>) -> Result<Arc<Self>> {
+        let return_work = Arc::try_new(ThreadError::new(InnerThread::set_return_work))?;
+        let reply_work = Arc::try_new(ThreadError::new(InnerThread::set_reply_work))?;
+        let mut thread = Pin::from(UniqueArc::try_new(Self {
             id,
             process,
             // SAFETY: `inner` is initialised in the call to `spinlock_init` below.
@@ -268,14 +268,14 @@ impl Thread {
         Ok(thread.into())
     }
 
-    pub(crate) fn set_current_transaction(&self, transaction: Ref<Transaction>) {
+    pub(crate) fn set_current_transaction(&self, transaction: Arc<Transaction>) {
         self.inner.lock().current_transaction = Some(transaction);
     }
 
     /// Attempts to fetch a work item from the thread-local queue. The behaviour if the queue is
     /// empty depends on `wait`: if it is true, the function waits for some work to be queued (or a
     /// signal); otherwise it returns indicating that none is available.
-    fn get_work_local(self: &Ref<Self>, wait: bool) -> Result<Ref<dyn DeliverToRead>> {
+    fn get_work_local(self: &Arc<Self>, wait: bool) -> Result<Arc<dyn DeliverToRead>> {
         // Try once if the caller does not want to wait.
         if !wait {
             return self.inner.lock().pop_work().ok_or(EAGAIN);
@@ -303,7 +303,7 @@ impl Thread {
     ///
     /// This must only be called when the thread is not participating in a transaction chain. If it
     /// is, the local version (`get_work_local`) should be used instead.
-    fn get_work(self: &Ref<Self>, wait: bool) -> Result<Ref<dyn DeliverToRead>> {
+    fn get_work(self: &Arc<Self>, wait: bool) -> Result<Arc<dyn DeliverToRead>> {
         // Try to get work from the thread's work queue, using only a local lock.
         {
             let mut inner = self.inner.lock();
@@ -348,7 +348,7 @@ impl Thread {
         }
     }
 
-    pub(crate) fn push_work(&self, work: Ref<dyn DeliverToRead>) -> BinderResult {
+    pub(crate) fn push_work(&self, work: Arc<dyn DeliverToRead>) -> BinderResult {
         {
             let mut inner = self.inner.lock();
             if inner.is_dead {
@@ -362,7 +362,7 @@ impl Thread {
 
     /// Attempts to push to given work item to the thread if it's a looper thread (i.e., if it's
     /// part of a thread pool) and is alive. Otherwise, push the work item to the process instead.
-    pub(crate) fn push_work_if_looper(&self, work: Ref<dyn DeliverToRead>) -> BinderResult {
+    pub(crate) fn push_work_if_looper(&self, work: Arc<dyn DeliverToRead>) -> BinderResult {
         let mut inner = self.inner.lock();
         if inner.is_looper() && !inner.is_dead {
             inner.push_work(work);
@@ -373,7 +373,7 @@ impl Thread {
         }
     }
 
-    pub(crate) fn push_work_deferred(&self, work: Ref<dyn DeliverToRead>) {
+    pub(crate) fn push_work_deferred(&self, work: Arc<dyn DeliverToRead>) {
         self.inner.lock().push_work_deferred(work);
     }
 
@@ -395,7 +395,7 @@ impl Thread {
                     let ptr = unsafe { obj.__bindgen_anon_1.binder } as _;
                     let cookie = obj.cookie as _;
                     let flags = obj.flags as _;
-                    let node = self.process.as_ref_borrow().get_node(
+                    let node = self.process.as_arc_borrow().get_node(
                         ptr,
                         cookie,
                         flags,
@@ -500,7 +500,7 @@ impl Thread {
         Ok(alloc)
     }
 
-    fn unwind_transaction_stack(self: &Ref<Self>) {
+    fn unwind_transaction_stack(self: &Arc<Self>) {
         let mut thread = self.clone();
         while let Ok(transaction) = {
             let mut inner = thread.inner.lock();
@@ -517,8 +517,8 @@ impl Thread {
 
     pub(crate) fn deliver_reply(
         &self,
-        reply: Either<Ref<Transaction>, u32>,
-        transaction: &Ref<Transaction>,
+        reply: Either<Arc<Transaction>, u32>,
+        transaction: &Arc<Transaction>,
     ) {
         if self.deliver_single_reply(reply, transaction) {
             transaction.from.unwind_transaction_stack();
@@ -532,8 +532,8 @@ impl Thread {
     /// transaction stack by completing transactions for threads that are dead.
     fn deliver_single_reply(
         &self,
-        reply: Either<Ref<Transaction>, u32>,
-        transaction: &Ref<Transaction>,
+        reply: Either<Arc<Transaction>, u32>,
+        transaction: &Arc<Transaction>,
     ) -> bool {
         {
             let mut inner = self.inner.lock();
@@ -557,24 +557,24 @@ impl Thread {
     }
 
     /// Determines if the given transaction is the current transaction for this thread.
-    fn is_current_transaction(&self, transaction: &Ref<Transaction>) -> bool {
+    fn is_current_transaction(&self, transaction: &Arc<Transaction>) -> bool {
         let inner = self.inner.lock();
         match &inner.current_transaction {
             None => false,
-            Some(current) => Ref::ptr_eq(current, transaction),
+            Some(current) => Arc::ptr_eq(current, transaction),
         }
     }
 
-    fn transaction<T>(self: &Ref<Self>, tr: &BinderTransactionData, inner: T)
+    fn transaction<T>(self: &Arc<Self>, tr: &BinderTransactionData, inner: T)
     where
-        T: FnOnce(&Ref<Self>, &BinderTransactionData) -> BinderResult,
+        T: FnOnce(&Arc<Self>, &BinderTransactionData) -> BinderResult,
     {
         if let Err(err) = inner(self, tr) {
             self.inner.lock().push_return_work(err.reply);
         }
     }
 
-    fn reply_inner(self: &Ref<Self>, tr: &BinderTransactionData) -> BinderResult {
+    fn reply_inner(self: &Arc<Self>, tr: &BinderTransactionData) -> BinderResult {
         let orig = self.inner.lock().pop_transaction_to_reply(self)?;
         if !orig.from.is_current_transaction(&orig) {
             return Err(BinderError::new_failed());
@@ -582,7 +582,7 @@ impl Thread {
 
         // We need to complete the transaction even if we cannot complete building the reply.
         (|| -> BinderResult<_> {
-            let completion = Ref::try_new(DeliverCode::new(BR_TRANSACTION_COMPLETE))?;
+            let completion = Arc::try_new(DeliverCode::new(BR_TRANSACTION_COMPLETE))?;
             let process = orig.from.process.clone();
             let allow_fds = orig.flags & TF_ACCEPT_FDS != 0;
             let reply = Transaction::new_reply(self, process, tr, allow_fds)?;
@@ -603,7 +603,7 @@ impl Thread {
     /// Determines the current top of the transaction stack. It fails if the top is in another
     /// thread (i.e., this thread belongs to a stack but it has called another thread). The top is
     /// [`None`] if the thread is not currently participating in a transaction stack.
-    fn top_of_transaction_stack(&self) -> Result<Option<Ref<Transaction>>> {
+    fn top_of_transaction_stack(&self) -> Result<Option<Arc<Transaction>>> {
         let inner = self.inner.lock();
         Ok(if let Some(cur) = &inner.current_transaction {
             if core::ptr::eq(self, cur.from.as_ref()) {
@@ -615,11 +615,11 @@ impl Thread {
         })
     }
 
-    fn oneway_transaction_inner(self: &Ref<Self>, tr: &BinderTransactionData) -> BinderResult {
+    fn oneway_transaction_inner(self: &Arc<Self>, tr: &BinderTransactionData) -> BinderResult {
         let handle = unsafe { tr.target.handle };
         let node_ref = self.process.get_transaction_node(handle)?;
         security::binder_transaction(&self.process.cred, &node_ref.node.owner.cred)?;
-        let completion = Ref::try_new(DeliverCode::new(BR_TRANSACTION_COMPLETE))?;
+        let completion = Arc::try_new(DeliverCode::new(BR_TRANSACTION_COMPLETE))?;
         let transaction = Transaction::new(node_ref, None, self, tr)?;
         self.inner.lock().push_work(completion);
         // TODO: Remove the completion on error?
@@ -627,14 +627,14 @@ impl Thread {
         Ok(())
     }
 
-    fn transaction_inner(self: &Ref<Self>, tr: &BinderTransactionData) -> BinderResult {
+    fn transaction_inner(self: &Arc<Self>, tr: &BinderTransactionData) -> BinderResult {
         let handle = unsafe { tr.target.handle };
         let node_ref = self.process.get_transaction_node(handle)?;
         security::binder_transaction(&self.process.cred, &node_ref.node.owner.cred)?;
         // TODO: We need to ensure that there isn't a pending transaction in the work queue. How
         // could this happen?
         let top = self.top_of_transaction_stack()?;
-        let completion = Ref::try_new(DeliverCode::new(BR_TRANSACTION_COMPLETE))?;
+        let completion = Arc::try_new(DeliverCode::new(BR_TRANSACTION_COMPLETE))?;
         let transaction = Transaction::new(node_ref, top, self, tr)?;
 
         // Check that the transaction stack hasn't changed while the lock was released, then update
@@ -655,7 +655,7 @@ impl Thread {
         Ok(())
     }
 
-    fn write(self: &Ref<Self>, req: &mut BinderWriteRead) -> Result {
+    fn write(self: &Arc<Self>, req: &mut BinderWriteRead) -> Result {
         let write_start = req.write_buffer.wrapping_add(req.write_consumed);
         let write_len = req.write_size - req.write_consumed;
         let mut reader = unsafe { UserSlicePtr::new(write_start as _, write_len as _).reader() };
@@ -700,7 +700,7 @@ impl Thread {
         Ok(())
     }
 
-    fn read(self: &Ref<Self>, req: &mut BinderWriteRead, wait: bool) -> Result {
+    fn read(self: &Arc<Self>, req: &mut BinderWriteRead, wait: bool) -> Result {
         let read_start = req.read_buffer.wrapping_add(req.read_consumed);
         let read_len = req.read_size - req.read_consumed;
         let mut writer = unsafe { UserSlicePtr::new(read_start as _, read_len as _) }.writer();
@@ -754,7 +754,7 @@ impl Thread {
         Ok(())
     }
 
-    pub(crate) fn write_read(self: &Ref<Self>, data: UserSlicePtr, wait: bool) -> Result {
+    pub(crate) fn write_read(self: &Arc<Self>, data: UserSlicePtr, wait: bool) -> Result {
         let (mut reader, mut writer) = data.reader_writer();
         let mut req = reader.read::<BinderWriteRead>()?;
 
@@ -806,7 +806,7 @@ impl Thread {
         self.inner.lock().push_return_work(code)
     }
 
-    pub(crate) fn release(self: &Ref<Self>) {
+    pub(crate) fn release(self: &Arc<Self>) {
         // Mark the thread as dead.
         self.inner.lock().is_dead = true;
 
@@ -837,12 +837,12 @@ impl GetLinks for Thread {
 
 struct ThreadError {
     error_code: AtomicU32,
-    return_fn: fn(&mut InnerThread, Ref<ThreadError>),
+    return_fn: fn(&mut InnerThread, Arc<ThreadError>),
     links: Links<dyn DeliverToRead>,
 }
 
 impl ThreadError {
-    fn new(return_fn: fn(&mut InnerThread, Ref<ThreadError>)) -> Self {
+    fn new(return_fn: fn(&mut InnerThread, Arc<ThreadError>)) -> Self {
         Self {
             error_code: AtomicU32::new(BR_OK),
             return_fn,
@@ -852,7 +852,7 @@ impl ThreadError {
 }
 
 impl DeliverToRead for ThreadError {
-    fn do_work(self: Ref<Self>, thread: &Thread, writer: &mut UserSlicePtrWriter) -> Result<bool> {
+    fn do_work(self: Arc<Self>, thread: &Thread, writer: &mut UserSlicePtrWriter) -> Result<bool> {
         // See `ThreadInner::push_existing_work` for the reason why `error_code` is up to date even
         // though we use relaxed semantics.
         let code = self.error_code.load(Ordering::Relaxed);

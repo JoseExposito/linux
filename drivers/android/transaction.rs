@@ -8,7 +8,7 @@ use kernel::{
     linked_list::List,
     linked_list::{GetLinks, Links},
     prelude::*,
-    sync::{Ref, SpinLock, UniqueRef},
+    sync::{Arc, SpinLock, UniqueArc},
     user_ptr::UserSlicePtrWriter,
     Either, ScopeGuard,
 };
@@ -30,9 +30,9 @@ pub(crate) struct Transaction {
     inner: SpinLock<TransactionInner>,
     // TODO: Node should be released when the buffer is released.
     node_ref: Option<NodeRef>,
-    stack_next: Option<Ref<Transaction>>,
-    pub(crate) from: Ref<Thread>,
-    to: Ref<Process>,
+    stack_next: Option<Arc<Transaction>>,
+    pub(crate) from: Arc<Thread>,
+    to: Arc<Process>,
     free_allocation: AtomicBool,
     code: u32,
     pub(crate) flags: u32,
@@ -45,17 +45,17 @@ pub(crate) struct Transaction {
 impl Transaction {
     pub(crate) fn new(
         node_ref: NodeRef,
-        stack_next: Option<Ref<Transaction>>,
-        from: &Ref<Thread>,
+        stack_next: Option<Arc<Transaction>>,
+        from: &Arc<Thread>,
         tr: &BinderTransactionData,
-    ) -> BinderResult<Ref<Self>> {
+    ) -> BinderResult<Arc<Self>> {
         let allow_fds = node_ref.node.flags & FLAT_BINDER_FLAG_ACCEPTS_FDS != 0;
         let to = node_ref.node.owner.clone();
         let mut alloc = from.copy_transaction_data(&to, tr, allow_fds)?;
         let data_address = alloc.ptr;
         let file_list = alloc.take_file_list();
         alloc.keep_alive();
-        let mut tr = Pin::from(UniqueRef::try_new(Self {
+        let mut tr = Pin::from(UniqueArc::try_new(Self {
             // SAFETY: `spinlock_init` is called below.
             inner: unsafe { SpinLock::new(TransactionInner { file_list }) },
             node_ref: Some(node_ref),
@@ -79,16 +79,16 @@ impl Transaction {
     }
 
     pub(crate) fn new_reply(
-        from: &Ref<Thread>,
-        to: Ref<Process>,
+        from: &Arc<Thread>,
+        to: Arc<Process>,
         tr: &BinderTransactionData,
         allow_fds: bool,
-    ) -> BinderResult<Ref<Self>> {
+    ) -> BinderResult<Arc<Self>> {
         let mut alloc = from.copy_transaction_data(&to, tr, allow_fds)?;
         let data_address = alloc.ptr;
         let file_list = alloc.take_file_list();
         alloc.keep_alive();
-        let mut tr = Pin::from(UniqueRef::try_new(Self {
+        let mut tr = Pin::from(UniqueArc::try_new(Self {
             // SAFETY: `spinlock_init` is called below.
             inner: unsafe { SpinLock::new(TransactionInner { file_list }) },
             node_ref: None,
@@ -112,16 +112,16 @@ impl Transaction {
     }
 
     /// Determines if the transaction is stacked on top of the given transaction.
-    pub(crate) fn is_stacked_on(&self, onext: &Option<Ref<Self>>) -> bool {
+    pub(crate) fn is_stacked_on(&self, onext: &Option<Arc<Self>>) -> bool {
         match (&self.stack_next, onext) {
             (None, None) => true,
-            (Some(stack_next), Some(next)) => Ref::ptr_eq(stack_next, next),
+            (Some(stack_next), Some(next)) => Arc::ptr_eq(stack_next, next),
             _ => false,
         }
     }
 
     /// Returns a pointer to the next transaction on the transaction stack, if there is one.
-    pub(crate) fn clone_next(&self) -> Option<Ref<Self>> {
+    pub(crate) fn clone_next(&self) -> Option<Arc<Self>> {
         let next = self.stack_next.as_ref()?;
         Some(next.clone())
     }
@@ -129,12 +129,12 @@ impl Transaction {
     /// Searches in the transaction stack for a thread that belongs to the target process. This is
     /// useful when finding a target for a new transaction: if the node belongs to a process that
     /// is already part of the transaction stack, we reuse the thread.
-    fn find_target_thread(&self) -> Option<Ref<Thread>> {
+    fn find_target_thread(&self) -> Option<Arc<Thread>> {
         let process = &self.node_ref.as_ref()?.node.owner;
 
         let mut it = &self.stack_next;
         while let Some(transaction) = it {
-            if Ref::ptr_eq(&transaction.from.process, process) {
+            if Arc::ptr_eq(&transaction.from.process, process) {
                 return Some(transaction.from.clone());
             }
             it = &transaction.stack_next;
@@ -143,7 +143,7 @@ impl Transaction {
     }
 
     /// Searches in the transaction stack for a transaction originating at the given thread.
-    pub(crate) fn find_from(&self, thread: &Thread) -> Option<Ref<Transaction>> {
+    pub(crate) fn find_from(&self, thread: &Thread) -> Option<Arc<Transaction>> {
         let mut it = &self.stack_next;
         while let Some(transaction) = it {
             if core::ptr::eq(thread, transaction.from.as_ref()) {
@@ -157,7 +157,7 @@ impl Transaction {
 
     /// Submits the transaction to a work queue. Use a thread if there is one in the transaction
     /// stack, otherwise use the destination process.
-    pub(crate) fn submit(self: Ref<Self>) -> BinderResult {
+    pub(crate) fn submit(self: Arc<Self>) -> BinderResult {
         if let Some(thread) = self.find_target_thread() {
             thread.push_work(self)
         } else {
@@ -195,7 +195,7 @@ impl Transaction {
 }
 
 impl DeliverToRead for Transaction {
-    fn do_work(self: Ref<Self>, thread: &Thread, writer: &mut UserSlicePtrWriter) -> Result<bool> {
+    fn do_work(self: Arc<Self>, thread: &Thread, writer: &mut UserSlicePtrWriter) -> Result<bool> {
         // TODO: Initialise the following fields from `tr`:
         //   - `pub sender_pid: pid_t`.
         //   - `pub sender_euid: uid_t`.
@@ -262,7 +262,7 @@ impl DeliverToRead for Transaction {
         // When `drop` is called, we don't want the allocation to be freed because it is now the
         // user's reponsibility to free it.
         //
-        // `drop` is guaranteed to see this relaxed store because `Ref` guarantess that everything
+        // `drop` is guaranteed to see this relaxed store because `Arc` guarantess that everything
         // that happens when an object is referenced happens-before the eventual `drop`.
         self.free_allocation.store(false, Ordering::Relaxed);
 
@@ -275,7 +275,7 @@ impl DeliverToRead for Transaction {
         Ok(false)
     }
 
-    fn cancel(self: Ref<Self>) {
+    fn cancel(self: Arc<Self>) {
         let reply = Either::Right(BR_DEAD_REPLY);
         self.from.deliver_reply(reply, &self);
     }

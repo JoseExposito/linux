@@ -11,7 +11,7 @@ use crate::{
     bindings,
     revocable::{Revocable, RevocableGuard},
     str::CStr,
-    sync::{LockClassKey, NeedsLockClass, RevocableMutex, RevocableMutexGuard, UniqueRef},
+    sync::{LockClassKey, NeedsLockClass, RevocableMutex, RevocableMutexGuard, UniqueArc},
     Result,
 };
 use core::{
@@ -263,8 +263,8 @@ impl<T, U, V> Data<T, U, V> {
         name: &'static CStr,
         key1: &'static LockClassKey,
         key2: &'static LockClassKey,
-    ) -> Result<Pin<UniqueRef<Self>>> {
-        let mut ret = Pin::from(UniqueRef::try_new(Self {
+    ) -> Result<Pin<UniqueArc<Self>>> {
+        let mut ret = Pin::from(UniqueArc::try_new(Self {
             // SAFETY: We call `RevocableMutex::init` below.
             registrations: unsafe { RevocableMutex::new(registrations) },
             resources: Revocable::new(resources),
