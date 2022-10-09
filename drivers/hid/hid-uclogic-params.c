@@ -1248,6 +1248,20 @@ static bool uclogic_params_ugee_v2_has_battery(struct hid_device *hdev)
 {
 	struct uclogic_drvdata *drvdata = hid_get_drvdata(hdev);
 
+	/* The XP-PEN Deco LW vendor, product and version are identical to the
+	 * Deco L. The only difference reported by their firmware is the product
+	 * name. Add a quirk to support battery reporting on the wireless
+	 * version.
+	 */
+	if (hdev->vendor == USB_VENDOR_ID_UGEE &&
+	    hdev->product == USB_DEVICE_ID_UGEE_XPPEN_TABLET_DECO_L) {
+		struct usb_device *udev = hid_to_usb_dev(hdev);
+		const char *product_name = "Deco LW";
+
+		if (strncmp(udev->product, product_name, strlen(product_name)) == 0)
+			return true;
+	}
+
 	if (drvdata->quirks & UCLOGIC_BATTERY_QUIRK)
 		return true;
 
