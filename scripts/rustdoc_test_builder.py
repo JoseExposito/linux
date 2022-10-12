@@ -13,45 +13,28 @@ TESTS_DIR = RUST_DIR / "test" / "doctests" / "kernel"
 
 # `[^\s]*` removes the prefix (e.g. `_doctest_main_`) plus any
 # leading path (for `O=` builds).
-MAIN_RE = re.compile(
-    r"^"
-    r"fn main\(\) { "
-    r"#\[allow\(non_snake_case\)\] "
-    r"fn ([^\s]*rust_kernel_([a-zA-Z0-9_]+))\(\) {"
-    r"$"
-)
+TEST_NAME_RE = re.compile(r"fn [^\s]*rust_kernel_([a-zA-Z0-9_]+)\(\)")
 
 def main():
-    found_main = False
-    test_header = ""
-    test_body = ""
-    for line in sys.stdin.readlines():
-        main_match = MAIN_RE.match(line)
-        if main_match:
-            if found_main:
-                raise Exception("More than one `main` line found.")
-            found_main = True
-            function_name = main_match.group(1)
-            test_name = f"rust_kernel_doctest_{main_match.group(2)}"
-            continue
+    content = sys.stdin.read()
+    matches = TEST_NAME_RE.findall(content)
+    if len(matches) == 0:
+        raise Exception("No test name found.")
+    if len(matches) > 1:
+        raise Exception("More than one test name found.")
 
-        if found_main:
-            test_body += line
-        else:
-            test_header += line
+    test_name = f"rust_kernel_doctest_{matches[0]}"
 
-    if not found_main:
-        raise Exception("No `main` line found.")
-
-    call_line = f"}} {function_name}() }}"
-    if not test_body.endswith(call_line):
-        raise Exception("Unexpected end of test body.")
-    test_body = test_body[:-len(call_line)]
+    # Qualify `Result` to avoid the collision with our own `Result`
+    # coming from the prelude.
+    test_body = content.replace(
+        f'rust_kernel_{matches[0]}() -> Result<(), impl core::fmt::Debug> {{',
+        f'rust_kernel_{matches[0]}() -> core::result::Result<(), impl core::fmt::Debug> {{',
+    )
 
     with open(TESTS_DIR / f"{test_name}.json", "w") as fd:
         json.dump({
             "name": test_name,
-            "header": test_header,
             "body": test_body,
         }, fd, sort_keys=True, indent=4)
 

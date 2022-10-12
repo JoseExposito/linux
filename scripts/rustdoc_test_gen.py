@@ -29,6 +29,7 @@ pub fn {test_name}(__kunit_test: *mut kernel::bindings::kunit) {{
     __KUNIT_TEST.store(__kunit_test, core::sync::atomic::Ordering::SeqCst);
 
     /// Overrides the usual [`assert!`] macro with one that calls KUnit instead.
+    #[allow(unused)]
     macro_rules! assert {{
         ($cond:expr $(,)?) => {{{{
             kernel::kunit_assert!(
@@ -39,6 +40,7 @@ pub fn {test_name}(__kunit_test: *mut kernel::bindings::kunit) {{
     }}
 
     /// Overrides the usual [`assert_eq!`] macro with one that calls KUnit instead.
+    #[allow(unused)]
     macro_rules! assert_eq {{
         ($left:expr, $right:expr $(,)?) => {{{{
             kernel::kunit_assert_eq!(
@@ -50,9 +52,13 @@ pub fn {test_name}(__kunit_test: *mut kernel::bindings::kunit) {{
     }}
 
     // Many tests need the prelude, so provide it by default.
+    #[allow(unused)]
     use kernel::prelude::*;
 
-    {test_body}
+    {{
+        {test_body}
+        main();
+    }}
 }}
 """
 RUST_TEMPLATE = """// SPDX-License-Identifier: GPL-2.0
@@ -93,8 +99,6 @@ RUST_TEMPLATE = """// SPDX-License-Identifier: GPL-2.0
 // an `AtomicPtr` to hold the context (though each test only writes once before
 // threads may be created).
 
-{rust_header}
-
 const __LOG_PREFIX: &[u8] = b"rust_kernel_doctests\\0";
 
 {rust_tests}
@@ -127,15 +131,12 @@ MODULE_LICENSE("GPL");
 """
 
 def main():
-    rust_header = set()
     rust_tests = ""
     c_test_declarations = ""
     c_test_cases = ""
     for filename in sorted(os.listdir(TESTS_DIR)):
         with open(TESTS_DIR / filename, "r") as fd:
             test = json.load(fd)
-            for line in test["header"].strip().split("\n"):
-                rust_header.add(line)
             rust_tests += RUST_TEMPLATE_TEST.format(
                 test_name = test["name"],
                 test_body = test["body"]
@@ -146,11 +147,9 @@ def main():
             c_test_cases += C_TEMPLATE_TEST_CASE.format(
                 test_name = test["name"]
             )
-    rust_header = sorted(rust_header)
 
     with open(RUST_FILE, "w") as fd:
         fd.write(RUST_TEMPLATE.format(
-            rust_header = "\n".join(rust_header).strip(),
             rust_tests = rust_tests.strip(),
         ))
 
