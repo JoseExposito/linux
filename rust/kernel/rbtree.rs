@@ -39,7 +39,6 @@ struct Node<K, V> {
 /// ```
 /// use kernel::rbtree::RBTree;
 ///
-/// # fn test() -> Result {
 /// // Create a new tree.
 /// let mut tree = RBTree::new();
 ///
@@ -110,10 +109,7 @@ struct Node<K, V> {
 ///     assert!(iter.next().is_none());
 /// }
 ///
-/// # Ok(())
-/// # }
-/// #
-/// # assert_eq!(test(), Ok(()));
+/// # Ok::<(), Error>(())
 /// ```
 ///
 /// In the example below, we first allocate a node, acquire a spinlock, then insert the node into
@@ -140,7 +136,6 @@ struct Node<K, V> {
 /// ```
 /// use kernel::rbtree::RBTree;
 ///
-/// # fn test() -> Result {
 /// // Create a new tree.
 /// let mut tree = RBTree::new();
 ///
@@ -185,10 +180,7 @@ struct Node<K, V> {
 ///     assert!(iter.next().is_none());
 /// }
 ///
-/// # Ok(())
-/// # }
-/// #
-/// # assert_eq!(test(), Ok(()));
+/// # Ok::<(), Error>(())
 /// ```
 pub struct RBTree<K, V> {
     root: bindings::rb_root,
