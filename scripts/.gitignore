@@ -6,6 +6,7 @@
 /kallsyms
 /module.lds
 /recordmcount
+/rustdoc_test_builder
 /sign-file
 /sorttable
 /unifdef

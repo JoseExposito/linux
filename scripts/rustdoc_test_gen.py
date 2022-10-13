@@ -3,7 +3,6 @@
 """rustdoc_test_gen - Generates KUnit tests from saved `rustdoc`-generated tests.
 """
 
-import json
 import os
 import pathlib
 
@@ -136,16 +135,16 @@ def main():
     c_test_cases = ""
     for filename in sorted(os.listdir(TESTS_DIR)):
         with open(TESTS_DIR / filename, "r") as fd:
-            test = json.load(fd)
+            (test_name, test_body) = fd.read().split('\n', 1)
             rust_tests += RUST_TEMPLATE_TEST.format(
-                test_name = test["name"],
-                test_body = test["body"]
+                test_name = test_name,
+                test_body = test_body
             )
             c_test_declarations += C_TEMPLATE_TEST_DECLARATION.format(
-                test_name = test["name"]
+                test_name = test_name
             )
             c_test_cases += C_TEMPLATE_TEST_CASE.format(
-                test_name = test["name"]
+                test_name = test_name
             )
 
     with open(RUST_FILE, "w") as fd:
