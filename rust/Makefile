@@ -169,11 +169,12 @@ quiet_cmd_rustdoc_test_kernel = RUSTDOC TK $<
 		--no-run --crate-name kernel -Zunstable-options \
 		--test-builder $(objtree)/scripts/rustdoc_test_builder \
 		$< $(rustdoc_test_kernel_quiet); \
-	$(srctree)/scripts/rustdoc_test_gen.py
+	$(objtree)/scripts/rustdoc_test_gen
 
 %/doctests_kernel_generated.rs %/doctests_kernel_generated_kunit.c: \
     $(src)/kernel/lib.rs $(obj)/kernel.o \
-    $(objtree)/scripts/rustdoc_test_builder FORCE
+    $(objtree)/scripts/rustdoc_test_builder \
+    $(objtree)/scripts/rustdoc_test_gen FORCE
 	$(call if_changed,rustdoc_test_kernel)
 
 # We cannot use `-Zpanic-abort-tests` because some tests are dynamic,

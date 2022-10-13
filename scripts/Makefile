@@ -12,10 +12,12 @@ hostprogs-always-$(CONFIG_MODULE_SIG_FORMAT)		+= sign-file
 hostprogs-always-$(CONFIG_SYSTEM_EXTRA_CERTIFICATE)	+= insert-sys-cert
 hostprogs-always-$(CONFIG_RUST)				+= \
 	generate_rust_target \
-	rustdoc_test_builder
+	rustdoc_test_builder \
+	rustdoc_test_gen
 
 generate_rust_target-rust := y
 rustdoc_test_builder-rust := y
+rustdoc_test_gen-rust := y
 
 HOSTCFLAGS_sorttable.o = -I$(srctree)/tools/include
 HOSTLDLIBS_sorttable = -lpthread
