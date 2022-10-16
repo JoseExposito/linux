@@ -412,6 +412,42 @@ static int uclogic_raw_event_frame(
 	return 0;
 }
 
+static int uclogic_probe_interface(struct hid_device *hdev, u8 *magic_arr,
+				   int magic_size, int endpoint)
+{
+	struct usb_device *udev;
+	unsigned int pipe = 0;
+	int sent;
+	u8 *buf = NULL;
+	int rc = 0;
+
+	if (!hdev || !magic_arr) {
+		rc = -EINVAL;
+		goto cleanup;
+	}
+
+	buf = kmemdup(magic_arr, magic_size, GFP_KERNEL);
+	if (!buf) {
+		rc = -ENOMEM;
+		goto cleanup;
+	}
+
+	udev = hid_to_usb_dev(hdev);
+	pipe = usb_sndintpipe(udev, endpoint);
+
+	rc = usb_interrupt_msg(udev, pipe, buf, magic_size, &sent, 1000);
+	if (rc || sent != magic_size) {
+		hid_err(hdev, "Interface probing failed: %d\n", rc);
+		rc = -1;
+		goto cleanup;
+	}
+
+	rc = 0;
+cleanup:
+	kfree(buf);
+	return rc;
+}
+
 static int uclogic_raw_event(struct hid_device *hdev,
 				struct hid_report *report,
 				u8 *data, int size)
@@ -426,6 +462,20 @@ static int uclogic_raw_event(struct hid_device *hdev,
 	/* Do not handle anything but input reports */
 	if (report->type != HID_INPUT_REPORT)
 		return 0;
+
+
+// for (int n=0; n < size; n++) printk(KERN_ERR "0x%x\n", data[n]);
+__u8 reconnect_event[] = { 0x02, 0xF8, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+if (size == sizeof(reconnect_event) && memcmp(data, reconnect_event, size) == 0) {
+	printk(KERN_ERR "@@@@@@@@@@@@@@@@ RECONNECTION!!!\n");
+	// __u8 magic_arr[] = {
+	// 		0x02, 0xb0, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	// 	};
+	// int rc = uclogic_probe_interface(hdev, magic_arr, sizeof(magic_arr), 0x03);
+	// printk(KERN_ERR "@@@@@@@@@@@@@@@@ RECONNECTION rc = %d", rc);
+}
+
+
 
 	if (uclogic_filter_event(params, data, size))
 		return 0;
