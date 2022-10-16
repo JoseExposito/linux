@@ -119,13 +119,9 @@ macro_rules! init_work_item_adapter {
 ///
 /// ```
 /// # use kernel::{spawn_work_item, workqueue};
-///
-/// # fn example() -> Result {
 /// spawn_work_item!(workqueue::system(), || pr_info!("Hello from a work item\n"))?;
-/// #     Ok(())
-/// # }
 ///
-/// # example().unwrap()
+/// # Ok::<(), Error>(())
 /// ```
 ///
 /// The following example is used to create a work item and enqueue it several times. We note that
@@ -152,7 +148,6 @@ macro_rules! init_work_item_adapter {
 ///     }
 /// });
 ///
-/// # fn example() -> Result {
 /// let e = UniqueArc::try_new(Example {
 ///     count: AtomicU32::new(0),
 ///     // SAFETY: `work` is initialised below.
@@ -163,10 +158,8 @@ macro_rules! init_work_item_adapter {
 ///
 /// // Queue the first time.
 /// workqueue::system().enqueue(e.into());
-/// #     Ok(())
-/// # }
 ///
-/// # example().unwrap()
+/// # Ok::<(), Error>(())
 /// ```
 ///
 /// The following example has two different work items in the same struct, which allows it to be
@@ -187,7 +180,6 @@ macro_rules! init_work_item_adapter {
 /// struct SecondAdapter;
 /// kernel::impl_work_adapter!(SecondAdapter, Example, work2, |_| pr_info!("Second work\n"));
 ///
-/// # fn example() -> Result {
 /// let e = UniqueArc::try_new(Example {
 ///     // SAFETY: `work1` is initialised below.
 ///     work1: unsafe { Work::new() },
@@ -203,10 +195,8 @@ macro_rules! init_work_item_adapter {
 /// // Enqueue the two different work items.
 /// workqueue::system().enqueue(e.clone());
 /// workqueue::system().enqueue_adapter::<SecondAdapter>(e);
-/// #     Ok(())
-/// # }
 ///
-/// # example().unwrap()
+/// # Ok::<(), Error>(())
 /// ```
 #[repr(transparent)]
 pub struct Queue(Opaque<bindings::workqueue_struct>);

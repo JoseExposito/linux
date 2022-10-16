@@ -177,19 +177,16 @@ struct ExecutorInner {
 /// use kernel::spawn_task;
 /// use kernel::workqueue;
 ///
-/// fn example_shared_workqueue() -> Result {
-///     let mut handle = Executor::try_new(workqueue::system())?;
-///     spawn_task!(handle.executor(), async {
-///         pr_info!("First workqueue task\n");
-///     })?;
-///     spawn_task!(handle.executor(), async {
-///         pr_info!("Second workqueue task\n");
-///     })?;
-///     handle.detach();
-///     Ok(())
-/// }
+/// let mut handle = Executor::try_new(workqueue::system())?;
+/// spawn_task!(handle.executor(), async {
+///     pr_info!("First workqueue task\n");
+/// })?;
+/// spawn_task!(handle.executor(), async {
+///     pr_info!("Second workqueue task\n");
+/// })?;
+/// handle.detach();
 ///
-/// # example_shared_workqueue().unwrap();
+/// # Ok::<(), Error>(())
 /// ```
 pub struct Executor {
     queue: Either<BoxedQueue, &'static Queue>,

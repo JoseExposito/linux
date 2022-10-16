@@ -27,6 +27,9 @@ endif
 
 obj-$(CONFIG_RUST) += exports.o
 
+always-$(CONFIG_RUST_KERNEL_KUNIT_TEST) += doctests_kernel_generated.rs
+always-$(CONFIG_RUST_KERNEL_KUNIT_TEST) += doctests_kernel_generated_kunit.c
+
 obj-$(CONFIG_RUST_KERNEL_KUNIT_TEST) += doctests_kernel_generated.o
 obj-$(CONFIG_RUST_KERNEL_KUNIT_TEST) += doctests_kernel_generated_kunit.o
 
@@ -164,11 +167,14 @@ quiet_cmd_rustdoc_test_kernel = RUSTDOC TK $<
 		--extern build_error --extern macros \
 		--extern bindings \
 		--no-run --crate-name kernel -Zunstable-options \
-		--test-builder $(srctree)/scripts/rustdoc_test_builder.py \
+		--test-builder $(objtree)/scripts/rustdoc_test_builder \
 		$< $(rustdoc_test_kernel_quiet); \
-	$(srctree)/scripts/rustdoc_test_gen.py
+	$(objtree)/scripts/rustdoc_test_gen
 
-%/doctests_kernel_generated.rs %/doctests_kernel_generated_kunit.c: $(src)/kernel/lib.rs $(obj)/kernel.o FORCE
+%/doctests_kernel_generated.rs %/doctests_kernel_generated_kunit.c: \
+    $(src)/kernel/lib.rs $(obj)/kernel.o \
+    $(objtree)/scripts/rustdoc_test_builder \
+    $(objtree)/scripts/rustdoc_test_gen FORCE
 	$(call if_changed,rustdoc_test_kernel)
 
 # We cannot use `-Zpanic-abort-tests` because some tests are dynamic,

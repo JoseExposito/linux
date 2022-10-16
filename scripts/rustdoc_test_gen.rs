@@ -1,22 +1,37 @@
-#!/usr/bin/env python3
-# SPDX-License-Identifier: GPL-2.0
-"""rustdoc_test_gen - Generates KUnit tests from saved `rustdoc`-generated tests.
-"""
+// SPDX-License-Identifier: GPL-2.0
 
-import json
-import os
-import pathlib
+//! Generates KUnit tests from saved `rustdoc`-generated tests.
 
-RUST_DIR = pathlib.Path("rust")
-TESTS_DIR = RUST_DIR / "test" / "doctests" / "kernel"
+use std::io::{BufWriter, Read, Write};
+use std::{fs, fs::File};
 
-RUST_FILE = RUST_DIR / "doctests_kernel_generated.rs"
-C_FILE = RUST_DIR / "doctests_kernel_generated_kunit.c"
+fn main() {
+    let mut dirs = fs::read_dir("rust/test/doctests/kernel")
+        .unwrap()
+        .map(|p| p.unwrap().path())
+        .collect::<Vec<_>>();
+    dirs.sort();
 
-RUST_TEMPLATE_TEST = """
-/// Generated `{test_name}` KUnit test case from a Rust documentation test.
+    let mut rust_tests = String::new();
+    let mut c_test_declarations = String::new();
+    let mut c_test_cases = String::new();
+    let mut content = String::new();
+    for path in dirs {
+        content.clear();
+
+        File::open(path)
+            .unwrap()
+            .read_to_string(&mut content)
+            .unwrap();
+
+        let (name, body) = content.split_once("\n").unwrap();
+
+        use std::fmt::Write;
+        write!(
+            rust_tests,
+            r#"/// Generated `{name}` KUnit test case from a Rust documentation test.
 #[no_mangle]
-pub fn {test_name}(__kunit_test: *mut kernel::bindings::kunit) {{
+pub fn {name}(__kunit_test: *mut kernel::bindings::kunit) {{
     /// Provides mutual exclusion (see `# Implementation` notes).
     static __KUNIT_TEST_MUTEX: kernel::sync::smutex::Mutex<()> =
         kernel::sync::smutex::Mutex::new(());
@@ -29,6 +44,7 @@ pub fn {test_name}(__kunit_test: *mut kernel::bindings::kunit) {{
     __KUNIT_TEST.store(__kunit_test, core::sync::atomic::Ordering::SeqCst);
 
     /// Overrides the usual [`assert!`] macro with one that calls KUnit instead.
+    #[allow(unused)]
     macro_rules! assert {{
         ($cond:expr $(,)?) => {{{{
             kernel::kunit_assert!(
@@ -39,6 +55,7 @@ pub fn {test_name}(__kunit_test: *mut kernel::bindings::kunit) {{
     }}
 
     /// Overrides the usual [`assert_eq!`] macro with one that calls KUnit instead.
+    #[allow(unused)]
     macro_rules! assert_eq {{
         ($left:expr, $right:expr $(,)?) => {{{{
             kernel::kunit_assert_eq!(
@@ -50,12 +67,30 @@ pub fn {test_name}(__kunit_test: *mut kernel::bindings::kunit) {{
     }}
 
     // Many tests need the prelude, so provide it by default.
+    #[allow(unused)]
     use kernel::prelude::*;
 
-    {test_body}
+    {{
+        {body}
+        main();
+    }}
 }}
-"""
-RUST_TEMPLATE = """// SPDX-License-Identifier: GPL-2.0
+
+"#
+        )
+        .unwrap();
+
+        write!(c_test_declarations, "void {name}(struct kunit *);\n").unwrap();
+        write!(c_test_cases, "    KUNIT_CASE({name}),\n").unwrap();
+    }
+
+    let rust_tests = rust_tests.trim();
+    let c_test_declarations = c_test_declarations.trim();
+    let c_test_cases = c_test_cases.trim();
+
+    write!(
+        BufWriter::new(File::create("rust/doctests_kernel_generated.rs").unwrap()),
+        r#"// SPDX-License-Identifier: GPL-2.0
 
 //! `kernel` crate documentation tests.
 
@@ -93,16 +128,16 @@ RUST_TEMPLATE = """// SPDX-License-Identifier: GPL-2.0
 // an `AtomicPtr` to hold the context (though each test only writes once before
 // threads may be created).
 
-{rust_header}
-
-const __LOG_PREFIX: &[u8] = b"rust_kernel_doctests\\0";
+const __LOG_PREFIX: &[u8] = b"rust_kernel_doctests\0";
 
 {rust_tests}
-"""
+"#
+    )
+    .unwrap();
 
-C_TEMPLATE_TEST_DECLARATION = "void {test_name}(struct kunit *);\n"
-C_TEMPLATE_TEST_CASE = "    KUNIT_CASE({test_name}),\n"
-C_TEMPLATE = """// SPDX-License-Identifier: GPL-2.0
+    write!(
+        BufWriter::new(File::create("rust/doctests_kernel_generated_kunit.c").unwrap()),
+        r#"// SPDX-License-Identifier: GPL-2.0
 /*
  * `kernel` crate documentation tests.
  */
@@ -124,41 +159,7 @@ static struct kunit_suite test_suite = {{
 kunit_test_suite(test_suite);
 
 MODULE_LICENSE("GPL");
-"""
-
-def main():
-    rust_header = set()
-    rust_tests = ""
-    c_test_declarations = ""
-    c_test_cases = ""
-    for filename in sorted(os.listdir(TESTS_DIR)):
-        with open(TESTS_DIR / filename, "r") as fd:
-            test = json.load(fd)
-            for line in test["header"].strip().split("\n"):
-                rust_header.add(line)
-            rust_tests += RUST_TEMPLATE_TEST.format(
-                test_name = test["name"],
-                test_body = test["body"]
-            )
-            c_test_declarations += C_TEMPLATE_TEST_DECLARATION.format(
-                test_name = test["name"]
-            )
-            c_test_cases += C_TEMPLATE_TEST_CASE.format(
-                test_name = test["name"]
-            )
-    rust_header = sorted(rust_header)
-
-    with open(RUST_FILE, "w") as fd:
-        fd.write(RUST_TEMPLATE.format(
-            rust_header = "\n".join(rust_header).strip(),
-            rust_tests = rust_tests.strip(),
-        ))
-
-    with open(C_FILE, "w") as fd:
-        fd.write(C_TEMPLATE.format(
-            c_test_declarations=c_test_declarations.strip(),
-            c_test_cases=c_test_cases.strip(),
-        ))
-
-if __name__ == "__main__":
-    main()
+"#
+    )
+    .unwrap();
+}
