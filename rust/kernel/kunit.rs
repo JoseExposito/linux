@@ -38,9 +38,7 @@ macro_rules! kunit_assert {
             });
             static CONDITION: &'static $crate::str::CStr = $crate::c_str!(stringify!($cond));
             static ASSERTION: UnaryAssert = UnaryAssert($crate::bindings::kunit_unary_assert {
-                assert: $crate::bindings::kunit_assert {
-                    format: Some($crate::bindings::kunit_unary_assert_format),
-                },
+                assert: $crate::bindings::kunit_assert {},
                 condition: CONDITION.as_char_ptr(),
                 expected_true: true,
             });
@@ -67,6 +65,7 @@ macro_rules! kunit_assert {
                     core::ptr::addr_of!(LOCATION.0),
                     $crate::bindings::kunit_assert_type_KUNIT_ASSERTION,
                     core::ptr::addr_of!(ASSERTION.0.assert),
+                    Some($crate::bindings::kunit_unary_assert_format),
                     core::ptr::null(),
                 );
             }
