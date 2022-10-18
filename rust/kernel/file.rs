@@ -626,6 +626,7 @@ impl<A: OpenAdapter<T::OpenData>, T: Operations> OperationsVtable<A, T> {
             None
         },
         uring_cmd: None,
+        uring_cmd_iopoll: None,
         write_iter: if T::HAS_WRITE {
             Some(Self::write_iter_callback)
         } else {
