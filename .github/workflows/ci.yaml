@@ -270,10 +270,10 @@ jobs:
           grep '] ok 1 - rust_kernel_doctests$' qemu-stdout.log
 
       - run: |
-          grep '] rust_minimal: Rust minimal sample (init)$' qemu-stdout.log
-          grep '] rust_minimal: Am I built-in? false$'       qemu-stdout.log
-          grep '] rust_minimal: My message is on the heap!$' qemu-stdout.log
-          grep '] rust_minimal: Rust minimal sample (exit)$' qemu-stdout.log
+          grep '] rust_minimal: Rust minimal sample (init)$'     qemu-stdout.log
+          grep '] rust_minimal: Am I built-in? false$'           qemu-stdout.log
+          grep '] rust_minimal: My numbers are \[72, 108, 200]$' qemu-stdout.log
+          grep '] rust_minimal: Rust minimal sample (exit)$'     qemu-stdout.log
 
       - run: |
           grep '] rust_print: Rust printing macros sample (init)$'       qemu-stdout.log

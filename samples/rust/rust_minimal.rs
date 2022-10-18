@@ -13,7 +13,7 @@ module! {
 }
 
 struct RustMinimal {
-    message: String,
+    numbers: Vec<i32>,
 }
 
 impl kernel::Module for RustMinimal {
@@ -21,15 +21,18 @@ impl kernel::Module for RustMinimal {
         pr_info!("Rust minimal sample (init)\n");
         pr_info!("Am I built-in? {}\n", !cfg!(MODULE));
 
-        Ok(RustMinimal {
-            message: "on the heap!".try_to_owned()?,
-        })
+        let mut numbers = Vec::new();
+        numbers.try_push(72)?;
+        numbers.try_push(108)?;
+        numbers.try_push(200)?;
+
+        Ok(RustMinimal { numbers })
     }
 }
 
 impl Drop for RustMinimal {
     fn drop(&mut self) {
-        pr_info!("My message is {}\n", self.message);
+        pr_info!("My numbers are {:?}\n", self.numbers);
         pr_info!("Rust minimal sample (exit)\n");
     }
 }
