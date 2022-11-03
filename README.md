@@ -20,11 +20,11 @@ $ make -j24 ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- visionfive_defconfig
 Compile and install in the SSD:
 
 ```
-make -j24 ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu-
-mkdir mnt
-sudo mount /dev/sda3 mnt
-sudo cp arch/riscv/boot/Image mnt
-sudo cp arch/riscv/boot/dts/starfive/jh7100-starfive-visionfive-v1.dtb mnt
-sudo umount mnt
+make -j24 ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- && \
+mkdir mnt && \
+sudo mount /dev/sda3 mnt && \
+sudo cp arch/riscv/boot/Image mnt && \
+sudo cp arch/riscv/boot/dts/starfive/jh7100-starfive-visionfive-v1.dtb mnt && \
+sudo umount mnt && \
 rm -fr mnt
 ```
