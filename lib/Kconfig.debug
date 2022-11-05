@@ -2812,8 +2812,6 @@ choice
 	  You can choose to abort compilation or ignore them during build and let the
 	  check be carried to runtime.
 
-	  If optimizations are turned off, you cannot select "Deny".
-
 	  If unsure, say "Deny".
 
 config RUST_BUILD_ASSERT_ALLOW
