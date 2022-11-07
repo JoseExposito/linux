@@ -2820,12 +2820,6 @@ config RUST_BUILD_ASSERT_ALLOW
 	  Unoptimized calls to `build_error!` will be converted to `panic!`
 	  and checked at runtime.
 
-config RUST_BUILD_ASSERT_WARN
-	bool "Warn"
-	help
-	  Unoptimized calls to `build_error!` will be converted to `panic!`
-	  and checked at runtime, but warnings will be generated when building.
-
 config RUST_BUILD_ASSERT_DENY
 	bool "Deny"
 	help
