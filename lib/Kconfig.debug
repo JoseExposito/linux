@@ -2800,32 +2800,21 @@ config RUST_OVERFLOW_CHECKS
 
 	  If unsure, say Y.
 
-choice
-	prompt "Build-time assertions"
-	default RUST_BUILD_ASSERT_DENY
+config RUST_BUILD_ASSERT_ALLOW
+	bool "Allow unoptimized build-time assertions"
 	depends on RUST
 	help
 	  Controls how are `build_error!` and `build_assert!` handled during build.
 
 	  If calls to them exist in the binary, it may indicate a violated invariant
 	  or that the optimizer failed to verify the invariant during compilation.
-	  You can choose to abort compilation or ignore them during build and let the
-	  check be carried to runtime.
 
-	  If unsure, say "Deny".
+	  This should not happen, thus by default the build is aborted. However,
+	  as an escape hatch, you can choose Y here to ignore them during build
+	  and let the check be carried at runtime (with `panic!` being called if
+	  the check fails).
 
-config RUST_BUILD_ASSERT_ALLOW
-	bool "Allow"
-	help
-	  Unoptimized calls to `build_error!` will be converted to `panic!`
-	  and checked at runtime.
-
-config RUST_BUILD_ASSERT_DENY
-	bool "Deny"
-	help
-	  Unoptimized calls to `build_error!` will abort compilation.
-
-endchoice
+	  If unsure, say N.
 
 config RUST_KERNEL_KUNIT_TEST
 	bool "KUnit test for the `kernel` crate" if !KUNIT_ALL_TESTS
