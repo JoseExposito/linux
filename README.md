@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-hid-kunit-tests-prefix](https://github.com/JoseExposito/linux/tree/patch-hid-kunit-tests-prefix) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | UCLogic: Standardize test name prefix | ⏳ |
 | [patch-uclogic-fix-big-endian-frame-template](https://github.com/JoseExposito/linux/tree/patch-uclogic-fix-big-endian-frame-template) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | UCLogic: Fix button template on big endian architectures | 🔀 |
 | [patch-vc4_hdmi_reset_link-null-dereference](https://github.com/JoseExposito/linux/tree/patch-vc4_hdmi_reset_link-null-dereference) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | DRM: VC4: Fix NULL pointer dereference | 🔀 |
 | [patch-battery-charge-status](https://github.com/JoseExposito/linux/tree/patch-battery-charge-status) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | HID core: Report battery charging/discharging status | ⏳ |
