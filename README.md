@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-fix-hid-sony-warning](https://github.com/JoseExposito/linux/tree/patch-fix-hid-sony-warning) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | HID: Fix Sony compiler warning | ⏳ |
 | [patch-hp-envy-x360-ignore-battery](https://github.com/JoseExposito/linux/tree/patch-hp-envy-x360-ignore-battery) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | [libinput #823:](https://gitlab.freedesktop.org/libinput/libinput/-/issues/823) Ignore HP Envy x360 eu0009nv stylus battery | ⏳ |
 | [patch-uclogic-force-hidinput](https://github.com/JoseExposito/linux/tree/patch-uclogic-force-hidinput) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | UCLogic: Force input quirk for digitizers | 🔀 |
 | [patch-hid-kunit-tests-prefix](https://github.com/JoseExposito/linux/tree/patch-hid-kunit-tests-prefix) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | UCLogic: Standardize test name prefix | 🔀 |
