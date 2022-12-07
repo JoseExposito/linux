@@ -102,6 +102,7 @@ Upstream code is saved in `upstream-*` branches to easily rebase and generate pa
 | [upstream-rpi-5.15.y](https://github.com/JoseExposito/linux/tree/upstream-rpi-5.15.y) | git remote add rpi https://github.com/raspberrypi/linux.git | git pull --rebase rpi rpi-5.15.y |
 | [upstream-rpi-6.1.y](https://github.com/JoseExposito/linux/tree/upstream-rpi-6.1.y) | git remote add rpi https://github.com/raspberrypi/linux.git | git pull --rebase rpi rpi-6.1.y |
 | [upstream-starfive-visionfive](https://github.com/JoseExposito/linux/tree/upstream-starfive-visionfive) | git remote add starfive https://github.com/starfive-tech/linux.git | git pull --rebase starfive visionfive |
+| [upstream-rust](https://github.com/JoseExposito/linux/tree/upstream-rust) | git remote add rust https://github.com/Rust-for-Linux/linux.git | git pull --rebase rust rust |
 
 Depending on the subsystem, the maintainer could have its own tree. For example, to modify the Magic
 Mouse/Trackpad driver:
