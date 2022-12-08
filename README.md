@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-rust-kunitconfig](https://github.com/JoseExposito/linux/tree/patch-rust-kunitconfig) | [upstream-rust](https://github.com/JoseExposito/linux/tree/upstream-rust) | Rust: Add rust/.kunitconfig and unit test docs | ⏳ |
 | [patch-fix-asus-exportbook-p2451fa-trackpoint](https://github.com/JoseExposito/linux/tree/patch-fix-asus-exportbook-p2451fa-trackpoint) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | [libinput #825:](https://gitlab.freedesktop.org/libinput/libinput/-/issues/825) Fix Asus ExpertBook P2 P2451FA trackpoint | ⏳ |
 | [patch-fix-hid-sony-warning](https://github.com/JoseExposito/linux/tree/patch-fix-hid-sony-warning) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | HID: Fix Sony compiler warning | ⏳ |
 | [patch-hp-envy-x360-ignore-battery](https://github.com/JoseExposito/linux/tree/patch-hp-envy-x360-ignore-battery) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | [libinput #823:](https://gitlab.freedesktop.org/libinput/libinput/-/issues/823) Ignore HP Envy x360 eu0009nv stylus battery | ⏳ |
