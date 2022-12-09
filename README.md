@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-rust-linked-list-examples](https://github.com/JoseExposito/linux/tree/patch-rust-linked-list-examples) | [upstream-rust](https://github.com/JoseExposito/linux/tree/upstream-rust) | Rust: Improve linked_list docs and tests | ⏳ |
 | [patch-rust-kunitconfig](https://github.com/JoseExposito/linux/tree/patch-rust-kunitconfig) | [upstream-rust](https://github.com/JoseExposito/linux/tree/upstream-rust) | Rust: Add rust/.kunitconfig and unit test docs | ⏳ |
 | [patch-fix-asus-exportbook-p2451fa-trackpoint](https://github.com/JoseExposito/linux/tree/patch-fix-asus-exportbook-p2451fa-trackpoint) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | [libinput #825:](https://gitlab.freedesktop.org/libinput/libinput/-/issues/825) Fix Asus ExpertBook P2 P2451FA trackpoint | ⏳ |
 | [patch-fix-hid-sony-warning](https://github.com/JoseExposito/linux/tree/patch-fix-hid-sony-warning) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | HID: Fix Sony compiler warning | ⏳ |
