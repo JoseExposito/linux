@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-xppen-deco-pro-sw](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-pro-sw) | [upstream-hid-for-next](https://github.com/JoseExposito/linux/tree/upstream-hid-for-next) | XP-PEN Deco Pro SW drawing tablet support | 🔨 |
 | [patch-rust-linked-list-examples](https://github.com/JoseExposito/linux/tree/patch-rust-linked-list-examples) | [upstream-rust](https://github.com/JoseExposito/linux/tree/upstream-rust) | Rust: Improve linked_list docs and tests | ⏳ |
 | [patch-rust-kunitconfig](https://github.com/JoseExposito/linux/tree/patch-rust-kunitconfig) | [upstream-rust](https://github.com/JoseExposito/linux/tree/upstream-rust) | Rust: Add rust/.kunitconfig and unit test docs | ⏳ |
 | [patch-fix-asus-exportbook-p2451fa-trackpoint](https://github.com/JoseExposito/linux/tree/patch-fix-asus-exportbook-p2451fa-trackpoint) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | [libinput #825:](https://gitlab.freedesktop.org/libinput/libinput/-/issues/825) Fix Asus ExpertBook P2 P2451FA trackpoint | ⏳ |
@@ -25,7 +26,6 @@ Welcome to my fork of the Linux kernel.
 | [patch-magicmouse-double-report-fix](https://github.com/JoseExposito/linux/tree/patch-magicmouse-double-report-fix) | [upstream-hid-for-next](https://github.com/JoseExposito/linux/tree/upstream-hid-for-next) | [libinput #811:](https://gitlab.freedesktop.org/libinput/libinput/-/issues/811) Fix Magic Trackpad sending multiple middle clicks | 🔀 |
 | [patch-starfive-drm-more-cleanup](https://github.com/JoseExposito/linux/tree/patch-starfive-drm-more-cleanup) | [upstream-starfive-visionfive](https://github.com/JoseExposito/linux/tree/upstream-starfive-visionfive) | StarFive VisionFive DRM driver more clean ups  | 🔀 |
 | [patch-starfive-drm-cleanup](https://github.com/JoseExposito/linux/tree/patch-starfive-drm-cleanup) | [upstream-starfive-visionfive](https://github.com/JoseExposito/linux/tree/upstream-starfive-visionfive) | StarFive VisionFive DRM driver clean ups  | 🔀 |
-| [patch-xppen-deco-pro-sw](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-pro-sw) | [patch-xppen-deco-pro-lw](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-pro-lw) | XP-PEN Deco Pro SW drawing tablet support | 🔨 |
 | [patch-xppen-deco-pro-lw](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-pro-lw) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | XP-PEN Deco Pro LW drawing tablet support | 🔀 |
 | [patch-kunit-drm-format-helper](https://github.com/JoseExposito/linux/tree/patch-kunit-drm-format-helper) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | KUnit tests for RGB888, XRGB2101010 and GRAY8 | 🔀 |
 | [patch-uclogic-digitalizer-suffix](https://github.com/JoseExposito/linux/tree/patch-uclogic-digitalizer-suffix) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | UCLogic: Fix digitalizer suffix | 🔀 |
