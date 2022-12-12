@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-xppen-deco-pro-mw](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-pro-mw) | [patch-xppen-deco-pro-sw](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-pro-sw) | XP-PEN Deco Pro MW drawing tablet support | 🔨 |
 | [patch-xppen-deco-pro-sw](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-pro-sw) | [upstream-hid-for-next](https://github.com/JoseExposito/linux/tree/upstream-hid-for-next) | XP-PEN Deco Pro SW drawing tablet support | 🔨 |
 | [patch-rust-linked-list-examples](https://github.com/JoseExposito/linux/tree/patch-rust-linked-list-examples) | [upstream-rust](https://github.com/JoseExposito/linux/tree/upstream-rust) | Rust: Improve linked_list docs and tests | ⏳ |
 | [patch-rust-kunitconfig](https://github.com/JoseExposito/linux/tree/patch-rust-kunitconfig) | [upstream-rust](https://github.com/JoseExposito/linux/tree/upstream-rust) | Rust: Add rust/.kunitconfig and unit test docs | ⏳ |
