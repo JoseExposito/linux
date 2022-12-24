@@ -80,14 +80,11 @@
 //! [`String`]: crate::string::String
 //! [`CStr`]: core::ffi::CStr
 
-#![unstable(feature = "alloc_ffi", issue = "94079")]
+#![stable(feature = "alloc_ffi", since = "1.64.0")]
 
-#[cfg(bootstrap)]
-#[unstable(feature = "cstr_internals", issue = "none")]
-pub use self::c_str::CStrExt;
-#[unstable(feature = "alloc_c_string", issue = "94079")]
+#[stable(feature = "alloc_c_string", since = "1.64.0")]
 pub use self::c_str::FromVecWithNulError;
-#[unstable(feature = "alloc_c_string", issue = "94079")]
+#[stable(feature = "alloc_c_string", since = "1.64.0")]
 pub use self::c_str::{CString, IntoStringError, NulError};
 
 mod c_str;

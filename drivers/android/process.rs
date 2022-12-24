@@ -149,6 +149,7 @@ impl ProcessInner {
         thread: Option<&Thread>,
     ) -> NodeRef {
         self.update_node_refcount(&node, true, strong, false, thread);
+        #[allow(clippy::bool_to_int_with_if)]
         let strong_count = if strong { 1 } else { 0 };
         NodeRef::new(node, strong_count, 1 - strong_count)
     }
@@ -430,6 +431,7 @@ impl Process {
         }
 
         // Find id.
+        #[allow(clippy::bool_to_int_with_if)]
         let mut target = if is_mananger { 0 } else { 1 };
         for handle in refs.by_handle.keys() {
             if *handle > target {

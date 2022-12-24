@@ -120,6 +120,7 @@ impl<T: Chip> Registration<T> {
     ///
     /// Users are encouraged to use the [`gpio_chip_register`] macro because it automatically
     /// defines the lock classes and calls the registration function.
+    #[allow(rustdoc::broken_intra_doc_links)]
     pub fn register(
         self: Pin<&mut Self>,
         gpio_count: u16,
@@ -342,6 +343,7 @@ mod irqchip {
         ///
         /// Users are encouraged to use the [`gpio_irq_chip_register`] macro because it
         /// automatically defines the lock classes and calls the registration function.
+        #[allow(rustdoc::broken_intra_doc_links)]
         pub fn register<U: irq::Chip<Data = T::Data>>(
             mut self: Pin<&mut Self>,
             gpio_count: u16,

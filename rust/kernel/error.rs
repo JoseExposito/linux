@@ -548,6 +548,7 @@ pub(crate) fn from_kernel_err_ptr<T>(ptr: *mut T) -> Result<*mut T> {
         //
         // SAFETY: `IS_ERR()` ensures `err` is a
         // negative value greater-or-equal to `-bindings::MAX_ERRNO`.
+        #[cfg_attr(CONFIG_ARM, allow(clippy::unnecessary_cast))]
         return Err(unsafe { Error::from_kernel_errno_unchecked(err as i32) });
     }
     Ok(ptr)
