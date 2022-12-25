@@ -275,7 +275,8 @@ impl<const N: usize, S: 'static> SpecArray<N, S> {
     /// The type of the elements in `handlers` must be compatible with the types in specs. For
     /// example, if `specs` declares that the i-th element is a bool then the i-th handler
     /// should be for a bool.
-    #[allow(rustdoc::broken_intra_doc_links)]
+    ///
+    /// [`define_fs_params`]: crate::define_fs_params
     pub const unsafe fn new(specs: [Spec; N], handlers: [&'static dyn Handler<S>; N]) -> Self {
         let mut array = Self {
             specs: [ZERO_SPEC; N],
@@ -314,7 +315,8 @@ impl<const N: usize, S: 'static> SpecArray<N, S> {
 ///
 /// Users are encouraged to use the [`define_fs_params`] macro to define the
 /// [`super::Context::PARAMS`] constant.
-#[allow(rustdoc::broken_intra_doc_links)]
+///
+/// [`define_fs_params`]: crate::define_fs_params
 pub struct SpecTable<'a, S: 'static> {
     pub(super) first: &'a bindings::fs_parameter_spec,
     pub(super) handlers: &'a [&'static dyn Handler<S>],
@@ -343,7 +345,8 @@ impl<const N: usize> ConstantArray<N> {
     ///
     /// Users are encouraged to use the [`define_fs_params`] macro to define the
     /// [`super::Context::PARAMS`] constant.
-    #[allow(rustdoc::broken_intra_doc_links)]
+    ///
+    /// [`define_fs_params`]: crate::define_fs_params
     pub const fn new(consts: [(&'static CStr, u32); N]) -> Self {
         const ZERO: bindings::constant_table = bindings::constant_table {
             name: core::ptr::null(),

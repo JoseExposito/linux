@@ -68,7 +68,8 @@ macro_rules! build_error {
 ///     assert!(n > 1); // Run-time check
 /// }
 /// ```
-#[allow(rustdoc::broken_intra_doc_links)]
+///
+/// [`static_assert!`]: crate::static_assert!
 #[macro_export]
 macro_rules! build_assert {
     ($cond:expr $(,)?) => {{
