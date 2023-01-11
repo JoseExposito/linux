@@ -381,7 +381,10 @@ impl Work {
             // SAFETY: When the work was queued, a call to `into_raw` was made. We just canceled
             // the work without it having the chance to run, so we need to explicitly destroy this
             // reference (which would have happened in `work_func` if it did run).
-            unsafe { Arc::from_raw(&*self) };
+            #[allow(clippy::borrow_deref_ref)]
+            unsafe {
+                Arc::from_raw(&*self)
+            };
         }
     }
 

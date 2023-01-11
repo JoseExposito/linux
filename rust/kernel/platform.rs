@@ -86,7 +86,10 @@ impl<T: Driver> Adapter<T> {
         };
 
         // SAFETY: The id table has a static lifetime, so `ptr` is guaranteed to be valid for read.
-        unsafe { (&*ptr).as_ref() }
+        #[allow(clippy::needless_borrow)]
+        unsafe {
+            (&*ptr).as_ref()
+        }
     }
 
     extern "C" fn probe_callback(pdev: *mut bindings::platform_device) -> core::ffi::c_int {

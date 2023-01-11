@@ -143,6 +143,7 @@ fn param_ops_path(param_type: &str) -> &'static str {
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn try_simple_param_val(
     param_type: &str,
 ) -> Box<dyn Fn(&mut token_stream::IntoIter) -> Option<String>> {

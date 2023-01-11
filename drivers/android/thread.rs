@@ -858,6 +858,7 @@ impl DeliverToRead for ThreadError {
         let code = self.error_code.load(Ordering::Relaxed);
 
         // Return the `ThreadError` to the thread.
+        #[allow(clippy::explicit_auto_deref)]
         (self.return_fn)(&mut *thread.inner.lock(), self);
 
         // Deliver the error code to userspace.

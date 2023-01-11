@@ -127,6 +127,7 @@ unsafe extern "C" fn probe_callback<T: Driver>(
             };
             // SAFETY: The id table has a static lifetime, so `ptr` is guaranteed to be valid for
             // read.
+            #[allow(clippy::needless_borrow)]
             unsafe { (&*ptr).as_ref() }
         };
         let data = T::probe(&mut dev, info)?;

@@ -329,7 +329,7 @@
 //! - `text` must not contain any `'{'` or `'}'` characters,
 //! - `ws` is any character for which [`char::is_whitespace`] returns `true`, has no semantic
 //!   meaning and is completely optional,
-//! - `integer` is a decimal integer that may contain leading zeroes and
+//! - `integer` is a decimal integer that may contain leading zeroes and must fit into an `usize` and
 //! - `identifier` is an `IDENTIFIER_OR_KEYWORD` (not an `IDENTIFIER`) as defined by the [Rust language reference](https://doc.rust-lang.org/reference/identifiers.html).
 //!
 //! # Formatting traits
@@ -606,9 +606,14 @@ use crate::string;
 #[cfg(not(no_global_oom_handling))]
 #[must_use]
 #[stable(feature = "rust1", since = "1.0.0")]
+#[inline]
 pub fn format(args: Arguments<'_>) -> string::String {
-    let capacity = args.estimated_capacity();
-    let mut output = string::String::with_capacity(capacity);
-    output.write_fmt(args).expect("a formatting trait implementation returned an error");
-    output
+    fn format_inner(args: Arguments<'_>) -> string::String {
+        let capacity = args.estimated_capacity();
+        let mut output = string::String::with_capacity(capacity);
+        output.write_fmt(args).expect("a formatting trait implementation returned an error");
+        output
+    }
+
+    args.as_str().map_or_else(|| format_inner(args), crate::borrow::ToOwned::to_owned)
 }
