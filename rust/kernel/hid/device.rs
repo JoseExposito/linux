@@ -4,9 +4,39 @@
 //!
 //! Copyright (c) 2023 José Expósito <jose.exposito89@gmail.com>
 
-use crate::driver;
+use crate::{device, driver};
 use core::ffi::c_ulong;
 use macros::kunit_tests;
+
+/// A HID device.
+///
+/// # Invariants
+///
+/// The field `ptr` is non-null and valid for the lifetime of the object.
+pub struct Device {
+    ptr: *mut bindings::hid_device,
+}
+
+impl Device {
+    /// Creates a new device from the given pointer.
+    ///
+    /// # Safety
+    ///
+    /// `ptr` must be non-null and valid. It must remain valid for the lifetime of the returned
+    /// instance.
+    pub(crate) unsafe fn from_ptr(ptr: *mut bindings::hid_device) -> Self {
+        // INVARIANT: The safety requirements of the function ensure the lifetime invariant.
+        Self { ptr }
+    }
+}
+
+// SAFETY: The device returned by `raw_device` is the raw HID device.
+unsafe impl device::RawDevice for Device {
+    fn raw_device(&self) -> *mut bindings::device {
+        // SAFETY: By the type invariants, we know that `self.ptr` is non-null and valid.
+        unsafe { &mut (*self.ptr).dev }
+    }
+}
 
 /// HID device ID, similar to the C structure `hid_device_id`.
 #[derive(Clone, Copy, Default)]

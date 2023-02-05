@@ -25,6 +25,7 @@
 #include <linux/errname.h>
 #include <linux/fs_parser.h>
 #include <linux/gfp.h>
+#include <linux/hid.h>
 #include <linux/highmem.h>
 #include <linux/io.h>
 #include <linux/irqchip/chained_irq.h>
@@ -654,6 +655,18 @@ int rust_helper_fs_parse(struct fs_context *fc,
 	return fs_parse(fc, desc, param, result);
 }
 EXPORT_SYMBOL_GPL(rust_helper_fs_parse);
+
+void rust_helper_hid_set_drvdata(struct hid_device *hdev, void *data)
+{
+	hid_set_drvdata(hdev, data);
+}
+EXPORT_SYMBOL_GPL(rust_helper_hid_set_drvdata);
+
+void *rust_helper_hid_get_drvdata(struct hid_device *dev)
+{
+	return hid_get_drvdata(dev);
+}
+EXPORT_SYMBOL_GPL(rust_helper_hid_get_drvdata);
 
 /*
  * We use `bindgen`'s `--size_t-is-usize` option to bind the C `size_t` type

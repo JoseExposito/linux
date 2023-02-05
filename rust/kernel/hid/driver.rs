@@ -4,7 +4,10 @@
 //!
 //! Copyright (c) 2023 José Expósito <jose.exposito89@gmail.com>
 
-use crate::{driver, hid, str::CStr, to_result, PointerWrapper, Result, ThisModule};
+use crate::{
+    driver, error::from_kernel_result, hid, str::CStr, to_result, PointerWrapper, Result,
+    ThisModule,
+};
 use macros::kunit_tests;
 
 #[cfg(CONFIG_KUNIT)]
@@ -22,6 +25,14 @@ pub trait Driver {
 
     /// Table of device IDs supported by the driver.
     const ID_TABLE: Option<driver::IdTable<'static, hid::DeviceId, Self::IdInfo>> = None;
+
+    /// HID driver probe.
+    ///
+    /// Called when a new HID device is added or discovered. Implementers should attempt to
+    /// initialize the device here.
+    ///
+    /// On success, the device private data should be returned.
+    fn probe(dev: &mut hid::Device, id_info: Option<&Self::IdInfo>) -> Result<Self::Data>;
 }
 
 /// Declares a kernel module that exposes a HID driver.
@@ -84,6 +95,7 @@ impl<T: Driver> driver::DriverOps for Adapter<T> {
         // `reg` is non-null and valid.
         let hid = unsafe { &mut *reg };
         hid.name = drv_name as _;
+        hid.probe = Some(probe_callback::<T>);
         if let Some(t) = T::ID_TABLE {
             hid.id_table = t.as_ref();
         }
@@ -112,14 +124,64 @@ impl<T: Driver> driver::DriverOps for Adapter<T> {
     }
 }
 
+unsafe extern "C" fn probe_callback<T: Driver>(
+    hdev: *mut bindings::hid_device,
+    id: *const bindings::hid_device_id,
+) -> core::ffi::c_int {
+    from_kernel_result! {
+        // SAFETY: `hdev` is valid by the contract with the C code. `dev` is alive only for the
+        // duration of this call, so it is guaranteed to remain alive for the lifetime of `hdev`.
+        let mut dev = unsafe { hid::Device::from_ptr(hdev) };
+
+        // SAFETY: `id` is valid by the requirements the contract with the C code.
+        let info = id.cast::<u8>().cast::<Option<T::IdInfo>>();
+        // SAFETY: The id table has a static lifetime, so `ptr` is guaranteed to be valid for read.
+        let info = unsafe { (*info).as_ref() };
+
+        let data = T::probe(&mut dev, info)?;
+
+        let ptr = T::Data::into_pointer(data);
+        // SAFETY: `hdev` is valid for write by the contract with the C code.
+        unsafe { bindings::hid_set_drvdata(hdev, ptr as _) };
+        Ok(0)
+    }
+}
+
 #[kunit_tests(rust_kernel_hid_driver)]
 mod tests {
-    use crate::{c_str, driver, hid, prelude::*, str::CStr};
+    use super::*;
+    use crate::{c_str, device, driver, hid, prelude::*, str::CStr, sync::Arc};
     use core::ptr;
+
+    struct TestDriverData {
+        probed: bool,
+    }
+
+    impl TestDriverData {
+        fn new() -> Self {
+            TestDriverData { probed: true }
+        }
+    }
+
+    type DeviceData = device::Data<(), (), TestDriverData>;
 
     struct TestDriver;
     impl hid::Driver for TestDriver {
-        type Data = ();
+        type Data = Arc<DeviceData>;
+
+        fn probe(
+            _dev: &mut hid::Device,
+            _id_info: Option<&Self::IdInfo>,
+        ) -> Result<Arc<DeviceData>> {
+            let data = crate::new_device_data!(
+                (),
+                (),
+                TestDriverData::new(),
+                "TestDriver::Registrations"
+            )?;
+            let data = Arc::<DeviceData>::from(data);
+            Ok(data)
+        }
     }
 
     #[test]
@@ -144,5 +206,18 @@ mod tests {
             unsafe { CStr::from_char_ptr(reg.name).to_str().unwrap() },
             "unregistered"
         );
+    }
+
+    #[test]
+    fn rust_test_hid_driver_probe() {
+        let mut hdev = bindings::hid_device::default();
+        let id = bindings::hid_device_id::default();
+
+        let res = unsafe { probe_callback::<TestDriver>(&mut hdev, &id) };
+        assert_eq!(res, 0);
+
+        let data = unsafe { bindings::hid_get_drvdata(&mut hdev) };
+        let data = unsafe { Arc::<DeviceData>::from_pointer(data) };
+        assert_eq!(data.probed, true);
     }
 }

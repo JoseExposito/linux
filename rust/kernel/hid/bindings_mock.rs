@@ -31,3 +31,6 @@ pub(crate) unsafe fn hid_unregister_driver(arg1: *mut hid_driver) {
         unsafe { bindings::hid_unregister_driver(arg1) }
     }
 }
+
+// Do not mock `hid_set_drvdata`, it only stores a pointer we want to test.
+// Do not mock `hid_get_drvdata`, it only returns a pointer we want to test.
