@@ -9,3 +9,6 @@
 pub mod driver;
 
 pub use self::driver::*;
+
+#[cfg(CONFIG_KUNIT)]
+mod bindings_mock;

@@ -5,6 +5,10 @@
 //! Copyright (c) 2023 José Expósito <jose.exposito89@gmail.com>
 
 use crate::{driver, str::CStr, to_result, PointerWrapper, Result, ThisModule};
+use macros::kunit_tests;
+
+#[cfg(CONFIG_KUNIT)]
+use crate::hid::bindings_mock as bindings;
 
 /// HID driver.
 pub trait Driver {
@@ -96,5 +100,40 @@ impl<T: Driver> driver::DriverOps for Adapter<T> {
         // SAFETY: By the safety requirements of this function (defined in the trait definition),
         // `reg` was passed (and updated) by a previous successful call to `__hid_register_driver`.
         unsafe { bindings::hid_unregister_driver(reg) };
+    }
+}
+
+#[kunit_tests(rust_kernel_hid_driver)]
+mod tests {
+    use crate::{c_str, driver, hid, prelude::*, str::CStr};
+    use core::ptr;
+
+    struct TestDriver;
+    impl hid::Driver for TestDriver {
+        type Data = ();
+    }
+
+    #[test]
+    fn rust_test_hid_driver_adapter() {
+        let mut reg = bindings::hid_driver::default();
+        let name = c_str!("TestDriver");
+        static MODULE: ThisModule = unsafe { ThisModule::from_ptr(ptr::null_mut()) };
+
+        let res = unsafe {
+            <hid::Adapter<TestDriver> as driver::DriverOps>::register(&mut reg, name, &MODULE)
+        };
+        assert_eq!(
+            unsafe { CStr::from_char_ptr(reg.name).to_str().unwrap() },
+            "TestDriver"
+        );
+        // The `__hid_register_driver` mock returns -19.
+        assert_eq!(res, Err(ENODEV));
+
+        unsafe { <hid::Adapter<TestDriver> as driver::DriverOps>::unregister(&mut reg) };
+        // The `hid_unregister_driver` mock set the driver name to "unregistered".
+        assert_eq!(
+            unsafe { CStr::from_char_ptr(reg.name).to_str().unwrap() },
+            "unregistered"
+        );
     }
 }
