@@ -50,6 +50,102 @@ unsafe impl const driver::RawDeviceId for DeviceId {
     }
 }
 
+/// Equivalent to the C macro `HID_BLUETOOTH_DEVICE`.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use kernel::{define_hid_id_table, hid, hid_bluetooth_device};
+/// #
+/// struct MyDriver;
+///
+/// impl hid::Driver for MyDriver {
+///     // [...]
+///     define_hid_id_table! {(), [
+///         (hid_bluetooth_device! {vendor: 0x1234, product: 0xABCD}, None),
+///     ]}
+/// }
+/// ```
+#[macro_export]
+macro_rules! hid_bluetooth_device {
+    ($($custom_values:tt)*) => {
+        $crate::hid::DeviceId {
+            $($custom_values)*,
+            ..$crate::hid::DeviceId {
+                bus: $crate::bindings::BUS_BLUETOOTH as u16,
+                group: 0,
+                vendor: 0,
+                product: 0,
+                driver_data: 0,
+            }
+        }
+    }
+}
+
+/// Equivalent to the C macro `HID_I2C_DEVICE`.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use kernel::{define_hid_id_table, hid, hid_i2c_device};
+/// #
+/// struct MyDriver;
+///
+/// impl hid::Driver for MyDriver {
+///     // [...]
+///     define_hid_id_table! {(), [
+///         (hid_i2c_device! {vendor: 0x1234, product: 0xABCD}, None),
+///     ]}
+/// }
+/// ```
+#[macro_export]
+macro_rules! hid_i2c_device {
+    ($($custom_values:tt)*) => {
+        $crate::hid::DeviceId {
+            $($custom_values)*,
+            ..$crate::hid::DeviceId {
+                bus: $crate::bindings::BUS_I2C as u16,
+                group: 0,
+                vendor: 0,
+                product: 0,
+                driver_data: 0,
+            }
+        }
+    }
+}
+
+/// Equivalent to the C macro `HID_USB_DEVICE`.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use kernel::{define_hid_id_table, hid, hid_usb_device};
+/// #
+/// struct MyDriver;
+///
+/// impl hid::Driver for MyDriver {
+///     // [...]
+///     define_hid_id_table! {(), [
+///         (hid_usb_device! {vendor: 0x1234, product: 0xABCD}, None),
+///     ]}
+/// }
+/// ```
+#[macro_export]
+macro_rules! hid_usb_device {
+    ($($custom_values:tt)*) => {
+        $crate::hid::DeviceId {
+            $($custom_values)*,
+            ..$crate::hid::DeviceId {
+                bus: $crate::bindings::BUS_USB as u16,
+                group: 0,
+                vendor: 0,
+                product: 0,
+                driver_data: 0,
+            }
+        }
+    }
+}
+
 /// Defines the ID table for a HID driver.
 ///
 /// # Examples
@@ -122,5 +218,23 @@ mod tests {
         assert_eq!(raw_id.vendor, 0x1234);
         assert_eq!(raw_id.product, 0xABCD);
         assert_eq!(raw_id.driver_data, 2);
+    }
+
+    #[test]
+    fn rust_test_hid_device_hid_bluetooth_device() {
+        let device_id = hid_bluetooth_device! {product: 3, driver_data: 4};
+        assert_device_id(device_id, bindings::BUS_BLUETOOTH as u16, 0, 0, 3, 4);
+    }
+
+    #[test]
+    fn rust_test_hid_device_hid_i2c_device() {
+        let device_id = hid_i2c_device! {group: 1, vendor: 2, product: 3, driver_data: 4};
+        assert_device_id(device_id, bindings::BUS_I2C as u16, 1, 2, 3, 4);
+    }
+
+    #[test]
+    fn rust_test_hid_device_hid_usb_device() {
+        let device_id = hid_usb_device! {group: 1, vendor: 2};
+        assert_device_id(device_id, bindings::BUS_USB as u16, 1, 2, 0, 0);
     }
 }
