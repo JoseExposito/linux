@@ -4,7 +4,7 @@
 //!
 //! Copyright (c) 2023 José Expósito <jose.exposito89@gmail.com>
 
-use crate::{driver, str::CStr, to_result, PointerWrapper, Result, ThisModule};
+use crate::{driver, hid, str::CStr, to_result, PointerWrapper, Result, ThisModule};
 use macros::kunit_tests;
 
 #[cfg(CONFIG_KUNIT)]
@@ -16,6 +16,12 @@ pub trait Driver {
     ///
     /// It determines the type of the context data passed to each of the methods of the trait.
     type Data: PointerWrapper + Sync + Send;
+
+    /// Type holding information about each device id supported by the driver.
+    type IdInfo: 'static = ();
+
+    /// Table of device IDs supported by the driver.
+    const ID_TABLE: Option<driver::IdTable<'static, hid::DeviceId, Self::IdInfo>> = None;
 }
 
 /// Declares a kernel module that exposes a HID driver.
@@ -78,6 +84,9 @@ impl<T: Driver> driver::DriverOps for Adapter<T> {
         // `reg` is non-null and valid.
         let hid = unsafe { &mut *reg };
         hid.name = drv_name as _;
+        if let Some(t) = T::ID_TABLE {
+            hid.id_table = t.as_ref();
+        }
 
         // The C macro `module_hid_driver` calls `__hid_register_driver` on register. Do the same
         // for Rust drivers.

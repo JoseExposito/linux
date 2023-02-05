@@ -6,8 +6,10 @@
 //!
 //! Copyright (c) 2023 José Expósito <jose.exposito89@gmail.com>
 
+pub mod device;
 pub mod driver;
 
+pub use self::device::*;
 pub use self::driver::*;
 
 #[cfg(CONFIG_KUNIT)]
