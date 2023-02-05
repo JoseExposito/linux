@@ -18,7 +18,7 @@ pub trait Driver {
     /// Context data associated with the HID driver.
     ///
     /// It determines the type of the context data passed to each of the methods of the trait.
-    type Data: PointerWrapper + Sync + Send;
+    type Data: PointerWrapper + Sync + Send + driver::DeviceRemoval;
 
     /// Type holding information about each device id supported by the driver.
     type IdInfo: 'static = ();
@@ -33,6 +33,12 @@ pub trait Driver {
     ///
     /// On success, the device private data should be returned.
     fn probe(dev: &mut hid::Device, id_info: Option<&Self::IdInfo>) -> Result<Self::Data>;
+
+    /// HID driver remove.
+    ///
+    /// Called when a HID device is removed. Implementers should prepare the device for complete
+    /// removal here.
+    fn remove(_dev: &mut hid::Device, _data: &Self::Data) {}
 }
 
 /// Declares a kernel module that exposes a HID driver.
@@ -96,6 +102,7 @@ impl<T: Driver> driver::DriverOps for Adapter<T> {
         let hid = unsafe { &mut *reg };
         hid.name = drv_name as _;
         hid.probe = Some(probe_callback::<T>);
+        hid.remove = Some(remove_callback::<T>);
         if let Some(t) = T::ID_TABLE {
             hid.id_table = t.as_ref();
         }
@@ -147,11 +154,38 @@ unsafe extern "C" fn probe_callback<T: Driver>(
     }
 }
 
+unsafe extern "C" fn remove_callback<T: Driver>(hdev: *mut bindings::hid_device) {
+    let (mut dev, data) = get_device_and_data::<T>(hdev);
+
+    T::remove(&mut dev, &data);
+
+    <T::Data as driver::DeviceRemoval>::device_remove(&data);
+}
+
+fn get_device_and_data<T: Driver>(
+    hdev: *mut bindings::hid_device,
+) -> (hid::Device, <T as Driver>::Data) {
+    // SAFETY: `hdev` is valid by the contract with the C code. `dev` is alive only for the
+    // duration of this call, so it is guaranteed to remain alive for the lifetime of `hdev`.
+    let dev = unsafe { hid::Device::from_ptr(hdev) };
+
+    // SAFETY: `hdev` is valid by the contract with the C code.
+    let ptr = unsafe { bindings::hid_get_drvdata(hdev) };
+    // SAFETY: The value returned by `hid_get_drvdata` was stored by a previous call to
+    // `hid_set_drvdata` in `probe_callback` above; the value comes from a call to
+    // `T::Data::into_pointer`.
+    let data = unsafe { T::Data::from_pointer(ptr) };
+
+    (dev, data)
+}
+
 #[kunit_tests(rust_kernel_hid_driver)]
 mod tests {
     use super::*;
     use crate::{c_str, device, driver, hid, prelude::*, str::CStr, sync::Arc};
     use core::ptr;
+
+    static mut REMOVED: bool = false;
 
     struct TestDriverData {
         probed: bool,
@@ -181,6 +215,10 @@ mod tests {
             )?;
             let data = Arc::<DeviceData>::from(data);
             Ok(data)
+        }
+
+        fn remove(_dev: &mut hid::Device, _data: &Self::Data) {
+            unsafe { REMOVED = true };
         }
     }
 
@@ -219,5 +257,18 @@ mod tests {
         let data = unsafe { bindings::hid_get_drvdata(&mut hdev) };
         let data = unsafe { Arc::<DeviceData>::from_pointer(data) };
         assert_eq!(data.probed, true);
+    }
+
+    #[test]
+    fn rust_test_hid_driver_remove() {
+        let mut hdev = bindings::hid_device::default();
+        let id = bindings::hid_device_id::default();
+
+        let res = unsafe { probe_callback::<TestDriver>(&mut hdev, &id) };
+        assert_eq!(res, 0);
+        assert_eq!(unsafe { REMOVED }, false);
+
+        unsafe { remove_callback::<TestDriver>(&mut hdev) };
+        assert_eq!(unsafe { REMOVED }, true);
     }
 }
