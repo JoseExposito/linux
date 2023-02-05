@@ -55,6 +55,8 @@ pub mod error;
 pub mod file;
 pub mod fs;
 pub mod gpio;
+#[cfg(CONFIG_HID)]
+pub mod hid;
 pub mod hwrng;
 pub mod irq;
 pub mod kasync;
