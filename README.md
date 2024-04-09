@@ -12,7 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
-| [patch-libwacom-fw-name](https://github.com/JoseExposito/linux/tree/patch-libwacom-fw-name) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | [libwacom #610:](https://github.com/linuxwacom/libwacom/issues/610) Expose the device firmware name to match devices in user-space | ⏳ |
+| [patch-libwacom-fw-name](https://github.com/JoseExposito/linux/tree/patch-libwacom-fw-name) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | [libwacom #610:](https://github.com/linuxwacom/libwacom/issues/610) Expose the device firmware name to match devices in user-space | 🔀 |
 | [patch-rust-kunit-support](https://github.com/JoseExposito/linux/tree/patch-rust-kunit-support) | [upstream-rust](https://github.com/JoseExposito/linux/tree/upstream-rust) | Allow to run unit tests using KUnit with a user-space like syntax | ⏳ |
 | [patch-uclogic-tests-use-KUNIT_EXPECT_MEMEQ](https://github.com/JoseExposito/linux/tree/patch-uclogic-tests-use-KUNIT_EXPECT_MEMEQ) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Use KUNIT_EXPECT_MEMEQ in the HID subsystem tests | 🔀 |
 | [patch-xppen-deco-01-v2](https://github.com/JoseExposito/linux/tree/patch-xppen-deco-01-v2) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | XP-PEN Deco 01 v2 drawing tablet support ([libinput #839](https://gitlab.freedesktop.org/libinput/libinput/-/issues/839)) | 🔀 |
