@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-huion-touch-strip-usage-rx-ry](https://github.com/JoseExposito/linux/tree/patch-huion-touch-strip-usage-rx-ry) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | [libinput #989:](https://gitlab.freedesktop.org/libinput/libinput/-/issues/989) Use Rx/Ry to report touch strip events | 🔨 |
 | [patch-uclogic-20-buttons](https://github.com/JoseExposito/linux/tree/patch-uclogic-20-buttons) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | [libinput #989:](https://gitlab.freedesktop.org/libinput/libinput/-/issues/989) Support HUION tablets with up to 20 buttons | 🔨 |
 | [patch-libwacom-fw-name](https://github.com/JoseExposito/linux/tree/patch-libwacom-fw-name) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | [libwacom #610:](https://github.com/linuxwacom/libwacom/issues/610) Expose the device firmware name to match devices in user-space | 🔀 |
 | [patch-rust-kunit-support](https://github.com/JoseExposito/linux/tree/patch-rust-kunit-support) | [upstream-rust](https://github.com/JoseExposito/linux/tree/upstream-rust) | Allow to run unit tests using KUnit with a user-space like syntax | ⏳ |
