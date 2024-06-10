@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-uclogic-multiple-modules-warning](https://github.com/JoseExposito/linux/tree/patch-uclogic-multiple-modules-warning) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Fix warning `hid-uclogic-[rdesc/params].o is added to multiple modules: hid-uclogic hid-uclogic-test` | 🔨 |
 | [patch-logitech-dj-memory-leak](https://github.com/JoseExposito/linux/tree/patch-logitech-dj-memory-leak) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Fix memory leak in `logi_dj_recv_switch_to_dj_mode()` | 🔀 |
 | [patch-huion-touch-strip-usage-rx-ry](https://github.com/JoseExposito/linux/tree/patch-huion-touch-strip-usage-rx-ry) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | [libinput #989:](https://gitlab.freedesktop.org/libinput/libinput/-/issues/989) Use Rx/Ry to report touch strip events | 🔀 |
 | [patch-uclogic-20-buttons](https://github.com/JoseExposito/linux/tree/patch-uclogic-20-buttons) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | [libinput #989:](https://gitlab.freedesktop.org/libinput/libinput/-/issues/989) Support HUION tablets with up to 20 buttons | 🔀 |
