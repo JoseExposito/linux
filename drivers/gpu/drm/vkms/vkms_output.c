@@ -21,6 +21,7 @@ static int vkms_conn_get_modes(struct drm_connector *connector)
 {
 	int count;
 
+	/* Use the default modes list from drm */
 	count = drm_add_modes_noedid(connector, XRES_MAX, YRES_MAX);
 	drm_set_preferred_mode(connector, XRES_DEF, YRES_DEF);
 
@@ -58,6 +59,12 @@ int vkms_output_init(struct vkms_device *vkmsdev, u32 possible_crtc)
 	int writeback;
 	unsigned int n;
 
+	/*
+	 * Initialize used plane. One primary plane is required to perform the composition.
+	 *
+	 * The overlay and cursor planes are not mandatory, but can be used to perform complex
+	 * composition.
+	 */
 	primary = vkms_plane_init(vkmsdev, DRM_PLANE_TYPE_PRIMARY, possible_crtc);
 	if (IS_ERR(primary))
 		return PTR_ERR(primary);
@@ -76,10 +83,12 @@ int vkms_output_init(struct vkms_device *vkmsdev, u32 possible_crtc)
 			return PTR_ERR(cursor);
 	}
 
+	/* [1]: Initialize the crtc component */
 	ret = vkms_crtc_init(dev, crtc, &primary->base, &cursor->base);
 	if (ret)
 		return ret;
 
+	/* Initialize the connector component */
 	ret = drm_connector_init(dev, connector, &vkms_connector_funcs,
 				 DRM_MODE_CONNECTOR_VIRTUAL);
 	if (ret) {
@@ -89,20 +98,28 @@ int vkms_output_init(struct vkms_device *vkmsdev, u32 possible_crtc)
 
 	drm_connector_helper_add(connector, &vkms_conn_helper_funcs);
 
+	/* Initialize the encoder component */
 	ret = drm_encoder_init(dev, encoder, &vkms_encoder_funcs,
 			       DRM_MODE_ENCODER_VIRTUAL, NULL);
 	if (ret) {
 		DRM_ERROR("Failed to init encoder\n");
 		goto err_encoder;
 	}
+
+	/*
+	 * This is an hardcoded value to select crtc for the encoder.
+	 * 1 here designate the first registered CRTC, the one allocated in [1]
+	 */
 	encoder->possible_crtcs = 1;
 
+	/* Attach the encoder and the connector */
 	ret = drm_connector_attach_encoder(connector, encoder);
 	if (ret) {
 		DRM_ERROR("Failed to attach connector to encoder\n");
 		goto err_attach;
 	}
 
+	/* Initialize the writeback component */
 	if (vkmsdev->config->writeback) {
 		writeback = vkms_enable_writeback_connector(vkmsdev);
 		if (writeback)
