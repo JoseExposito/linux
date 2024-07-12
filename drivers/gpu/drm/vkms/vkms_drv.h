@@ -12,6 +12,8 @@
 #include <drm/drm_encoder.h>
 #include <drm/drm_writeback.h>
 
+#include "vkms_formats.h"
+
 #define XRES_MIN    10
 #define YRES_MIN    10
 
@@ -36,15 +38,6 @@ struct vkms_frame_info {
 	unsigned int cpp;
 };
 
-struct pixel_argb_u16 {
-	u16 a, r, g, b;
-};
-
-struct line_buffer {
-	size_t n_pixels;
-	struct pixel_argb_u16 *pixels;
-};
-
 struct vkms_writeback_job {
 	struct iosys_map data[DRM_FORMAT_MAX_PLANES];
 	struct vkms_frame_info wb_frame_info;
@@ -64,12 +57,6 @@ struct vkms_plane_state {
 
 struct vkms_plane {
 	struct drm_plane base;
-};
-
-struct vkms_color_lut {
-	struct drm_color_lut *base;
-	size_t lut_length;
-	s64 channel_value2index_ratio;
 };
 
 /**
@@ -221,8 +208,6 @@ int vkms_verify_crc_source(struct drm_crtc *crtc, const char *source_name,
 /* Composer Support */
 void vkms_composer_worker(struct work_struct *work);
 void vkms_set_composer(struct vkms_output *out, bool enabled);
-void vkms_compose_row(struct line_buffer *stage_buffer, struct vkms_plane_state *plane, int y);
-void vkms_writeback_row(struct vkms_writeback_job *wb, const struct line_buffer *src_buffer, int y);
 
 /* Writeback */
 int vkms_enable_writeback_connector(struct vkms_device *vkmsdev);
