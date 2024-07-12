@@ -11,8 +11,7 @@
 #include <drm/drm_gem_framebuffer_helper.h>
 #include <drm/drm_gem_shmem_helper.h>
 
-#include "vkms_drv.h"
-#include "vkms_formats.h"
+#include "vkms_writeback.h"
 
 static const u32 vkms_wb_formats[] = {
 	DRM_FORMAT_ARGB8888,
