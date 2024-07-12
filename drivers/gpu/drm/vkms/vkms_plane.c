@@ -48,7 +48,7 @@ vkms_plane_duplicate_state(struct drm_plane *plane)
 static void vkms_plane_destroy_state(struct drm_plane *plane,
 				     struct drm_plane_state *old_state)
 {
-	struct vkms_plane_state *vkms_state = to_vkms_plane_state(old_state);
+	struct vkms_plane_state *vkms_state = drm_plane_state_to_vkms_plane_state(old_state);
 	struct drm_crtc *crtc = vkms_state->base.base.crtc;
 
 	if (crtc && vkms_state->frame_info->fb) {
@@ -107,7 +107,7 @@ static void vkms_plane_atomic_update(struct drm_plane *plane,
 		return;
 
 	fmt = fb->format->format;
-	vkms_plane_state = to_vkms_plane_state(new_state);
+	vkms_plane_state = drm_plane_state_to_vkms_plane_state(new_state);
 	shadow_plane_state = &vkms_plane_state->base;
 
 	frame_info = vkms_plane_state->frame_info;

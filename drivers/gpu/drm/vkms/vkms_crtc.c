@@ -213,7 +213,7 @@ static int vkms_crtc_atomic_check(struct drm_crtc *crtc,
 			continue;
 
 		vkms_state->active_planes[i++] =
-			to_vkms_plane_state(plane_state);
+			drm_plane_state_to_vkms_plane_state(plane_state);
 	}
 
 	return 0;

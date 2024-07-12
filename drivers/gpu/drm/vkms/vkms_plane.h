@@ -31,7 +31,7 @@ struct vkms_frame_info {
 	unsigned int cpp;
 };
 
-#define to_vkms_plane_state(target)\
+#define drm_plane_state_to_vkms_plane_state(target)\
 	container_of(target, struct vkms_plane_state, base.base)
 
 /**
