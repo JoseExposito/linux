@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-amd-display-bounds-checking](https://github.com/JoseExposito/linux/tree/patch-amd-display-bounds-checking) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Add bounds checking in various amd/display `create_stream_encoder()` functions | 🔨 |
 | [patch-sparse-le-warnings](https://github.com/JoseExposito/linux/tree/patch-sparse-le-warnings) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Fix cpu_to_le16/le16_to_cpu warnings | 🔨 |
 | [patch-uclogic-multiple-modules-warning](https://github.com/JoseExposito/linux/tree/patch-uclogic-multiple-modules-warning) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Fix warning `hid-uclogic-[rdesc/params].o is added to multiple modules: hid-uclogic hid-uclogic-test` | 🔀 |
 | [patch-logitech-dj-memory-leak](https://github.com/JoseExposito/linux/tree/patch-logitech-dj-memory-leak) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Fix memory leak in `logi_dj_recv_switch_to_dj_mode()` | 🔀 |
