@@ -8,6 +8,7 @@
 #include <drm/drm_fixed.h>
 
 #include "vkms_formats.h"
+#include "vkms_plane.h"
 #include "vkms_writeback.h"
 
 static size_t pixel_offset(const struct vkms_frame_info *frame_info, int x, int y)

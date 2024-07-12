@@ -11,6 +11,7 @@
 
 #include "vkms_drv.h"
 #include "vkms_formats.h"
+#include "vkms_plane.h"
 
 static const u32 vkms_formats[] = {
 	DRM_FORMAT_ARGB8888,

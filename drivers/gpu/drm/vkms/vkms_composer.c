@@ -13,6 +13,7 @@
 
 #include "vkms_drv.h"
 #include "vkms_formats.h"
+#include "vkms_plane.h"
 #include "vkms_writeback.h"
 
 static u16 pre_mul_blend_channel(u16 src, u16 dst, u16 alpha)

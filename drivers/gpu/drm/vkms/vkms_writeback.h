@@ -5,6 +5,7 @@
 
 #include "vkms_drv.h"
 #include "vkms_formats.h"
+#include "vkms_plane.h"
 
 struct vkms_writeback_job {
 	struct iosys_map data[DRM_FORMAT_MAX_PLANES];
