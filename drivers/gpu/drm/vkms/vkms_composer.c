@@ -11,6 +11,7 @@
 #include <drm/drm_vblank.h>
 #include <linux/minmax.h>
 
+#include "vkms_composer.h"
 #include "vkms_crtc.h"
 #include "vkms_drv.h"
 #include "vkms_formats.h"
