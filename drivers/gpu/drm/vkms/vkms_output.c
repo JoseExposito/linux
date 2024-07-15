@@ -5,6 +5,7 @@
 #include <drm/drm_edid.h>
 #include <drm/drm_probe_helper.h>
 
+#include "vkms_crtc.h"
 #include "vkms_plane.h"
 #include "vkms_writeback.h"
 

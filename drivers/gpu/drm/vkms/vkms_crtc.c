@@ -7,6 +7,7 @@
 #include <drm/drm_probe_helper.h>
 #include <drm/drm_vblank.h>
 
+#include "vkms_crtc.h"
 #include "vkms_drv.h"
 #include "vkms_plane.h"
 

@@ -11,6 +11,7 @@
 #include <drm/drm_gem_framebuffer_helper.h>
 #include <drm/drm_gem_shmem_helper.h>
 
+#include "vkms_crtc.h"
 #include "vkms_writeback.h"
 
 static const u32 vkms_wb_formats[] = {

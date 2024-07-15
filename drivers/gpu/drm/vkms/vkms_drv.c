@@ -26,6 +26,7 @@
 #include <drm/drm_gem_shmem_helper.h>
 #include <drm/drm_vblank.h>
 
+#include "vkms_crtc.h"
 #include "vkms_drv.h"
 
 #include <drm/drm_print.h>
