@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-vkms-config](https://github.com/JoseExposito/linux/tree/patch-vkms-config) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Allow to configure VKMS using ConfigFS | 🔨 |
 | [patch-vkms-header-refactor](https://github.com/JoseExposito/linux/tree/patch-vkms-header-refactor) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Extract VKMS structs and functions into headers | 🔨 |
 | [patch-amd-display-bounds-checking](https://github.com/JoseExposito/linux/tree/patch-amd-display-bounds-checking) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Add bounds checking in various amd/display `create_stream_encoder()` functions | ⏳ |
 | [patch-sparse-le-warnings](https://github.com/JoseExposito/linux/tree/patch-sparse-le-warnings) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Fix cpu_to_le16/le16_to_cpu warnings | ⏳ |
