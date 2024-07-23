@@ -143,6 +143,10 @@ struct vkms_device {
 #define to_vkms_plane_state(target)\
 	container_of(target, struct vkms_plane_state, base.base)
 
+/* VKMS device */
+int vkms_create(struct vkms_config *config);
+void vkms_destroy(struct vkms_config *config);
+
 /* CRTC */
 struct vkms_crtc *vkms_crtc_init(struct drm_device *dev,
 				 struct drm_plane *primary,
