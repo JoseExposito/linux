@@ -8,13 +8,15 @@
 #include "vkms_config.h"
 #include "vkms_drv.h"
 
-struct vkms_config *vkms_config_create(void)
+struct vkms_config *vkms_config_create(char *dev_name)
 {
 	struct vkms_config *config;
 
 	config = kzalloc(sizeof(*config), GFP_KERNEL);
 	if (!config)
 		return ERR_PTR(-ENOMEM);
+
+	config->dev_name = dev_name;
 
 	return config;
 }
@@ -25,7 +27,7 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 {
 	struct vkms_config *config;
 
-	config = vkms_config_create();
+	config = vkms_config_create(DEFAULT_DEVICE_NAME);
 	if (IS_ERR(config))
 		return config;
 
@@ -47,6 +49,7 @@ static int vkms_config_show(struct seq_file *m, void *data)
 	struct drm_device *dev = entry->dev;
 	struct vkms_device *vkmsdev = drm_device_to_vkms_device(dev);
 
+	seq_printf(m, "dev_name=%s\n", vkmsdev->config->dev_name);
 	seq_printf(m, "writeback=%d\n", vkmsdev->config->writeback);
 	seq_printf(m, "cursor=%d\n", vkmsdev->config->cursor);
 	seq_printf(m, "overlay=%d\n", vkmsdev->config->overlay);
