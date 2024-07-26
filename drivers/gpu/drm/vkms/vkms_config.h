@@ -8,6 +8,7 @@
 struct vkms_device;
 
 struct vkms_config {
+	char *dev_name;
 	bool writeback;
 	bool cursor;
 	bool overlay;
@@ -15,7 +16,7 @@ struct vkms_config {
 	struct vkms_device *dev;
 };
 
-struct vkms_config *vkms_config_create(void);
+struct vkms_config *vkms_config_create(char *dev_name);
 struct vkms_config *vkms_config_default_create(bool enable_cursor,
 					       bool enable_writeback,
 					       bool enable_overlay);
