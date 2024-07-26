@@ -17,6 +17,9 @@ struct vkms_config {
 
 /* VKMS Config */
 struct vkms_config *vkms_config_create(void);
+struct vkms_config *vkms_config_default_create(bool enable_cursor,
+					       bool enable_writeback,
+					       bool enable_overlay);
 void vkms_config_destroy(struct vkms_config *config);
 
 /* DebugFS */
