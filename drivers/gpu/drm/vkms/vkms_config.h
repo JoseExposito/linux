@@ -1,0 +1,23 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+
+#ifndef _VKMS_CONFIG_H_
+#define _VKMS_CONFIG_H_
+
+#include <linux/types.h>
+
+struct vkms_device;
+
+struct vkms_config {
+	bool writeback;
+	bool cursor;
+	bool overlay;
+	/* only set when instantiated */
+	struct vkms_device *dev;
+};
+
+struct vkms_config *vkms_config_create(void);
+void vkms_config_destroy(struct vkms_config *config);
+
+void vkms_config_debugfs_init(struct vkms_device *vkms_device);
+
+#endif /* _VKMS_CONFIG_H_ */

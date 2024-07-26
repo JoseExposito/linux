@@ -115,15 +115,7 @@ struct vkms_output {
 	spinlock_t composer_lock;
 };
 
-struct vkms_device;
-
-struct vkms_config {
-	bool writeback;
-	bool cursor;
-	bool overlay;
-	/* only set when instantiated */
-	struct vkms_device *dev;
-};
+struct vkms_config;
 
 struct vkms_device {
 	struct drm_device drm;
