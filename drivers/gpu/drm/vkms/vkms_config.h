@@ -14,11 +14,18 @@ struct vkms_config_crtc {
 	bool writeback;
 };
 
+struct vkms_config_encoder {
+	struct list_head list;
+	unsigned int index;
+	uint32_t possible_crtcs;
+};
+
 struct vkms_config {
 	char *dev_name;
 	bool cursor;
 	bool overlay;
 	struct list_head crtcs;
+	struct list_head encoders;
 	/* only set when instantiated */
 	struct vkms_device *dev;
 };
@@ -38,5 +45,11 @@ struct vkms_config_crtc *vkms_config_add_crtc(struct vkms_config *config,
 					      bool enable_writeback);
 void vkms_config_destroy_crtc(struct vkms_config *config,
 			      struct vkms_config_crtc *crtc_cfg);
+
+/* Encoders */
+struct vkms_config_encoder *vkms_config_add_encoder(struct vkms_config *config,
+						    uint32_t possible_crtcs);
+void vkms_config_destroy_encoder(struct vkms_config *config,
+				 struct vkms_config_encoder *encoder_cfg);
 
 #endif /* _VKMS_CONFIG_H_ */

@@ -18,6 +18,7 @@ struct vkms_config *vkms_config_create(char *dev_name)
 
 	config->dev_name = dev_name;
 	config->crtcs = (struct list_head)LIST_HEAD_INIT(config->crtcs);
+	config->encoders = (struct list_head)LIST_HEAD_INIT(config->encoders);
 
 	return config;
 }
@@ -28,6 +29,7 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 {
 	struct vkms_config *config;
 	struct vkms_config_crtc *crtc_cfg;
+	struct vkms_config_encoder *encoder_cfg;
 
 	config = vkms_config_create(DEFAULT_DEVICE_NAME);
 	if (IS_ERR(config))
@@ -40,15 +42,23 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 	if (IS_ERR(crtc_cfg))
 		return ERR_CAST(crtc_cfg);
 
+	encoder_cfg = vkms_config_add_encoder(config, BIT(0));
+	if (IS_ERR(encoder_cfg))
+		return ERR_CAST(encoder_cfg);
+
 	return config;
 }
 
 void vkms_config_destroy(struct vkms_config *config)
 {
 	struct vkms_config_crtc *crtc_cfg, *crtc_tmp;
+	struct vkms_config_encoder *encoder_cfg, *encoder_tmp;
 
 	list_for_each_entry_safe(crtc_cfg, crtc_tmp, &config->crtcs, list)
 		vkms_config_destroy_crtc(config, crtc_cfg);
+
+	list_for_each_entry_safe(encoder_cfg, encoder_tmp, &config->encoders, list)
+		vkms_config_destroy_encoder(config, encoder_cfg);
 
 	kfree(config);
 }
@@ -59,6 +69,7 @@ static int vkms_config_show(struct seq_file *m, void *data)
 	struct drm_device *dev = entry->dev;
 	struct vkms_device *vkmsdev = drm_device_to_vkms_device(dev);
 	struct vkms_config_crtc *crtc_cfg;
+	struct vkms_config_encoder *encoder_cfg;
 	int n;
 
 	seq_printf(m, "dev_name=%s\n", vkmsdev->config->dev_name);
@@ -69,6 +80,13 @@ static int vkms_config_show(struct seq_file *m, void *data)
 	list_for_each_entry(crtc_cfg, &vkmsdev->config->crtcs, list) {
 		seq_printf(m, "crtc(%d).writeback=%d\n", n,
 			   crtc_cfg->writeback);
+		n++;
+	}
+
+	n = 0;
+	list_for_each_entry(encoder_cfg, &vkmsdev->config->encoders, list) {
+		seq_printf(m, "encoder(%d).possible_crtcs=%d\n", n,
+			   encoder_cfg->possible_crtcs);
 		n++;
 	}
 
@@ -115,4 +133,36 @@ void vkms_config_destroy_crtc(struct vkms_config *config,
 {
 	list_del(&crtc_cfg->list);
 	kfree(crtc_cfg);
+}
+
+struct vkms_config_encoder *vkms_config_add_encoder(struct vkms_config *config,
+						    uint32_t possible_crtcs)
+{
+	struct vkms_config_encoder *encoder_cfg;
+
+	encoder_cfg = kzalloc(sizeof(*encoder_cfg), GFP_KERNEL);
+	if (!encoder_cfg)
+		return ERR_PTR(-ENOMEM);
+
+	encoder_cfg->possible_crtcs = possible_crtcs;
+
+	encoder_cfg->index = 0;
+	if (!list_empty(&config->encoders)) {
+		struct vkms_config_encoder *last;
+
+		last = list_last_entry(&config->encoders,
+				       struct vkms_config_encoder, list);
+		encoder_cfg->index = last->index + 1;
+	}
+
+	list_add_tail(&encoder_cfg->list, &config->encoders);
+
+	return encoder_cfg;
+}
+
+void vkms_config_destroy_encoder(struct vkms_config *config,
+				 struct vkms_config_encoder *encoder_cfg)
+{
+	list_del(&encoder_cfg->list);
+	kfree(encoder_cfg);
 }

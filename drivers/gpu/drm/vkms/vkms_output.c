@@ -30,7 +30,8 @@ static const struct drm_connector_helper_funcs vkms_conn_helper_funcs = {
 };
 
 static struct drm_encoder *vkms_encoder_init(struct vkms_device *vkms_device,
-					     uint32_t possible_crtcs)
+					     uint32_t possible_crtcs,
+					     unsigned int index)
 {
 	struct drm_encoder *encoder;
 	int ret;
@@ -49,6 +50,7 @@ static struct drm_encoder *vkms_encoder_init(struct vkms_device *vkms_device,
 		return ERR_PTR(ret);
 	}
 
+	encoder->index = index;
 	encoder->possible_crtcs = possible_crtcs;
 
 	return encoder;
@@ -74,6 +76,7 @@ int vkms_output_init(struct vkms_device *vkmsdev, int index)
 	struct drm_device *dev = &vkmsdev->drm;
 	struct drm_connector *connector = &output->connector;
 	struct drm_encoder *encoder;
+	struct vkms_config_encoder *encoder_cfg;
 	struct vkms_crtc *vkms_crtc;
 	struct vkms_config_crtc *crtc_cfg;
 	struct vkms_plane *primary, *cursor = NULL;
@@ -123,9 +126,12 @@ int vkms_output_init(struct vkms_device *vkmsdev, int index)
 
 	drm_connector_helper_add(connector, &vkms_conn_helper_funcs);
 
-	encoder = vkms_encoder_init(vkmsdev, BIT(0));
-	if (IS_ERR(encoder))
-		return PTR_ERR(encoder);
+	list_for_each_entry(encoder_cfg, &vkmsdev->config->encoders, list) {
+		encoder = vkms_encoder_init(vkmsdev, encoder_cfg->possible_crtcs,
+					    encoder_cfg->index);
+		if (IS_ERR(encoder))
+			return PTR_ERR(encoder);
+	}
 
 	ret = drm_connector_attach_encoder(connector, encoder);
 	if (ret) {
