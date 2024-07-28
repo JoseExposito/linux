@@ -17,6 +17,7 @@ struct vkms_config *vkms_config_create(char *dev_name)
 		return ERR_PTR(-ENOMEM);
 
 	config->dev_name = dev_name;
+	config->crtcs = (struct list_head)LIST_HEAD_INIT(config->crtcs);
 
 	return config;
 }
@@ -26,20 +27,29 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 					       bool enable_overlay)
 {
 	struct vkms_config *config;
+	int ret;
 
 	config = vkms_config_create(DEFAULT_DEVICE_NAME);
 	if (IS_ERR(config))
 		return config;
 
 	config->cursor = enable_cursor;
-	config->writeback = enable_writeback;
 	config->overlay = enable_overlay;
+
+	ret = vkms_config_add_crtc(config, enable_writeback);
+	if (ret)
+		return ERR_PTR(ret);
 
 	return config;
 }
 
 void vkms_config_destroy(struct vkms_config *config)
 {
+	struct vkms_config_crtc *crtc_cfg;
+
+	list_for_each_entry(crtc_cfg, &config->crtcs, list)
+		kfree(crtc_cfg);
+
 	kfree(config);
 }
 
@@ -48,11 +58,19 @@ static int vkms_config_show(struct seq_file *m, void *data)
 	struct drm_debugfs_entry *entry = m->private;
 	struct drm_device *dev = entry->dev;
 	struct vkms_device *vkmsdev = drm_device_to_vkms_device(dev);
+	struct vkms_config_crtc *crtc_cfg;
+	int n;
 
 	seq_printf(m, "dev_name=%s\n", vkmsdev->config->dev_name);
-	seq_printf(m, "writeback=%d\n", vkmsdev->config->writeback);
 	seq_printf(m, "cursor=%d\n", vkmsdev->config->cursor);
 	seq_printf(m, "overlay=%d\n", vkmsdev->config->overlay);
+
+	n = 0;
+	list_for_each_entry(crtc_cfg, &vkmsdev->config->crtcs, list) {
+		seq_printf(m, "crtc(%d).writeback=%d\n", n,
+			   crtc_cfg->writeback);
+		n++;
+	}
 
 	return 0;
 }
@@ -65,4 +83,18 @@ void vkms_config_debugfs_init(struct vkms_device *vkms_device)
 {
 	drm_debugfs_add_files(&vkms_device->drm, vkms_config_debugfs_list,
 			      ARRAY_SIZE(vkms_config_debugfs_list));
+}
+
+int vkms_config_add_crtc(struct vkms_config *config, bool enable_writeback)
+{
+	struct vkms_config_crtc *crtc_cfg;
+
+	crtc_cfg = kzalloc(sizeof(*crtc_cfg), GFP_KERNEL);
+	if (!crtc_cfg)
+		return -ENOMEM;
+
+	crtc_cfg->writeback = enable_writeback;
+	list_add_tail(&crtc_cfg->list, &config->crtcs);
+
+	return 0;
 }

@@ -4,6 +4,7 @@
 #define _VKMS_DRV_H_
 
 #include <linux/hrtimer.h>
+#include <linux/list.h>
 
 #include <drm/drm.h>
 #include <drm/drm_framebuffer.h>
@@ -98,10 +99,11 @@ struct vkms_crtc_state {
 	u64 frame_end;
 };
 
-struct vkms_output {
-	struct drm_crtc crtc;
-	struct drm_encoder encoder;
-	struct drm_connector connector;
+struct vkms_crtc {
+	struct list_head list;
+
+	struct drm_crtc base;
+
 	struct drm_writeback_connector wb_connector;
 	struct hrtimer vblank_hrtimer;
 	ktime_t period_ns;
@@ -119,18 +121,27 @@ struct vkms_output {
 
 struct vkms_config;
 
+struct vkms_output {
+	struct drm_encoder encoder;
+	struct drm_connector connector;
+};
+
 struct vkms_device {
 	struct drm_device drm;
 	struct platform_device *platform;
 	struct vkms_output output;
+	struct list_head crtcs;
 	const struct vkms_config *config;
 };
 
-#define drm_crtc_to_vkms_output(target) \
-	container_of(target, struct vkms_output, crtc)
-
 #define drm_device_to_vkms_device(target) \
 	container_of(target, struct vkms_device, drm)
+
+#define drm_crtc_to_vkms_crtc(crtc) \
+	container_of(crtc, struct vkms_crtc, base)
+
+#define timer_to_vkms_crtc(timer) \
+	container_of(timer, struct vkms_crtc, vblank_hrtimer)
 
 #define to_vkms_crtc_state(target)\
 	container_of(target, struct vkms_crtc_state, base)
@@ -139,8 +150,9 @@ struct vkms_device {
 	container_of(target, struct vkms_plane_state, base.base)
 
 /* CRTC */
-int vkms_crtc_init(struct drm_device *dev, struct drm_crtc *crtc,
-		   struct drm_plane *primary, struct drm_plane *cursor);
+struct vkms_crtc *vkms_crtc_init(struct drm_device *dev,
+				 struct drm_plane *primary,
+				 struct drm_plane *cursor);
 
 int vkms_output_init(struct vkms_device *vkmsdev, int index);
 
@@ -156,11 +168,11 @@ int vkms_verify_crc_source(struct drm_crtc *crtc, const char *source_name,
 
 /* Composer Support */
 void vkms_composer_worker(struct work_struct *work);
-void vkms_set_composer(struct vkms_output *out, bool enabled);
+void vkms_set_composer(struct vkms_crtc *vkms_crtc, bool enabled);
 void vkms_compose_row(struct line_buffer *stage_buffer, struct vkms_plane_state *plane, int y);
 void vkms_writeback_row(struct vkms_writeback_job *wb, const struct line_buffer *src_buffer, int y);
 
 /* Writeback */
-int vkms_enable_writeback_connector(struct vkms_device *vkmsdev);
+int vkms_enable_writeback_connector(struct vkms_crtc *vkms_crtc);
 
 #endif /* _VKMS_DRV_H_ */

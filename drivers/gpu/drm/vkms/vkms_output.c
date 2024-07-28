@@ -32,8 +32,7 @@ static const struct drm_connector_helper_funcs vkms_conn_helper_funcs = {
 	.get_modes    = vkms_conn_get_modes,
 };
 
-static int vkms_add_overlay_plane(struct vkms_device *vkmsdev, int index,
-				  struct drm_crtc *crtc)
+static int vkms_add_overlay_plane(struct vkms_device *vkmsdev, int index)
 {
 	struct vkms_plane *overlay;
 
@@ -42,7 +41,7 @@ static int vkms_add_overlay_plane(struct vkms_device *vkmsdev, int index,
 		return PTR_ERR(overlay);
 
 	if (!overlay->base.possible_crtcs)
-		overlay->base.possible_crtcs = drm_crtc_mask(crtc);
+		overlay->base.possible_crtcs = BIT(index);
 
 	return 0;
 }
@@ -53,7 +52,8 @@ int vkms_output_init(struct vkms_device *vkmsdev, int index)
 	struct drm_device *dev = &vkmsdev->drm;
 	struct drm_connector *connector = &output->connector;
 	struct drm_encoder *encoder = &output->encoder;
-	struct drm_crtc *crtc = &output->crtc;
+	struct vkms_crtc *vkms_crtc;
+	struct vkms_config_crtc *crtc_cfg;
 	struct vkms_plane *primary, *cursor = NULL;
 	int ret;
 	int writeback;
@@ -65,7 +65,7 @@ int vkms_output_init(struct vkms_device *vkmsdev, int index)
 
 	if (vkmsdev->config->overlay) {
 		for (n = 0; n < NUM_OVERLAY_PLANES; n++) {
-			ret = vkms_add_overlay_plane(vkmsdev, index, crtc);
+			ret = vkms_add_overlay_plane(vkmsdev, index);
 			if (ret)
 				return ret;
 		}
@@ -77,15 +77,25 @@ int vkms_output_init(struct vkms_device *vkmsdev, int index)
 			return PTR_ERR(cursor);
 	}
 
-	ret = vkms_crtc_init(dev, crtc, &primary->base, &cursor->base);
-	if (ret)
-		return ret;
+	list_for_each_entry(crtc_cfg, &vkmsdev->config->crtcs, list) {
+		vkms_crtc = vkms_crtc_init(dev, &primary->base, &cursor->base);
+		if (IS_ERR(vkms_crtc))
+			return PTR_ERR(vkms_crtc);
+
+		list_add_tail(&vkms_crtc->list, &vkmsdev->crtcs);
+
+		if (crtc_cfg->writeback) {
+			writeback = vkms_enable_writeback_connector(vkms_crtc);
+			if (writeback)
+				DRM_ERROR("Failed to init writeback connector\n");
+		}
+	}
 
 	ret = drm_connector_init(dev, connector, &vkms_connector_funcs,
 				 DRM_MODE_CONNECTOR_VIRTUAL);
 	if (ret) {
 		DRM_ERROR("Failed to init connector\n");
-		goto err_connector;
+		return ret;
 	}
 
 	drm_connector_helper_add(connector, &vkms_conn_helper_funcs);
@@ -104,12 +114,6 @@ int vkms_output_init(struct vkms_device *vkmsdev, int index)
 		goto err_attach;
 	}
 
-	if (vkmsdev->config->writeback) {
-		writeback = vkms_enable_writeback_connector(vkmsdev);
-		if (writeback)
-			DRM_ERROR("Failed to init writeback connector\n");
-	}
-
 	drm_mode_config_reset(dev);
 
 	return 0;
@@ -119,9 +123,6 @@ err_attach:
 
 err_encoder:
 	drm_connector_cleanup(connector);
-
-err_connector:
-	drm_crtc_cleanup(crtc);
 
 	return ret;
 }

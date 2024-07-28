@@ -54,9 +54,12 @@ DEFINE_DRM_GEM_FOPS(vkms_driver_fops);
 static void vkms_release(struct drm_device *dev)
 {
 	struct vkms_device *vkms = drm_device_to_vkms_device(dev);
+	struct vkms_crtc *vkms_crtc;
 
-	if (vkms->output.composer_workq)
-		destroy_workqueue(vkms->output.composer_workq);
+	list_for_each_entry(vkms_crtc, &vkms->crtcs, list) {
+		if (vkms_crtc->composer_workq)
+			destroy_workqueue(vkms_crtc->composer_workq);
+	}
 }
 
 static void vkms_atomic_commit_tail(struct drm_atomic_state *old_state)
@@ -177,6 +180,7 @@ static int vkms_create(struct vkms_config *config)
 	}
 	vkms_device->platform = pdev;
 	vkms_device->config = config;
+	vkms_device->crtcs = (struct list_head)LIST_HEAD_INIT(vkms_device->crtcs);
 	config->dev = vkms_device;
 
 	ret = dma_coerce_mask_and_coherent(vkms_device->drm.dev,
