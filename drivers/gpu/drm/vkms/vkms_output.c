@@ -74,6 +74,7 @@ int vkms_output_init(struct vkms_device *vkmsdev, int index)
 	struct drm_device *dev = &vkmsdev->drm;
 	struct drm_connector *connector = &output->connector;
 	struct drm_encoder *encoder;
+	struct vkms_config_encoder *encoder_cfg;
 	struct vkms_crtc *vkms_crtc;
 	struct vkms_config_crtc *crtc_cfg;
 	struct vkms_plane *primary, *cursor = NULL;
@@ -122,9 +123,11 @@ int vkms_output_init(struct vkms_device *vkmsdev, int index)
 
 	drm_connector_helper_add(connector, &vkms_conn_helper_funcs);
 
-	encoder = vkms_encoder_init(vkmsdev, BIT(0));
-	if (IS_ERR(encoder))
-		return PTR_ERR(encoder);
+	list_for_each_entry(encoder_cfg, &vkmsdev->config->encoders, list) {
+		encoder = vkms_encoder_init(vkmsdev, encoder_cfg->possible_crtcs);
+		if (IS_ERR(encoder))
+			return PTR_ERR(encoder);
+	}
 
 	ret = drm_connector_attach_encoder(connector, encoder);
 	if (ret) {

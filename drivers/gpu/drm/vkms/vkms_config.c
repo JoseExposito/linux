@@ -18,6 +18,7 @@ struct vkms_config *vkms_config_create(char *dev_name)
 
 	config->dev_name = dev_name;
 	config->crtcs = (struct list_head)LIST_HEAD_INIT(config->crtcs);
+	config->encoders = (struct list_head)LIST_HEAD_INIT(config->encoders);
 
 	return config;
 }
@@ -40,15 +41,23 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 	if (ret)
 		return ERR_PTR(ret);
 
+	ret = vkms_config_add_encoder(config, BIT(0));
+	if (ret)
+		return ERR_PTR(ret);
+
 	return config;
 }
 
 void vkms_config_destroy(struct vkms_config *config)
 {
 	struct vkms_config_crtc *crtc_cfg;
+	struct vkms_config_encoder *encoder_cfg;
 
 	list_for_each_entry(crtc_cfg, &config->crtcs, list)
 		kfree(crtc_cfg);
+
+	list_for_each_entry(encoder_cfg, &config->encoders, list)
+		kfree(encoder_cfg);
 
 	kfree(config);
 }
@@ -59,6 +68,7 @@ static int vkms_config_show(struct seq_file *m, void *data)
 	struct drm_device *dev = entry->dev;
 	struct vkms_device *vkmsdev = drm_device_to_vkms_device(dev);
 	struct vkms_config_crtc *crtc_cfg;
+	struct vkms_config_encoder *encoder_cfg;
 	int n;
 
 	seq_printf(m, "dev_name=%s\n", vkmsdev->config->dev_name);
@@ -69,6 +79,13 @@ static int vkms_config_show(struct seq_file *m, void *data)
 	list_for_each_entry(crtc_cfg, &vkmsdev->config->crtcs, list) {
 		seq_printf(m, "crtc(%d).writeback=%d\n", n,
 			   crtc_cfg->writeback);
+		n++;
+	}
+
+	n = 0;
+	list_for_each_entry(encoder_cfg, &vkmsdev->config->encoders, list) {
+		seq_printf(m, "encoder(%d).possible_crtcs=%d\n", n,
+			   encoder_cfg->possible_crtcs);
 		n++;
 	}
 
@@ -95,6 +112,20 @@ int vkms_config_add_crtc(struct vkms_config *config, bool enable_writeback)
 
 	crtc_cfg->writeback = enable_writeback;
 	list_add_tail(&crtc_cfg->list, &config->crtcs);
+
+	return 0;
+}
+
+int vkms_config_add_encoder(struct vkms_config *config, uint32_t possible_crtcs)
+{
+	struct vkms_config_encoder *encoder_cfg;
+
+	encoder_cfg = kzalloc(sizeof(*encoder_cfg), GFP_KERNEL);
+	if (!encoder_cfg)
+		return -ENOMEM;
+
+	encoder_cfg->possible_crtcs = possible_crtcs;
+	list_add_tail(&encoder_cfg->list, &config->encoders);
 
 	return 0;
 }
