@@ -122,7 +122,6 @@ struct vkms_crtc {
 struct vkms_config;
 
 struct vkms_output {
-	struct drm_encoder encoder;
 	struct drm_connector connector;
 };
 
