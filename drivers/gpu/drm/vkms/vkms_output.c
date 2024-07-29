@@ -98,6 +98,7 @@ int vkms_output_init(struct vkms_device *vkmsdev, int index)
 {
 	struct drm_device *dev = &vkmsdev->drm;
 	struct drm_connector *connector;
+	struct vkms_config_connector *connector_cfg;
 	struct drm_encoder *encoder;
 	struct vkms_config_encoder *encoder_cfg;
 	struct vkms_crtc *vkms_crtc;
@@ -139,14 +140,16 @@ int vkms_output_init(struct vkms_device *vkmsdev, int index)
 		}
 	}
 
-	connector = vkms_connector_init(vkmsdev, BIT(index));
-	if (IS_ERR(connector))
-		return PTR_ERR(connector);
-
 	list_for_each_entry(encoder_cfg, &vkmsdev->config->encoders, list) {
 		encoder = vkms_encoder_init(vkmsdev, encoder_cfg->possible_crtcs);
 		if (IS_ERR(encoder))
 			return PTR_ERR(encoder);
+	}
+
+	list_for_each_entry(connector_cfg, &vkmsdev->config->connectors, list) {
+		connector = vkms_connector_init(vkmsdev, connector_cfg->possible_encoders);
+		if (IS_ERR(connector))
+			return PTR_ERR(connector);
 	}
 
 	drm_mode_config_reset(dev);
