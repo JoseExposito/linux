@@ -19,6 +19,7 @@ struct vkms_config *vkms_config_create(char *dev_name)
 	config->dev_name = dev_name;
 	config->crtcs = (struct list_head)LIST_HEAD_INIT(config->crtcs);
 	config->encoders = (struct list_head)LIST_HEAD_INIT(config->encoders);
+	config->connectors = (struct list_head)LIST_HEAD_INIT(config->connectors);
 
 	return config;
 }
@@ -30,6 +31,7 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 	struct vkms_config *config;
 	struct vkms_config_crtc *crtc_cfg;
 	struct vkms_config_encoder *encoder_cfg;
+	struct vkms_config_connector *connector_cfg;
 
 	config = vkms_config_create(DEFAULT_DEVICE_NAME);
 	if (IS_ERR(config))
@@ -46,6 +48,10 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 	if (IS_ERR(encoder_cfg))
 		return ERR_CAST(encoder_cfg);
 
+	connector_cfg = vkms_config_add_connector(config, BIT(0));
+	if (IS_ERR(connector_cfg))
+		return ERR_CAST(connector_cfg);
+
 	return config;
 }
 
@@ -53,12 +59,16 @@ void vkms_config_destroy(struct vkms_config *config)
 {
 	struct vkms_config_crtc *crtc_cfg, *crtc_tmp;
 	struct vkms_config_encoder *encoder_cfg, *encoder_tmp;
+	struct vkms_config_connector *connector_cfg, *connector_tmp;
 
 	list_for_each_entry_safe(crtc_cfg, crtc_tmp, &config->crtcs, list)
 		vkms_config_destroy_crtc(config, crtc_cfg);
 
 	list_for_each_entry_safe(encoder_cfg, encoder_tmp, &config->encoders, list)
 		vkms_config_destroy_encoder(config, encoder_cfg);
+
+	list_for_each_entry_safe(connector_cfg, connector_tmp, &config->connectors, list)
+		vkms_config_destroy_connector(config, connector_cfg);
 
 	kfree(config);
 }
@@ -70,6 +80,7 @@ static int vkms_config_show(struct seq_file *m, void *data)
 	struct vkms_device *vkmsdev = drm_device_to_vkms_device(dev);
 	struct vkms_config_crtc *crtc_cfg;
 	struct vkms_config_encoder *encoder_cfg;
+	struct vkms_config_connector *connector_cfg;
 	int n;
 
 	seq_printf(m, "dev_name=%s\n", vkmsdev->config->dev_name);
@@ -87,6 +98,13 @@ static int vkms_config_show(struct seq_file *m, void *data)
 	list_for_each_entry(encoder_cfg, &vkmsdev->config->encoders, list) {
 		seq_printf(m, "encoder(%d).possible_crtcs=%d\n", n,
 			   encoder_cfg->possible_crtcs);
+		n++;
+	}
+
+	n = 0;
+	list_for_each_entry(connector_cfg, &vkmsdev->config->connectors, list) {
+		seq_printf(m, "connector(%d).possible_encoders=%d\n", n,
+			   connector_cfg->possible_encoders);
 		n++;
 	}
 
@@ -165,4 +183,26 @@ void vkms_config_destroy_encoder(struct vkms_config *config,
 {
 	list_del(&encoder_cfg->list);
 	kfree(encoder_cfg);
+}
+
+struct vkms_config_connector *vkms_config_add_connector(struct vkms_config *config,
+							uint32_t possible_encoders)
+{
+	struct vkms_config_connector *connector_cfg;
+
+	connector_cfg = kzalloc(sizeof(*connector_cfg), GFP_KERNEL);
+	if (!connector_cfg)
+		return ERR_PTR(-ENOMEM);
+
+	connector_cfg->possible_encoders = possible_encoders;
+	list_add_tail(&connector_cfg->list, &config->connectors);
+
+	return connector_cfg;
+}
+
+void vkms_config_destroy_connector(struct vkms_config *config,
+				   struct vkms_config_connector *connector_cfg)
+{
+	list_del(&connector_cfg->list);
+	kfree(connector_cfg);
 }

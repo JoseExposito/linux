@@ -20,12 +20,18 @@ struct vkms_config_encoder {
 	uint32_t possible_crtcs;
 };
 
+struct vkms_config_connector {
+	struct list_head list;
+	uint32_t possible_encoders;
+};
+
 struct vkms_config {
 	char *dev_name;
 	bool cursor;
 	bool overlay;
 	struct list_head crtcs;
 	struct list_head encoders;
+	struct list_head connectors;
 	/* only set when instantiated */
 	struct vkms_device *dev;
 };
@@ -51,5 +57,11 @@ struct vkms_config_encoder *vkms_config_add_encoder(struct vkms_config *config,
 						    uint32_t possible_crtcs);
 void vkms_config_destroy_encoder(struct vkms_config *config,
 				 struct vkms_config_encoder *encoder_cfg);
+
+/* Connectors */
+struct vkms_config_connector *vkms_config_add_connector(struct vkms_config *config,
+							uint32_t possible_encoders);
+void vkms_config_destroy_connector(struct vkms_config *config,
+				   struct vkms_config_connector *connector_cfg);
 
 #endif /* _VKMS_CONFIG_H_ */
