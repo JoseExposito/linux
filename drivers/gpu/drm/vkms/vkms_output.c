@@ -9,7 +9,6 @@
 
 static const struct drm_connector_funcs vkms_connector_funcs = {
 	.fill_modes = drm_helper_probe_single_connector_modes,
-	.destroy = drm_connector_cleanup,
 	.reset = drm_atomic_helper_connector_reset,
 	.atomic_duplicate_state = drm_atomic_helper_connector_duplicate_state,
 	.atomic_destroy_state = drm_atomic_helper_connector_destroy_state,
@@ -28,6 +27,33 @@ static int vkms_conn_get_modes(struct drm_connector *connector)
 static const struct drm_connector_helper_funcs vkms_conn_helper_funcs = {
 	.get_modes    = vkms_conn_get_modes,
 };
+
+static struct drm_connector *vkms_connector_init(struct vkms_device *vkms_device,
+						 uint32_t possible_encoders)
+{
+	struct drm_connector *connector;
+	int ret;
+
+	connector = drmm_kzalloc(&vkms_device->drm, sizeof(*connector), GFP_KERNEL);
+	if (!connector) {
+		DRM_ERROR("Failed to allocate connector\n");
+		return ERR_PTR(-ENOMEM);
+	}
+
+	ret = drmm_connector_init(&vkms_device->drm, connector,
+				  &vkms_connector_funcs,
+				  DRM_MODE_CONNECTOR_VIRTUAL, NULL);
+	if (ret) {
+		DRM_ERROR("Failed to init connector\n");
+		kfree(connector);
+		return ERR_PTR(ret);
+	}
+
+	connector->possible_encoders = possible_encoders;
+	drm_connector_helper_add(connector, &vkms_conn_helper_funcs);
+
+	return connector;
+}
 
 static struct drm_encoder *vkms_encoder_init(struct vkms_device *vkms_device,
 					     uint32_t possible_crtcs)
@@ -70,9 +96,8 @@ static int vkms_add_overlay_plane(struct vkms_device *vkmsdev, int index)
 
 int vkms_output_init(struct vkms_device *vkmsdev, int index)
 {
-	struct vkms_output *output = &vkmsdev->output;
 	struct drm_device *dev = &vkmsdev->drm;
-	struct drm_connector *connector = &output->connector;
+	struct drm_connector *connector;
 	struct drm_encoder *encoder;
 	struct vkms_config_encoder *encoder_cfg;
 	struct vkms_crtc *vkms_crtc;
@@ -114,14 +139,9 @@ int vkms_output_init(struct vkms_device *vkmsdev, int index)
 		}
 	}
 
-	ret = drm_connector_init(dev, connector, &vkms_connector_funcs,
-				 DRM_MODE_CONNECTOR_VIRTUAL);
-	if (ret) {
-		DRM_ERROR("Failed to init connector\n");
-		return ret;
-	}
-
-	drm_connector_helper_add(connector, &vkms_conn_helper_funcs);
+	connector = vkms_connector_init(vkmsdev, BIT(index));
+	if (IS_ERR(connector))
+		return PTR_ERR(connector);
 
 	list_for_each_entry(encoder_cfg, &vkmsdev->config->encoders, list) {
 		encoder = vkms_encoder_init(vkmsdev, encoder_cfg->possible_crtcs);
@@ -129,18 +149,7 @@ int vkms_output_init(struct vkms_device *vkmsdev, int index)
 			return PTR_ERR(encoder);
 	}
 
-	ret = drm_connector_attach_encoder(connector, encoder);
-	if (ret) {
-		DRM_ERROR("Failed to attach connector to encoder\n");
-		goto err_attach;
-	}
-
 	drm_mode_config_reset(dev);
 
 	return 0;
-
-err_attach:
-	drm_connector_cleanup(connector);
-
-	return ret;
 }

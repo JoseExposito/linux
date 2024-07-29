@@ -121,14 +121,9 @@ struct vkms_crtc {
 
 struct vkms_config;
 
-struct vkms_output {
-	struct drm_connector connector;
-};
-
 struct vkms_device {
 	struct drm_device drm;
 	struct platform_device *platform;
-	struct vkms_output output;
 	struct list_head crtcs;
 	const struct vkms_config *config;
 };
