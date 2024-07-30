@@ -7,7 +7,25 @@
 #include <drm/drm_managed.h>
 #include <drm/drm_probe_helper.h>
 
+static enum drm_connector_status vkms_connector_detect(struct drm_connector *connector,
+						       bool force)
+{
+	struct vkms_device *vkmsdev = drm_device_to_vkms_device(connector->dev);
+	enum drm_connector_status status = connector->status;
+	struct vkms_config_connector *connector_cfg;
+
+	list_for_each_entry(connector_cfg, &vkmsdev->config->connectors, list) {
+		if (connector_cfg->connector == connector) {
+			status = connector_cfg->status;
+			break;
+		}
+	}
+
+	return status;
+}
+
 static const struct drm_connector_funcs vkms_connector_funcs = {
+	.detect = vkms_connector_detect,
 	.fill_modes = drm_helper_probe_single_connector_modes,
 	.reset = drm_atomic_helper_connector_reset,
 	.atomic_duplicate_state = drm_atomic_helper_connector_duplicate_state,
@@ -151,6 +169,8 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 		connector = vkms_connector_init(vkmsdev, connector_cfg->possible_encoders);
 		if (IS_ERR(connector))
 			return PTR_ERR(connector);
+
+		connector_cfg->connector = connector;
 	}
 
 	drm_mode_config_reset(dev);

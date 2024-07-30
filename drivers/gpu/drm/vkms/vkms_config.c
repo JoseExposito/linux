@@ -3,6 +3,7 @@
 #include <linux/slab.h>
 
 #include <drm/drm_print.h>
+#include <drm/drm_probe_helper.h>
 #include <drm/drm_debugfs.h>
 
 #include "vkms_config.h"
@@ -53,7 +54,7 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 	if (ret)
 		return ERR_PTR(ret);
 
-	ret = vkms_config_add_connector(config, BIT(0));
+	ret = vkms_config_add_connector(config, BIT(0), connector_status_connected);
 	if (ret)
 		return ERR_PTR(ret);
 
@@ -121,6 +122,8 @@ static int vkms_config_show(struct seq_file *m, void *data)
 	list_for_each_entry(connector_cfg, &vkmsdev->config->connectors, list) {
 		seq_printf(m, "connector(%d).possible_encoders=%d\n", n,
 			   connector_cfg->possible_encoders);
+		seq_printf(m, "connector(%d).status=%d\n", n,
+			   connector_cfg->status);
 		n++;
 	}
 
@@ -183,7 +186,8 @@ int vkms_config_add_encoder(struct vkms_config *config, uint32_t possible_crtcs)
 }
 
 int vkms_config_add_connector(struct vkms_config *config,
-			      uint32_t possible_encoders)
+			      uint32_t possible_encoders,
+			      enum drm_connector_status status)
 {
 	struct vkms_config_connector *connector_cfg;
 
@@ -192,7 +196,23 @@ int vkms_config_add_connector(struct vkms_config *config,
 		return -ENOMEM;
 
 	connector_cfg->possible_encoders = possible_encoders;
+	connector_cfg->status = status;
 	list_add_tail(&connector_cfg->list, &config->connectors);
 
 	return 0;
+}
+
+void vkms_update_connector_status(struct vkms_config *config,
+				  struct drm_connector *connector,
+				  enum drm_connector_status status)
+{
+	struct vkms_config_connector *connector_cfg;
+
+	list_for_each_entry(connector_cfg, &config->connectors, list) {
+		if (connector_cfg->connector == connector) {
+			connector_cfg->status = status;
+			drm_kms_helper_hotplug_event(connector->dev);
+			break;
+		}
+	}
 }

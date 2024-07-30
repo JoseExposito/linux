@@ -6,6 +6,8 @@
 #include <linux/list.h>
 #include <linux/types.h>
 
+#include <drm/drm_connector.h>
+
 struct vkms_device;
 
 struct vkms_config_plane {
@@ -27,6 +29,9 @@ struct vkms_config_encoder {
 struct vkms_config_connector {
 	struct list_head list;
 	uint32_t possible_encoders;
+	enum drm_connector_status status;
+	/* only set when instantiated */
+	struct drm_connector *connector;
 };
 
 struct vkms_config {
@@ -53,6 +58,11 @@ int vkms_config_add_crtc(struct vkms_config *config, bool enable_cursor,
 			 bool enable_writeback);
 int vkms_config_add_encoder(struct vkms_config *config, uint32_t possible_crtcs);
 int vkms_config_add_connector(struct vkms_config *config,
-			      uint32_t possible_encoders);
+			      uint32_t possible_encoders,
+			      enum drm_connector_status status);
+
+void vkms_update_connector_status(struct vkms_config *config,
+				  struct drm_connector *connector,
+				  enum drm_connector_status status);
 
 #endif /* _VKMS_CONFIG_H_ */
