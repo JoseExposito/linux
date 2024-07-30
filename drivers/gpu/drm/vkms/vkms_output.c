@@ -80,21 +80,22 @@ static struct drm_encoder *vkms_encoder_init(struct vkms_device *vkms_device,
 	return encoder;
 }
 
-static int vkms_add_overlay_plane(struct vkms_device *vkmsdev, int index)
+static int vkms_add_overlay_plane(struct vkms_device *vkmsdev,
+				  uint32_t possible_crtcs)
 {
 	struct vkms_plane *overlay;
 
-	overlay = vkms_plane_init(vkmsdev, DRM_PLANE_TYPE_OVERLAY, index);
+	overlay = vkms_plane_init(vkmsdev, DRM_PLANE_TYPE_OVERLAY, possible_crtcs);
 	if (IS_ERR(overlay))
 		return PTR_ERR(overlay);
 
 	if (!overlay->base.possible_crtcs)
-		overlay->base.possible_crtcs = BIT(index);
+		overlay->base.possible_crtcs = possible_crtcs;
 
 	return 0;
 }
 
-int vkms_output_init(struct vkms_device *vkmsdev, int index)
+int vkms_output_init(struct vkms_device *vkmsdev)
 {
 	struct drm_device *dev = &vkmsdev->drm;
 	struct drm_connector *connector;
@@ -104,29 +105,27 @@ int vkms_output_init(struct vkms_device *vkmsdev, int index)
 	struct vkms_crtc *vkms_crtc;
 	struct vkms_config_crtc *crtc_cfg;
 	struct vkms_plane *primary, *cursor = NULL;
+	struct vkms_config_plane *plane_cfg;
 	int ret;
 	int writeback;
-	unsigned int n;
 
-	primary = vkms_plane_init(vkmsdev, DRM_PLANE_TYPE_PRIMARY, index);
-	if (IS_ERR(primary))
-		return PTR_ERR(primary);
-
-	if (vkmsdev->config->overlay) {
-		for (n = 0; n < NUM_OVERLAY_PLANES; n++) {
-			ret = vkms_add_overlay_plane(vkmsdev, index);
-			if (ret)
-				return ret;
-		}
-	}
-
-	if (vkmsdev->config->cursor) {
-		cursor = vkms_plane_init(vkmsdev, DRM_PLANE_TYPE_CURSOR, index);
-		if (IS_ERR(cursor))
-			return PTR_ERR(cursor);
+	list_for_each_entry(plane_cfg, &vkmsdev->config->planes, list) {
+		ret = vkms_add_overlay_plane(vkmsdev, plane_cfg->possible_crtcs);
+		if (ret)
+			return ret;
 	}
 
 	list_for_each_entry(crtc_cfg, &vkmsdev->config->crtcs, list) {
+		primary = vkms_plane_init(vkmsdev, DRM_PLANE_TYPE_PRIMARY, 0);
+		if (IS_ERR(primary))
+			return PTR_ERR(primary);
+
+		if (crtc_cfg->cursor) {
+			cursor = vkms_plane_init(vkmsdev, DRM_PLANE_TYPE_CURSOR, 0);
+			if (IS_ERR(cursor))
+				return PTR_ERR(cursor);
+		}
+
 		vkms_crtc = vkms_crtc_init(dev, &primary->base, &cursor->base);
 		if (IS_ERR(vkms_crtc))
 			return PTR_ERR(vkms_crtc);
@@ -138,6 +137,8 @@ int vkms_output_init(struct vkms_device *vkmsdev, int index)
 			if (writeback)
 				DRM_ERROR("Failed to init writeback connector\n");
 		}
+
+		cursor = NULL;
 	}
 
 	list_for_each_entry(encoder_cfg, &vkmsdev->config->encoders, list) {
