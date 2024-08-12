@@ -17,6 +17,8 @@ static bool is_configfs_registered;
  * @vkms_config: Configuration of the VKMS device
  * @device_group: Top level configuration group that represents a VKMS device.
  * Initialized when a new directory is created under "/config/vkms/"
+ * @crtcs_group: Default subgroup of @device_group at "/config/vkms/crtcs".
+ * Each of its items represent a CRTC
  * @lock: Lock used to project concurrent access to the configuration attributes
  * @enabled: Protected by @lock. The device is created or destroyed when this
  * option changes
@@ -24,6 +26,7 @@ static bool is_configfs_registered;
 struct vkms_configfs {
 	struct vkms_config *vkms_config;
 	struct config_group device_group;
+	struct config_group crtcs_group;
 
 	/* protected by @lock */
 	struct mutex lock;
@@ -32,6 +35,141 @@ struct vkms_configfs {
 
 #define config_item_to_vkms_configfs(item) \
 	container_of(to_config_group(item), struct vkms_configfs, device_group)
+
+#define crtcs_group_to_vkms_configfs(group) \
+	container_of(group, struct vkms_configfs, crtcs_group)
+
+#define crtcs_item_to_vkms_configfs(item) \
+	container_of(to_config_group(item), struct vkms_configfs, crtcs_group)
+
+#define crtcs_item_to_vkms_config_crtc(item) \
+	container_of(to_config_group(item), struct vkms_config_crtc, crtc_group)
+
+static ssize_t crtc_cursor_show(struct config_item *item, char *page)
+{
+	struct vkms_config_crtc *crtc_cfg = crtcs_item_to_vkms_config_crtc(item);
+
+	return sprintf(page, "%d\n", crtc_cfg->cursor);
+}
+
+static ssize_t crtc_cursor_store(struct config_item *item, const char *page,
+				 size_t count)
+{
+	struct vkms_configfs *configfs = crtcs_item_to_vkms_configfs(item->ci_parent);
+	struct vkms_config_crtc *crtc_cfg = crtcs_item_to_vkms_config_crtc(item);
+	bool cursor;
+
+	if (kstrtobool(page, &cursor))
+		return -EINVAL;
+
+	mutex_lock(&configfs->lock);
+
+	if (configfs->enabled) {
+		mutex_unlock(&configfs->lock);
+		return -EINVAL;
+	}
+
+	crtc_cfg->cursor = cursor;
+
+	mutex_unlock(&configfs->lock);
+
+	return (ssize_t)count;
+}
+
+static ssize_t crtc_writeback_show(struct config_item *item, char *page)
+{
+	struct vkms_config_crtc *crtc_cfg = crtcs_item_to_vkms_config_crtc(item);
+
+	return sprintf(page, "%d\n", crtc_cfg->writeback);
+}
+
+static ssize_t crtc_writeback_store(struct config_item *item, const char *page,
+				    size_t count)
+{
+	struct vkms_configfs *configfs = crtcs_item_to_vkms_configfs(item->ci_parent);
+	struct vkms_config_crtc *crtc_cfg = crtcs_item_to_vkms_config_crtc(item);
+	bool writeback;
+
+	if (kstrtobool(page, &writeback))
+		return -EINVAL;
+
+	mutex_lock(&configfs->lock);
+
+	if (configfs->enabled) {
+		mutex_unlock(&configfs->lock);
+		return -EINVAL;
+	}
+
+	crtc_cfg->writeback = writeback;
+
+	mutex_unlock(&configfs->lock);
+
+	return (ssize_t)count;
+}
+
+CONFIGFS_ATTR(crtc_, cursor);
+CONFIGFS_ATTR(crtc_, writeback);
+
+static struct configfs_attribute *crtc_group_attrs[] = {
+	&crtc_attr_cursor,
+	&crtc_attr_writeback,
+	NULL,
+};
+
+static const struct config_item_type crtc_group_type = {
+	.ct_attrs = crtc_group_attrs,
+	.ct_owner = THIS_MODULE,
+};
+
+static struct config_group *make_crtcs_group(struct config_group *group,
+					     const char *name)
+{
+	struct vkms_configfs *configfs = crtcs_group_to_vkms_configfs(group);
+	struct vkms_config_crtc *crtc_cfg;
+	int ret;
+
+	mutex_lock(&configfs->lock);
+
+	if (configfs->enabled) {
+		ret = -EINVAL;
+		goto err_unlock;
+	}
+
+	crtc_cfg = vkms_config_add_crtc(configfs->vkms_config, false, false);
+	if (IS_ERR(crtc_cfg)) {
+		ret = PTR_ERR(crtc_cfg);
+		goto err_unlock;
+	}
+
+	config_group_init_type_name(&crtc_cfg->crtc_group, name, &crtc_group_type);
+
+	mutex_unlock(&configfs->lock);
+
+	return &crtc_cfg->crtc_group;
+
+err_unlock:
+	mutex_unlock(&configfs->lock);
+	return ERR_PTR(ret);
+}
+
+static void drop_crtcs_group(struct config_group *group,
+			     struct config_item *item)
+{
+	struct vkms_configfs *configfs = crtcs_group_to_vkms_configfs(group);
+	struct vkms_config_crtc *crtc_cfg = crtcs_item_to_vkms_config_crtc(item);
+
+	vkms_config_destroy_crtc(configfs->vkms_config, crtc_cfg);
+}
+
+static struct configfs_group_operations crtcs_group_ops = {
+	.make_group = &make_crtcs_group,
+	.drop_item = &drop_crtcs_group,
+};
+
+static struct config_item_type crtcs_group_type = {
+	.ct_group_ops = &crtcs_group_ops,
+	.ct_owner = THIS_MODULE,
+};
 
 static ssize_t device_enabled_show(struct config_item *item, char *page)
 {
@@ -87,7 +225,6 @@ static struct config_group *make_device_group(struct config_group *group,
 					      const char *name)
 {
 	struct vkms_configfs *configfs;
-	struct vkms_config_crtc *crtc_cfg = NULL;
 	struct vkms_config_encoder *encoder_cfg = NULL;
 	struct vkms_config_connector *connector_cfg = NULL;
 	char *config_name;
@@ -110,11 +247,10 @@ static struct config_group *make_device_group(struct config_group *group,
 		goto err_kfree;
 	}
 
-	crtc_cfg = vkms_config_add_crtc(configfs->vkms_config, false, false);
-	if (IS_ERR(crtc_cfg)) {
-		ret = PTR_ERR(crtc_cfg);
-		goto err_kfree;
-	}
+	config_group_init_type_name(&configfs->crtcs_group, "crtcs",
+				    &crtcs_group_type);
+	configfs_add_default_group(&configfs->crtcs_group,
+				   &configfs->device_group);
 
 	encoder_cfg = vkms_config_add_encoder(configfs->vkms_config, BIT(0));
 	if (IS_ERR(encoder_cfg)) {
@@ -133,7 +269,6 @@ static struct config_group *make_device_group(struct config_group *group,
 
 err_kfree:
 	kfree(configfs);
-	kfree(crtc_cfg);
 	kfree(encoder_cfg);
 	kfree(connector_cfg);
 	return ERR_PTR(ret);

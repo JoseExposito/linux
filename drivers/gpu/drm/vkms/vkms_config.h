@@ -3,6 +3,7 @@
 #ifndef _VKMS_CONFIG_H_
 #define _VKMS_CONFIG_H_
 
+#include <linux/configfs.h>
 #include <linux/list.h>
 #include <linux/types.h>
 
@@ -20,6 +21,8 @@ struct vkms_config_crtc {
 	unsigned int index;
 	bool cursor;
 	bool writeback;
+	/* only used if created from configfs */
+	struct config_group crtc_group;
 };
 
 struct vkms_config_encoder {
