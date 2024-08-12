@@ -76,7 +76,8 @@ And directories are created for each configurable item of the display pipeline::
   tree /config/vkms/my-vkms
     /config/vkms/my-vkms
     ├── crtcs
-    └── enabled
+    ├── enabled
+    └── encoders
 
 To add items to the display pipeline, create one or more directories under the
 available paths.
@@ -90,6 +91,15 @@ CRTCs have 2 configurable attributes:
 - cursor: Enable or disable cursor plane support
 - writeback: Enable or disable writeback connector support
 
+Continue by creating one or more encoders::
+
+  sudo mkdir /config/vkms/my-vkms/encoders/encoder0
+
+Encoders can be linked to CRTCs by creating a symbolic link under
+``possible_crtcs``::
+
+  sudo ln -s /config/vkms/my-vkms/crtcs/crtc0 /config/vkms/my-vkms/encoders/encoder0/possible_crtcs
+
 Once you are done configuring the VKMS instance, enable it::
 
   echo "1" | sudo tee /config/vkms/my-vkms/enabled
@@ -100,6 +110,8 @@ Finally, you can remove the VKMS instance disabling it::
 
 Or removing the top level directory and its subdirectories::
 
+  sudo rm /config/vkms/my-vkms/encoders/*/possible_crtcs/*
+  sudo rmdir /config/vkms/my-vkms/encoders/*
   sudo rmdir /config/vkms/my-vkms/crtcs/*
   sudo rmdir /config/vkms/my-vkms
 

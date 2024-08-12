@@ -29,6 +29,9 @@ struct vkms_config_encoder {
 	struct list_head list;
 	unsigned int index;
 	uint32_t possible_crtcs;
+	/* only used if created from configfs */
+	struct config_group encoder_group;
+	struct config_group possible_crtcs_group;
 };
 
 struct vkms_config_connector {
