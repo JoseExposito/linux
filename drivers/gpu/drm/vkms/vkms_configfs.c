@@ -23,6 +23,8 @@ static bool is_configfs_registered;
  * "/config/vkms/encoders". Each of its items represent a encoder
  * @connectors_group: Default subgroup of @device_group at
  * "/config/vkms/connectors". Each of its items represent a connector
+ * @planes_group: Default subgroup of @device_group at "/config/vkms/planes".
+ * Each of its items represent an overlay plane
  * @lock: Lock used to project concurrent access to the configuration attributes
  * @enabled: Protected by @lock. The device is created or destroyed when this
  * option changes
@@ -33,6 +35,7 @@ struct vkms_configfs {
 	struct config_group crtcs_group;
 	struct config_group encoders_group;
 	struct config_group connectors_group;
+	struct config_group planes_group;
 
 	/* protected by @lock */
 	struct mutex lock;
@@ -71,6 +74,15 @@ struct vkms_configfs {
 
 #define connector_possible_encoders_item_to_vkms_config_connector(item) \
 	container_of(to_config_group(item), struct vkms_config_connector, possible_encoders_group)
+
+#define planes_group_to_vkms_configfs(group) \
+	container_of(group, struct vkms_configfs, planes_group)
+
+#define planes_item_to_vkms_config_plane(item) \
+	container_of(to_config_group(item), struct vkms_config_plane, plane_group)
+
+#define plane_possible_crtcs_item_to_vkms_config_plane(item) \
+	container_of(to_config_group(item), struct vkms_config_plane, possible_crtcs_group)
 
 static ssize_t crtc_cursor_show(struct config_item *item, char *page)
 {
@@ -450,6 +462,110 @@ static struct config_item_type connectors_group_type = {
 	.ct_owner = THIS_MODULE,
 };
 
+static int plane_possible_crtcs_allow_link(struct config_item *src,
+					   struct config_item *target)
+{
+	struct vkms_config_plane *plane_cfg;
+	struct vkms_config_crtc *crtc_cfg;
+
+	if (target->ci_type != &crtc_group_type)
+		return -EINVAL;
+
+	plane_cfg = plane_possible_crtcs_item_to_vkms_config_plane(src);
+	crtc_cfg = crtcs_item_to_vkms_config_crtc(target);
+
+	if (plane_cfg->possible_crtcs & BIT(crtc_cfg->index))
+		return -EINVAL;
+
+	plane_cfg->possible_crtcs |= BIT(crtc_cfg->index);
+
+	return 0;
+}
+
+static void plane_possible_crtcs_drop_link(struct config_item *src,
+					   struct config_item *target)
+{
+	struct vkms_config_plane *plane_cfg;
+	struct vkms_config_crtc *crtc_cfg;
+
+	plane_cfg = plane_possible_crtcs_item_to_vkms_config_plane(src);
+	crtc_cfg = crtcs_item_to_vkms_config_crtc(target);
+
+	plane_cfg->possible_crtcs &= ~BIT(crtc_cfg->index);
+}
+
+static struct configfs_item_operations plane_possible_crtcs_item_ops = {
+	.allow_link = &plane_possible_crtcs_allow_link,
+	.drop_link = &plane_possible_crtcs_drop_link,
+};
+
+static struct config_item_type plane_possible_crtcs_group_type = {
+	.ct_item_ops = &plane_possible_crtcs_item_ops,
+	.ct_owner = THIS_MODULE,
+};
+
+static const struct config_item_type plane_group_type = {
+	.ct_owner = THIS_MODULE,
+};
+
+static struct config_group *make_planes_group(struct config_group *group,
+					      const char *name)
+{
+	struct vkms_configfs *configfs = planes_group_to_vkms_configfs(group);
+	struct vkms_config_plane *plane_cfg;
+	int ret;
+
+	mutex_lock(&configfs->lock);
+
+	if (configfs->enabled) {
+		ret = -EINVAL;
+		goto err_unlock;
+	}
+
+	plane_cfg = vkms_config_add_overlay_plane(configfs->vkms_config, 0);
+	if (IS_ERR(plane_cfg)) {
+		ret = PTR_ERR(plane_cfg);
+		goto err_unlock;
+	}
+
+	config_group_init_type_name(&plane_cfg->plane_group, name,
+				    &plane_group_type);
+
+	config_group_init_type_name(&plane_cfg->possible_crtcs_group,
+				    "possible_crtcs",
+				    &plane_possible_crtcs_group_type);
+	configfs_add_default_group(&plane_cfg->possible_crtcs_group,
+				   &plane_cfg->plane_group);
+
+	mutex_unlock(&configfs->lock);
+
+	return &plane_cfg->plane_group;
+
+err_unlock:
+	mutex_unlock(&configfs->lock);
+	return ERR_PTR(ret);
+}
+
+static void drop_planes_group(struct config_group *group,
+			      struct config_item *item)
+{
+	struct vkms_configfs *configfs = planes_group_to_vkms_configfs(group);
+	struct vkms_config_plane *plane_cfg =
+		planes_item_to_vkms_config_plane(item);
+
+	vkms_config_destroy_overlay_plane(configfs->vkms_config, plane_cfg);
+}
+
+static struct configfs_group_operations planes_group_ops = {
+	.make_group = &make_planes_group,
+	.drop_item = &drop_planes_group,
+};
+
+static struct config_item_type planes_group_type = {
+	.ct_group_ops = &planes_group_ops,
+	.ct_owner = THIS_MODULE,
+};
+
 static ssize_t device_enabled_show(struct config_item *item, char *page)
 {
 	struct vkms_configfs *configfs = config_item_to_vkms_configfs(item);
@@ -536,6 +652,11 @@ static struct config_group *make_device_group(struct config_group *group,
 	config_group_init_type_name(&configfs->connectors_group, "connectors",
 				    &connectors_group_type);
 	configfs_add_default_group(&configfs->connectors_group,
+				   &configfs->device_group);
+
+	config_group_init_type_name(&configfs->planes_group, "planes",
+				    &planes_group_type);
+	configfs_add_default_group(&configfs->planes_group,
 				   &configfs->device_group);
 
 	return &configfs->device_group;

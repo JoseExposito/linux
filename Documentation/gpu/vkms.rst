@@ -78,7 +78,8 @@ And directories are created for each configurable item of the display pipeline::
     ├── connectors
     ├── crtcs
     ├── enabled
-    └── encoders
+    ├── encoders
+    └── planes
 
 To add items to the display pipeline, create one or more directories under the
 available paths.
@@ -111,6 +112,14 @@ linked to encoders by creating a symbolic link under ``possible_encoders``::
 
   sudo ln -s /config/vkms/my-vkms/encoders/encoder0 /config/vkms/my-vkms/connectors/connector0/possible_encoders
 
+Finally, create zero or more overlay planes::
+
+  sudo mkdir /config/vkms/my-vkms/planes/plane0
+
+And link them with their ``possible_crtcs``::
+
+  sudo ln -s /config/vkms/my-vkms/crtcs/crtc0 /config/vkms/my-vkms/planes/plane0/possible_crtcs
+
 Once you are done configuring the VKMS instance, enable it::
 
   echo "1" | sudo tee /config/vkms/my-vkms/enabled
@@ -128,6 +137,8 @@ Or removing the top level directory and its subdirectories::
   sudo rmdir /config/vkms/my-vkms/connectors/*
   sudo rm /config/vkms/my-vkms/encoders/*/possible_crtcs/*
   sudo rmdir /config/vkms/my-vkms/encoders/*
+  sudo rm /config/vkms/my-vkms/planes/*/possible_crtcs/*
+  sudo rmdir /config/vkms/my-vkms/planes/*
   sudo rmdir /config/vkms/my-vkms/crtcs/*
   sudo rmdir /config/vkms/my-vkms
 

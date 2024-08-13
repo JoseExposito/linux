@@ -14,6 +14,9 @@ struct vkms_device;
 struct vkms_config_plane {
 	struct list_head list;
 	uint32_t possible_crtcs;
+	/* only used if created from configfs */
+	struct config_group plane_group;
+	struct config_group possible_crtcs_group;
 };
 
 struct vkms_config_crtc {
