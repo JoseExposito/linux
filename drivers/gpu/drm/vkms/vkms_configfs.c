@@ -21,6 +21,8 @@ static bool is_configfs_registered;
  * Each of its items represent a CRTC
  * @encoders_group: Default subgroup of @device_group at
  * "/config/vkms/encoders". Each of its items represent a encoder
+ * @connectors_group: Default subgroup of @device_group at
+ * "/config/vkms/connectors". Each of its items represent a connector
  * @lock: Lock used to project concurrent access to the configuration attributes
  * @enabled: Protected by @lock. The device is created or destroyed when this
  * option changes
@@ -30,6 +32,7 @@ struct vkms_configfs {
 	struct config_group device_group;
 	struct config_group crtcs_group;
 	struct config_group encoders_group;
+	struct config_group connectors_group;
 
 	/* protected by @lock */
 	struct mutex lock;
@@ -56,6 +59,18 @@ struct vkms_configfs {
 
 #define encoder_possible_crtcs_item_to_vkms_config_encoder(item) \
 	container_of(to_config_group(item), struct vkms_config_encoder, possible_crtcs_group)
+
+#define connectors_group_to_vkms_configfs(group) \
+	container_of(group, struct vkms_configfs, connectors_group)
+
+#define connectors_item_to_vkms_configfs(item) \
+	container_of(to_config_group(item), struct vkms_configfs, connectors_group)
+
+#define connector_item_to_vkms_config_connector(item) \
+	container_of(to_config_group(item), struct vkms_config_connector, connector_group)
+
+#define connector_possible_encoders_item_to_vkms_config_connector(item) \
+	container_of(to_config_group(item), struct vkms_config_connector, possible_encoders_group)
 
 static ssize_t crtc_cursor_show(struct config_item *item, char *page)
 {
@@ -287,6 +302,154 @@ static struct config_item_type encoders_group_type = {
 	.ct_owner = THIS_MODULE,
 };
 
+static int connector_possible_encoders_allow_link(struct config_item *src,
+						  struct config_item *target)
+{
+	struct vkms_config_connector *connector_cfg;
+	struct vkms_config_encoder *encoder_cfg;
+
+	if (target->ci_type != &encoder_group_type)
+		return -EINVAL;
+
+	connector_cfg = connector_possible_encoders_item_to_vkms_config_connector(src);
+	encoder_cfg = encoders_item_to_vkms_config_encoder(target);
+
+	if (connector_cfg->possible_encoders & BIT(encoder_cfg->index))
+		return -EINVAL;
+
+	connector_cfg->possible_encoders |= BIT(encoder_cfg->index);
+
+	return 0;
+}
+
+static void connector_possible_encoders_drop_link(struct config_item *src,
+						  struct config_item *target)
+{
+	struct vkms_config_connector *connector_cfg;
+	struct vkms_config_encoder *encoder_cfg;
+
+	connector_cfg = connector_possible_encoders_item_to_vkms_config_connector(src);
+	encoder_cfg = encoders_item_to_vkms_config_encoder(target);
+
+	connector_cfg->possible_encoders &= ~BIT(encoder_cfg->index);
+}
+
+static struct configfs_item_operations connector_possible_encoders_item_ops = {
+	.allow_link = &connector_possible_encoders_allow_link,
+	.drop_link = &connector_possible_encoders_drop_link,
+};
+
+static struct config_item_type connector_possible_encoders_group_type = {
+	.ct_item_ops = &connector_possible_encoders_item_ops,
+	.ct_owner = THIS_MODULE,
+};
+
+static ssize_t connector_status_show(struct config_item *item, char *page)
+{
+	struct vkms_config_connector *connector_cfg =
+		connector_item_to_vkms_config_connector(item);
+
+	return sprintf(page, "%d\n", connector_cfg->status);
+}
+
+static ssize_t connector_status_store(struct config_item *item, const char *page,
+				      size_t count)
+{
+	struct vkms_configfs *configfs;
+	struct vkms_config_connector *connector_cfg;
+	int status;
+
+	if (kstrtoint(page, 10, &status))
+		return -EINVAL;
+
+	switch (status) {
+	case connector_status_connected:
+	case connector_status_disconnected:
+	case connector_status_unknown:
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	configfs = connectors_item_to_vkms_configfs(item->ci_parent);
+	connector_cfg = connector_item_to_vkms_config_connector(item);
+
+	vkms_update_connector_status(configfs->vkms_config, connector_cfg, status);
+
+	return (ssize_t)count;
+}
+
+CONFIGFS_ATTR(connector_, status);
+
+static struct configfs_attribute *connector_group_attrs[] = {
+	&connector_attr_status,
+	NULL,
+};
+
+static const struct config_item_type connector_group_type = {
+	.ct_attrs = connector_group_attrs,
+	.ct_owner = THIS_MODULE,
+};
+
+static struct config_group *make_connectors_group(struct config_group *group,
+						  const char *name)
+{
+	struct vkms_configfs *configfs = connectors_group_to_vkms_configfs(group);
+	struct vkms_config_connector *connector_cfg;
+	int ret;
+
+	mutex_lock(&configfs->lock);
+
+	if (configfs->enabled) {
+		ret = -EINVAL;
+		goto err_unlock;
+	}
+
+	connector_cfg = vkms_config_add_connector(configfs->vkms_config, 0,
+						  connector_status_connected);
+	if (IS_ERR(connector_cfg)) {
+		ret = PTR_ERR(connector_cfg);
+		goto err_unlock;
+	}
+
+	config_group_init_type_name(&connector_cfg->connector_group, name,
+				    &connector_group_type);
+
+	config_group_init_type_name(&connector_cfg->possible_encoders_group,
+				    "possible_encoders",
+				    &connector_possible_encoders_group_type);
+	configfs_add_default_group(&connector_cfg->possible_encoders_group,
+				   &connector_cfg->connector_group);
+
+	mutex_unlock(&configfs->lock);
+
+	return &connector_cfg->connector_group;
+
+err_unlock:
+	mutex_unlock(&configfs->lock);
+	return ERR_PTR(ret);
+}
+
+static void drop_connectors_group(struct config_group *group,
+				  struct config_item *item)
+{
+	struct vkms_configfs *configfs = connectors_group_to_vkms_configfs(group);
+	struct vkms_config_connector *connector_cfg =
+		connector_item_to_vkms_config_connector(item);
+
+	vkms_config_destroy_connector(configfs->vkms_config, connector_cfg);
+}
+
+static struct configfs_group_operations connectors_group_ops = {
+	.make_group = &make_connectors_group,
+	.drop_item = &drop_connectors_group,
+};
+
+static struct config_item_type connectors_group_type = {
+	.ct_group_ops = &connectors_group_ops,
+	.ct_owner = THIS_MODULE,
+};
+
 static ssize_t device_enabled_show(struct config_item *item, char *page)
 {
 	struct vkms_configfs *configfs = config_item_to_vkms_configfs(item);
@@ -341,9 +504,7 @@ static struct config_group *make_device_group(struct config_group *group,
 					      const char *name)
 {
 	struct vkms_configfs *configfs;
-	struct vkms_config_connector *connector_cfg = NULL;
 	char *config_name;
-	int ret;
 
 	if (strcmp(name, DEFAULT_DEVICE_NAME) == 0)
 		return ERR_PTR(-EINVAL);
@@ -358,8 +519,8 @@ static struct config_group *make_device_group(struct config_group *group,
 	config_name = config_item_name(&configfs->device_group.cg_item);
 	configfs->vkms_config = vkms_config_create(config_name);
 	if (IS_ERR(configfs->vkms_config)) {
-		ret = PTR_ERR(configfs->vkms_config);
-		goto err_kfree;
+		kfree(configfs);
+		return ERR_CAST(configfs->vkms_config);
 	}
 
 	config_group_init_type_name(&configfs->crtcs_group, "crtcs",
@@ -372,19 +533,12 @@ static struct config_group *make_device_group(struct config_group *group,
 	configfs_add_default_group(&configfs->encoders_group,
 				   &configfs->device_group);
 
-	connector_cfg = vkms_config_add_connector(configfs->vkms_config, BIT(0),
-						  connector_status_connected);
-	if (IS_ERR(connector_cfg)) {
-		ret = PTR_ERR(connector_cfg);
-		goto err_kfree;
-	}
+	config_group_init_type_name(&configfs->connectors_group, "connectors",
+				    &connectors_group_type);
+	configfs_add_default_group(&configfs->connectors_group,
+				   &configfs->device_group);
 
 	return &configfs->device_group;
-
-err_kfree:
-	kfree(configfs);
-	kfree(connector_cfg);
-	return ERR_PTR(ret);
 }
 
 static void drop_device_group(struct config_group *group,

@@ -75,6 +75,7 @@ And directories are created for each configurable item of the display pipeline::
 
   tree /config/vkms/my-vkms
     /config/vkms/my-vkms
+    ├── connectors
     ├── crtcs
     ├── enabled
     └── encoders
@@ -100,9 +101,22 @@ Encoders can be linked to CRTCs by creating a symbolic link under
 
   sudo ln -s /config/vkms/my-vkms/crtcs/crtc0 /config/vkms/my-vkms/encoders/encoder0/possible_crtcs
 
+Next, create one or more connectors::
+
+  sudo mkdir /config/vkms/my-vkms/connectors/connector0
+
+The status of the connector can be changed writing ``1`` (connected), ``2``
+(disconnected) or ``3`` (unknown) to the ``status`` attribute and they can be
+linked to encoders by creating a symbolic link under ``possible_encoders``::
+
+  sudo ln -s /config/vkms/my-vkms/encoders/encoder0 /config/vkms/my-vkms/connectors/connector0/possible_encoders
+
 Once you are done configuring the VKMS instance, enable it::
 
   echo "1" | sudo tee /config/vkms/my-vkms/enabled
+
+Note that the connector ``status`` can be changed once the VKMS instance is
+enabled to emulate hot-plug/unplug.
 
 Finally, you can remove the VKMS instance disabling it::
 
@@ -110,6 +124,8 @@ Finally, you can remove the VKMS instance disabling it::
 
 Or removing the top level directory and its subdirectories::
 
+  sudo rm /config/vkms/my-vkms/connectors/*/possible_encoders/*
+  sudo rmdir /config/vkms/my-vkms/connectors/*
   sudo rm /config/vkms/my-vkms/encoders/*/possible_crtcs/*
   sudo rmdir /config/vkms/my-vkms/encoders/*
   sudo rmdir /config/vkms/my-vkms/crtcs/*

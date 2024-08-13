@@ -40,6 +40,9 @@ struct vkms_config_connector {
 	enum drm_connector_status status;
 	/* only set when instantiated */
 	struct drm_connector *connector;
+	/* only used if created from configfs */
+	struct config_group connector_group;
+	struct config_group possible_encoders_group;
 };
 
 struct vkms_config {
