@@ -50,6 +50,10 @@ static bool enable_overlay;
 module_param_named(enable_overlay, enable_overlay, bool, 0444);
 MODULE_PARM_DESC(enable_overlay, "Enable/Disable overlay support");
 
+static bool create_default_dev = true;
+module_param_named(create_default_dev, create_default_dev, bool, 0444);
+MODULE_PARM_DESC(create_default_dev, "Create or not the default VKMS device");
+
 DEFINE_DRM_GEM_FOPS(vkms_driver_fops);
 
 static void vkms_release(struct drm_device *dev)
@@ -230,9 +234,11 @@ static int __init vkms_init(void)
 
 	default_config = config;
 
-	ret = vkms_create(config);
-	if (ret)
-		goto err_kfree;
+	if (create_default_dev) {
+		ret = vkms_create(config);
+		if (ret)
+			goto err_kfree;
+	}
 
 	ret = vkms_configfs_register();
 	if (ret)
