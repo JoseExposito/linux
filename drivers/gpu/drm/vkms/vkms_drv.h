@@ -204,7 +204,7 @@ struct vkms_config;
 struct vkms_device {
 	struct drm_device drm;
 	struct platform_device *platform;
-	const struct vkms_config *config;
+	struct vkms_config *config;
 };
 
 /*
