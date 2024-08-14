@@ -55,6 +55,16 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 void vkms_config_destroy(struct vkms_config *config);
 
 /**
+ * vkms_config_is_valid() - Validate a configuration
+ * @config: Configuration to validate
+ *
+ * Returns:
+ * Whether the configuration is valid or not.
+ * For example, a configuration without primary planes is not valid.
+ */
+bool vkms_config_is_valid(struct vkms_config *config);
+
+/**
  * vkms_config_register_debugfs() - Register a debugfs file to show the device's
  * configuration
  * @vkms_device: Device to register
