@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-vkms-drop-drm_crtc_cleanup](https://github.com/JoseExposito/linux/tree/patch-vkms-drop-drm_crtc_cleanup) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Drop unnecessary call to drm_crtc_cleanup() in VKMS| 🔨 |
 | [patch-drmm-connector-docs](https://github.com/JoseExposito/linux/tree/patch-drmm-connector-docs) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Document the destroy hook in drmm init functions | 🔀 |
 | [patch-vkms-config](https://github.com/JoseExposito/linux/tree/patch-vkms-config) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Allow to configure VKMS using ConfigFS | ⏳ |
 | [patch-vkms-header-refactor](https://github.com/JoseExposito/linux/tree/patch-vkms-header-refactor) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Extract VKMS structs and functions into headers | 🔨 |
