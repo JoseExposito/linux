@@ -174,8 +174,8 @@ struct vkms_crtc_state {
  * @composer_state: Protected by @lock, current state of this VKMS output
  * @composer_lock: Lock used internally to protect @composer_state members
  */
-struct vkms_output {
-	struct drm_crtc crtc;
+struct vkms_crtc {
+	struct drm_crtc base;
 	struct drm_writeback_connector wb_connector;
 	struct hrtimer vblank_hrtimer;
 	ktime_t period_ns;
@@ -221,8 +221,8 @@ struct vkms_device {
  * The following helpers are used to convert a member of a struct into its parent.
  */
 
-#define drm_crtc_to_vkms_output(target) \
-	container_of(target, struct vkms_output, crtc)
+#define drm_crtc_to_vkms_crtc(target) \
+	container_of(target, struct vkms_crtc, base)
 
 #define drm_device_to_vkms_device(target) \
 	container_of(target, struct vkms_device, drm)
@@ -240,9 +240,9 @@ struct vkms_device {
  * @primary: primary plane to attach to the CRTC
  * @cursor: plane to attach to the CRTC
  */
-struct vkms_output *vkms_crtc_init(struct drm_device *dev,
-				   struct drm_plane *primary,
-				   struct drm_plane *cursor);
+struct vkms_crtc *vkms_crtc_init(struct drm_device *dev,
+				 struct drm_plane *primary,
+				 struct drm_plane *cursor);
 
 /**
  * vkms_output_init() - Initialize all sub-components needed for a VKMS device.
@@ -269,11 +269,11 @@ int vkms_verify_crc_source(struct drm_crtc *crtc, const char *source_name,
 
 /* Composer Support */
 void vkms_composer_worker(struct work_struct *work);
-void vkms_set_composer(struct vkms_output *out, bool enabled);
+void vkms_set_composer(struct vkms_crtc *out, bool enabled);
 void vkms_writeback_row(struct vkms_writeback_job *wb, const struct line_buffer *src_buffer, int y);
 
 /* Writeback */
 int vkms_enable_writeback_connector(struct vkms_device *vkmsdev,
-				    struct vkms_output *vkms_out);
+				    struct vkms_crtc *vkms_crtc);
 
 #endif /* _VKMS_DRV_H_ */
