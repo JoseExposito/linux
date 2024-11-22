@@ -33,7 +33,7 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 	struct drm_device *dev = &vkmsdev->drm;
 	struct drm_connector *connector;
 	struct drm_encoder *encoder;
-	struct vkms_output *output;
+	struct vkms_crtc *vkms_crtc;
 	struct vkms_plane *primary, *overlay, *cursor = NULL;
 	int ret;
 	int writeback;
@@ -55,11 +55,11 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 			return PTR_ERR(cursor);
 	}
 
-	output = vkms_crtc_init(dev, &primary->base,
-				cursor ? &cursor->base : NULL);
-	if (IS_ERR(output)) {
+	vkms_crtc = vkms_crtc_init(dev, &primary->base,
+				   cursor ? &cursor->base : NULL);
+	if (IS_ERR(vkms_crtc)) {
 		DRM_ERROR("Failed to allocate CRTC\n");
-		return PTR_ERR(output);
+		return PTR_ERR(vkms_crtc);
 	}
 
 	if (vkmsdev->config->overlay) {
@@ -69,7 +69,7 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 				DRM_DEV_ERROR(dev->dev, "Failed to init vkms plane\n");
 				return PTR_ERR(overlay);
 			}
-			overlay->base.possible_crtcs = drm_crtc_mask(&output->crtc);
+			overlay->base.possible_crtcs = drm_crtc_mask(&vkms_crtc->base);
 		}
 	}
 
@@ -99,7 +99,7 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 		DRM_ERROR("Failed to init encoder\n");
 		return ret;
 	}
-	encoder->possible_crtcs = drm_crtc_mask(&output->crtc);
+	encoder->possible_crtcs = drm_crtc_mask(&vkms_crtc->base);
 
 	/* Attach the encoder and the connector */
 	ret = drm_connector_attach_encoder(connector, encoder);
@@ -110,7 +110,7 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 
 	/* Initialize the writeback component */
 	if (vkmsdev->config->writeback) {
-		writeback = vkms_enable_writeback_connector(vkmsdev, output);
+		writeback = vkms_enable_writeback_connector(vkmsdev, vkms_crtc);
 		if (writeback) {
 			DRM_ERROR("Failed to init writeback connector\n");
 			return ret;
