@@ -25,6 +25,7 @@ static void vkms_config_test_empty_config(struct kunit *test)
 	KUNIT_EXPECT_STREQ(test, vkms_config_get_device_name(config), "test");
 
 	KUNIT_EXPECT_TRUE(test, list_empty(&config->planes));
+	KUNIT_EXPECT_TRUE(test, list_empty(&config->crtcs));
 
 	KUNIT_EXPECT_FALSE(test, vkms_config_is_valid(config));
 
@@ -49,6 +50,7 @@ static void vkms_config_test_default_config(struct kunit *test)
 	const struct default_config_case *params = test->param_value;
 	struct vkms_config *config;
 	struct vkms_config_plane *plane_cfg;
+	struct vkms_config_crtc *crtc_cfg;
 	int n_primaries = 0;
 	int n_cursors = 0;
 	int n_overlays = 0;
@@ -57,8 +59,6 @@ static void vkms_config_test_default_config(struct kunit *test)
 					    params->enable_writeback,
 					    params->enable_overlay);
 	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, config);
-
-	KUNIT_EXPECT_EQ(test, config->writeback, params->enable_writeback);
 
 	/* Planes */
 	list_for_each_entry(plane_cfg, &config->planes, link) {
@@ -79,6 +79,13 @@ static void vkms_config_test_default_config(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, n_primaries, 1);
 	KUNIT_EXPECT_EQ(test, n_cursors, params->enable_cursor ? 1 : 0);
 	KUNIT_EXPECT_EQ(test, n_overlays, params->enable_overlay ? 8 : 0);
+
+	/* CRTCs */
+	crtc_cfg = list_first_entry(&config->crtcs, typeof(*crtc_cfg), link);
+
+	KUNIT_EXPECT_EQ(test, list_count_nodes(&config->crtcs), 1);
+	KUNIT_EXPECT_EQ(test, vkms_config_crtc_get_writeback(crtc_cfg),
+			params->enable_writeback);
 
 	KUNIT_EXPECT_TRUE(test, vkms_config_is_valid(config));
 
@@ -116,6 +123,42 @@ static void vkms_config_test_get_planes(struct kunit *test)
 	array = vkms_config_get_planes(config, &length);
 	KUNIT_ASSERT_EQ(test, length, 1);
 	KUNIT_ASSERT_PTR_EQ(test, array[0], plane_cfg2);
+	kfree(array);
+
+	vkms_config_destroy(config);
+}
+
+static void vkms_config_test_get_crtcs(struct kunit *test)
+{
+	struct vkms_config *config;
+	struct vkms_config_crtc *crtc_cfg1, *crtc_cfg2;
+	struct vkms_config_crtc **array;
+	size_t length;
+
+	config = vkms_config_create("test");
+	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, config);
+
+	array = vkms_config_get_crtcs(config, &length);
+	KUNIT_ASSERT_EQ(test, length, 0);
+	KUNIT_ASSERT_NULL(test, array);
+
+	crtc_cfg1 = vkms_config_add_crtc(config);
+	array = vkms_config_get_crtcs(config, &length);
+	KUNIT_ASSERT_EQ(test, length, 1);
+	KUNIT_ASSERT_PTR_EQ(test, array[0], crtc_cfg1);
+	kfree(array);
+
+	crtc_cfg2 = vkms_config_add_crtc(config);
+	array = vkms_config_get_crtcs(config, &length);
+	KUNIT_ASSERT_EQ(test, length, 2);
+	KUNIT_ASSERT_PTR_EQ(test, array[0], crtc_cfg1);
+	KUNIT_ASSERT_PTR_EQ(test, array[1], crtc_cfg2);
+	kfree(array);
+
+	vkms_config_destroy_crtc(config, crtc_cfg2);
+	array = vkms_config_get_crtcs(config, &length);
+	KUNIT_ASSERT_EQ(test, length, 1);
+	KUNIT_ASSERT_PTR_EQ(test, array[0], crtc_cfg1);
 	kfree(array);
 
 	vkms_config_destroy(config);
@@ -185,13 +228,38 @@ static void vkms_config_test_valid_plane_type(struct kunit *test)
 	vkms_config_destroy(config);
 }
 
+static void vkms_config_test_valid_crtc_number(struct kunit *test)
+{
+	struct vkms_config *config;
+	struct vkms_config_crtc *crtc_cfg;
+	int n;
+
+	config = vkms_config_default_create(false, false, false);
+	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, config);
+
+	/* Invalid: No CRTCs */
+	crtc_cfg = list_first_entry(&config->crtcs, typeof(*crtc_cfg), link);
+	vkms_config_destroy_crtc(config, crtc_cfg);
+	KUNIT_EXPECT_FALSE(test, vkms_config_is_valid(config));
+
+	/* Invalid: Too many CRTCs */
+	for (n = 0; n <= 32; n++)
+		vkms_config_add_crtc(config);
+
+	KUNIT_EXPECT_FALSE(test, vkms_config_is_valid(config));
+
+	vkms_config_destroy(config);
+}
+
 static struct kunit_case vkms_config_test_cases[] = {
 	KUNIT_CASE(vkms_config_test_empty_config),
 	KUNIT_CASE_PARAM(vkms_config_test_default_config,
 			 default_config_gen_params),
 	KUNIT_CASE(vkms_config_test_get_planes),
+	KUNIT_CASE(vkms_config_test_get_crtcs),
 	KUNIT_CASE(vkms_config_test_valid_plane_number),
 	KUNIT_CASE(vkms_config_test_valid_plane_type),
+	KUNIT_CASE(vkms_config_test_valid_crtc_number),
 	{}
 };
 
