@@ -15,6 +15,7 @@
  * @planes: List of planes configured for the device
  * @crtcs: List of CRTCs configured for the device
  * @encoders: List of encoders configured for the device
+ * @connectors: List of connectors configured for the device
  * @dev: Used to store the current VKMS device. Only set when the device is instantiated.
  */
 struct vkms_config {
@@ -22,6 +23,7 @@ struct vkms_config {
 	struct list_head planes;
 	struct list_head crtcs;
 	struct list_head encoders;
+	struct list_head connectors;
 	struct vkms_device *dev;
 };
 
@@ -83,6 +85,27 @@ struct vkms_config_encoder {
 
 	/* Internal usage */
 	struct drm_encoder *encoder;
+};
+
+/**
+ * struct vkms_config_connector
+ *
+ * @link: Link to the others connector in vkms_config
+ * @enabled: Connector are a different from planes, CRTCs and encoders because
+ *           they can be added and removed once the device is created.
+ *           This flag represents if they are part of the device or not.
+ * @connector: Internal usage. This pointer should never be considered as valid.
+ *             It can be used to store a temporary reference to a VKMS connector
+ *             during device creation. This pointer is not managed by the
+ *             configuration and must be managed by other means.
+ */
+struct vkms_config_connector {
+	struct list_head link;
+
+	bool enabled;
+
+	/* Internal usage */
+	struct vkms_connector *connector;
 };
 
 /**
@@ -172,6 +195,21 @@ struct vkms_config_crtc **vkms_config_get_crtcs(const struct vkms_config *config
  */
 struct vkms_config_encoder **vkms_config_get_encoders(const struct vkms_config *config,
 						      size_t *out_length);
+
+/**
+ * vkms_config_get_connectors() - Return the array of connectors of the device
+ * @config: Configuration to get the connectors from
+ * @out_length: Length of the returned array
+ *
+ * Note that only enabled connectors are returned.
+ *
+ * Returns:
+ * A list of pointers to the configurations. On success, the caller is
+ * responsible to free the returned array, but not its contents. On error,
+ * it returns an error and @out_length is invalid.
+ */
+struct vkms_config_connector **vkms_config_get_connectors(const struct vkms_config *config,
+							  size_t *out_length);
 
 /**
  * vkms_config_is_valid() - Validate a configuration
@@ -366,5 +404,43 @@ void vkms_config_encoder_detach_crtc(struct vkms_config_encoder *encoder_cfg,
 struct vkms_config_crtc **
 vkms_config_encoder_get_possible_crtcs(struct vkms_config_encoder *encoder_cfg,
 				       size_t *out_length);
+
+/**
+ * vkms_config_add_connector() - Add a new connector configuration
+ * @config: Configuration to add the connector to
+ *
+ * Returns:
+ * The new connector configuration or an error. Call
+ * vkms_config_destroy_connector() to free the returned connector configuration.
+ */
+struct vkms_config_connector *vkms_config_add_connector(struct vkms_config *config);
+
+/**
+ * vkms_config_destroy_connector() - Remove and free a connector configuration
+ * @connector_cfg: Connector configuration to destroy
+ */
+void vkms_config_destroy_connector(struct vkms_config_connector *connector_cfg);
+
+/**
+ * vkms_config_connector_is_enabled() - If the connector is part of the device
+ * @connector_cfg: The connector
+ */
+static inline bool
+vkms_config_connector_is_enabled(struct vkms_config_connector *connector_cfg)
+{
+	return connector_cfg->enabled;
+}
+
+/**
+ * vkms_config_connector_set_enabled() - If the connector is part of the device
+ * @crtc_cfg: Target connector
+ * @enabled: Add or remove the connector
+ */
+static inline void
+vkms_config_connector_set_enabled(struct vkms_config_connector *connector_cfg,
+				  bool enabled)
+{
+	connector_cfg->enabled = enabled;
+}
 
 #endif /* _VKMS_CONFIG_H_ */

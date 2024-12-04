@@ -24,6 +24,7 @@ struct vkms_config *vkms_config_create(const char *dev_name)
 	INIT_LIST_HEAD(&config->planes);
 	INIT_LIST_HEAD(&config->crtcs);
 	INIT_LIST_HEAD(&config->encoders);
+	INIT_LIST_HEAD(&config->connectors);
 
 	return config;
 }
@@ -36,6 +37,7 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 	struct vkms_config_plane *plane_cfg;
 	struct vkms_config_crtc *crtc_cfg;
 	struct vkms_config_encoder *encoder_cfg;
+	struct vkms_config_connector *connector_cfg;
 	int n;
 
 	config = vkms_config_create(DEFAULT_DEVICE_NAME);
@@ -87,6 +89,11 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 	if (vkms_config_encoder_attach_crtc(encoder_cfg, crtc_cfg))
 		goto err_alloc;
 
+	connector_cfg = vkms_config_add_connector(config);
+	if (IS_ERR(connector_cfg))
+		goto err_alloc;
+	vkms_config_connector_set_enabled(connector_cfg, true);
+
 	return config;
 
 err_alloc:
@@ -99,6 +106,7 @@ void vkms_config_destroy(struct vkms_config *config)
 	struct vkms_config_plane *plane_cfg, *plane_tmp;
 	struct vkms_config_crtc *crtc_cfg, *crtc_tmp;
 	struct vkms_config_encoder *encoder_cfg, *encoder_tmp;
+	struct vkms_config_connector *connector_cfg, *connector_tmp;
 
 	list_for_each_entry_safe(plane_cfg, plane_tmp, &config->planes, link)
 		vkms_config_destroy_plane(plane_cfg);
@@ -108,6 +116,9 @@ void vkms_config_destroy(struct vkms_config *config)
 
 	list_for_each_entry_safe(encoder_cfg, encoder_tmp, &config->encoders, link)
 		vkms_config_destroy_encoder(config, encoder_cfg);
+
+	list_for_each_entry_safe(connector_cfg, connector_tmp, &config->connectors, link)
+		vkms_config_destroy_connector(connector_cfg);
 
 	kfree_const(config->dev_name);
 	kfree(config);
@@ -188,6 +199,39 @@ struct vkms_config_encoder **vkms_config_get_encoders(const struct vkms_config *
 	list_for_each_entry(encoder_cfg, &config->encoders, link) {
 		array[n] = encoder_cfg;
 		n++;
+	}
+
+	*out_length = length;
+	return array;
+}
+
+struct vkms_config_connector **vkms_config_get_connectors(const struct vkms_config *config,
+							  size_t *out_length)
+{
+	struct vkms_config_connector **array;
+	struct vkms_config_connector *connector_cfg;
+	size_t length = 0;
+	int n = 0;
+
+	list_for_each_entry(connector_cfg, &config->connectors, link) {
+		if (vkms_config_connector_is_enabled(connector_cfg))
+			length++;
+	}
+
+	if (length == 0) {
+		*out_length = length;
+		return NULL;
+	}
+
+	array = kmalloc_array(length, sizeof(*array), GFP_KERNEL);
+	if (!array)
+		return ERR_PTR(-ENOMEM);
+
+	list_for_each_entry(connector_cfg, &config->connectors, link) {
+		if (vkms_config_connector_is_enabled(connector_cfg)) {
+			array[n] = connector_cfg;
+			n++;
+		}
 	}
 
 	*out_length = length;
@@ -325,6 +369,24 @@ static bool valid_encoder_possible_crtcs(struct vkms_config *config)
 	return true;
 }
 
+static bool valid_connector_number(struct vkms_config *config)
+{
+	struct vkms_config_connector *connector_cfg;
+	size_t n_connectors = 0;
+
+	list_for_each_entry(connector_cfg, &config->connectors, link) {
+		if (vkms_config_connector_is_enabled(connector_cfg))
+			n_connectors++;
+	}
+
+	if (n_connectors >= 32) {
+		pr_err("The number of connectors must be between 0 and 31\n");
+		return false;
+	}
+
+	return true;
+}
+
 bool vkms_config_is_valid(struct vkms_config *config)
 {
 	struct vkms_config_crtc *crtc_cfg;
@@ -336,6 +398,9 @@ bool vkms_config_is_valid(struct vkms_config *config)
 		return false;
 
 	if (!valid_encoder_number(config))
+		return false;
+
+	if (!valid_connector_number(config))
 		return false;
 
 	if (!valid_plane_possible_crtcs(config))
@@ -361,6 +426,7 @@ static int vkms_config_show(struct seq_file *m, void *data)
 	struct vkms_config_plane *plane_cfg;
 	struct vkms_config_crtc *crtc_cfg;
 	struct vkms_config_encoder *encoder_cfg;
+	struct vkms_config_connector *connector_cfg;
 
 	dev_name = vkms_config_get_device_name((struct vkms_config *)vkmsdev->config);
 	seq_printf(m, "dev_name=%s\n", dev_name);
@@ -379,6 +445,12 @@ static int vkms_config_show(struct seq_file *m, void *data)
 
 	list_for_each_entry(encoder_cfg, &vkmsdev->config->encoders, link) {
 		seq_puts(m, "encoder\n");
+	}
+
+	list_for_each_entry(connector_cfg, &vkmsdev->config->connectors, link) {
+		seq_puts(m, "connector:\n");
+		seq_printf(m, "\tenabled=%d\n",
+			   vkms_config_connector_is_enabled(connector_cfg));
 	}
 
 	return 0;
@@ -619,4 +691,25 @@ vkms_config_encoder_get_possible_crtcs(struct vkms_config_encoder *encoder_cfg,
 
 	*out_length = length;
 	return array;
+}
+
+struct vkms_config_connector *vkms_config_add_connector(struct vkms_config *config)
+{
+	struct vkms_config_connector *connector_cfg;
+
+	connector_cfg = kzalloc(sizeof(*connector_cfg), GFP_KERNEL);
+	if (!connector_cfg)
+		return ERR_PTR(-ENOMEM);
+
+	vkms_config_connector_set_enabled(connector_cfg, false);
+
+	list_add_tail(&connector_cfg->link, &config->connectors);
+
+	return connector_cfg;
+}
+
+void vkms_config_destroy_connector(struct vkms_config_connector *connector_cfg)
+{
+	list_del(&connector_cfg->link);
+	kfree(connector_cfg);
 }
