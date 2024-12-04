@@ -90,6 +90,9 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 	if (IS_ERR(connector_cfg))
 		goto err_alloc;
 
+	if (vkms_config_connector_attach_encoder(connector_cfg, encoder_cfg))
+		goto err_alloc;
+
 	return config;
 
 err_alloc:
@@ -258,6 +261,40 @@ static bool valid_connector_number(struct vkms_config *config)
 	return true;
 }
 
+static bool valid_connector_possible_encoders(struct vkms_config *config)
+{
+	struct vkms_config_encoder *encoder_cfg;
+	struct vkms_config_connector *connector_cfg;
+
+	list_for_each_entry(connector_cfg, &config->connectors, link) {
+		if (xa_empty(&connector_cfg->possible_encoders)) {
+			pr_err("All connectors must have at least one possible encoder");
+			return false;
+		}
+	}
+
+	list_for_each_entry(encoder_cfg, &config->encoders, link) {
+		bool encoder_has_connector = false;
+
+		list_for_each_entry(connector_cfg, &config->connectors, link) {
+			struct vkms_config_encoder *possible_encoder;
+			unsigned long idx = 0;
+
+			xa_for_each(&connector_cfg->possible_encoders, idx, possible_encoder) {
+				if (possible_encoder == encoder_cfg)
+					encoder_has_connector = true;
+			}
+		}
+
+		if (!encoder_has_connector) {
+			pr_err("All encoders must have at least one possible connector");
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool vkms_config_is_valid(struct vkms_config *config)
 {
 	struct vkms_config_crtc *crtc_cfg;
@@ -283,6 +320,9 @@ bool vkms_config_is_valid(struct vkms_config *config)
 	}
 
 	if (!valid_encoder_possible_crtcs(config))
+		return false;
+
+	if (!valid_connector_possible_encoders(config))
 		return false;
 
 	return true;
@@ -461,6 +501,11 @@ struct vkms_config_encoder *vkms_config_add_encoder(struct vkms_config *config)
 void vkms_config_destroy_encoder(struct vkms_config *config,
 				 struct vkms_config_encoder *encoder_cfg)
 {
+	struct vkms_config_connector *connector_cfg;
+
+	list_for_each_entry(connector_cfg, &config->connectors, link)
+		vkms_config_connector_detach_encoder(connector_cfg, encoder_cfg);
+
 	xa_destroy(&encoder_cfg->possible_crtcs);
 	list_del(&encoder_cfg->link);
 	kfree(encoder_cfg);
@@ -502,6 +547,8 @@ struct vkms_config_connector *vkms_config_add_connector(struct vkms_config *conf
 	if (!connector_cfg)
 		return ERR_PTR(-ENOMEM);
 
+	xa_init_flags(&connector_cfg->possible_encoders, XA_FLAGS_ALLOC);
+
 	list_add_tail(&connector_cfg->link, &config->connectors);
 
 	return connector_cfg;
@@ -509,6 +556,35 @@ struct vkms_config_connector *vkms_config_add_connector(struct vkms_config *conf
 
 void vkms_config_destroy_connector(struct vkms_config_connector *connector_cfg)
 {
+	xa_destroy(&connector_cfg->possible_encoders);
 	list_del(&connector_cfg->link);
 	kfree(connector_cfg);
+}
+
+int __must_check vkms_config_connector_attach_encoder(struct vkms_config_connector *connector_cfg,
+						      struct vkms_config_encoder *encoder_cfg)
+{
+	struct vkms_config_encoder *possible_encoder;
+	unsigned long idx = 0;
+	u32 encoder_idx = 0;
+
+	xa_for_each(&connector_cfg->possible_encoders, idx, possible_encoder) {
+		if (possible_encoder == encoder_cfg)
+			return -EINVAL;
+	}
+
+	return xa_alloc(&connector_cfg->possible_encoders, &encoder_idx,
+			encoder_cfg, xa_limit_32b, GFP_KERNEL);
+}
+
+void vkms_config_connector_detach_encoder(struct vkms_config_connector *connector_cfg,
+					  struct vkms_config_encoder *encoder_cfg)
+{
+	struct vkms_config_encoder *possible_encoder;
+	unsigned long idx = 0;
+
+	xa_for_each(&connector_cfg->possible_encoders, idx, possible_encoder) {
+		if (possible_encoder == encoder_cfg)
+			xa_erase(&connector_cfg->possible_encoders, idx);
+	}
 }
