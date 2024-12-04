@@ -14,12 +14,14 @@
  * @dev_name: Name of the device
  * @planes: List of planes configured for the device
  * @crtcs: List of CRTCs configured for the device
+ * @encoders: List of encoders configured for the device
  * @dev: Used to store the current VKMS device. Only set when the device is instantiated.
  */
 struct vkms_config {
 	const char *dev_name;
 	struct list_head planes;
 	struct list_head crtcs;
+	struct list_head encoders;
 	struct vkms_device *dev;
 };
 
@@ -62,6 +64,22 @@ struct vkms_config_crtc {
 
 	/* Internal usage */
 	struct vkms_output *crtc;
+};
+
+/**
+ * struct vkms_config_encoder
+ *
+ * @link: Link to the others encoders in vkms_config
+ * @encoder: Internal usage. This pointer should never be considered as valid.
+ *           It can be used to store a temporary reference to a VKMS encoder
+ *           during device creation. This pointer is not managed by the
+ *           configuration and must be managed by other means.
+ */
+struct vkms_config_encoder {
+	struct list_head link;
+
+	/* Internal usage */
+	struct drm_encoder *encoder;
 };
 
 /**
@@ -138,6 +156,19 @@ static inline size_t vkms_config_get_num_crtcs(struct vkms_config *config)
  */
 struct vkms_config_crtc **vkms_config_get_crtcs(const struct vkms_config *config,
 						size_t *out_length);
+
+/**
+ * vkms_config_get_encoders() - Return the array of encoders of the device
+ * @config: Configuration to get the encoders from
+ * @out_length: Length of the returned array
+ *
+ * Returns:
+ * A list of pointers to the configurations. On success, the caller is
+ * responsible to free the returned array, but not its contents. On error,
+ * it returns an error and @out_length is invalid.
+ */
+struct vkms_config_encoder **vkms_config_get_encoders(const struct vkms_config *config,
+						      size_t *out_length);
 
 /**
  * vkms_config_is_valid() - Validate a configuration
@@ -284,5 +315,23 @@ struct vkms_config_plane *vkms_config_crtc_primary_plane(const struct vkms_confi
  */
 struct vkms_config_plane *vkms_config_crtc_cursor_plane(const struct vkms_config *config,
 							struct vkms_config_crtc *crtc_cfg);
+
+/**
+ * vkms_config_add_encoder() - Add a new encoder configuration
+ * @config: Configuration to add the encoder to
+ *
+ * Returns:
+ * The new encoder configuration or an error. Call vkms_config_destroy_encoder()
+ * to free the returned encoder configuration.
+ */
+struct vkms_config_encoder *vkms_config_add_encoder(struct vkms_config *config);
+
+/**
+ * vkms_config_destroy_encoder() - Remove and free a encoder configuration
+ * @config: Configuration to remove the encoder from
+ * @encoder_cfg: Encoder configuration to destroy
+ */
+void vkms_config_destroy_encoder(struct vkms_config *config,
+				 struct vkms_config_encoder *encoder_cfg);
 
 #endif /* _VKMS_CONFIG_H_ */
