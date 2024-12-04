@@ -34,17 +34,23 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 	struct drm_device *dev = &vkmsdev->drm;
 	struct drm_connector *connector;
 	struct drm_encoder *encoder;
-	struct vkms_crtc *vkms_crtc;
-	struct vkms_plane *primary = NULL, *cursor = NULL;
 	struct vkms_config_plane **plane_cfgs = NULL;
 	size_t n_planes;
+	struct vkms_config_crtc **crtc_cfgs = NULL;
+	size_t n_crtcs;
 	int ret = 0;
 	int writeback;
-	unsigned int n;
+	unsigned int n, i;
 
 	plane_cfgs = vkms_config_get_planes(vkmsdev->config, &n_planes);
 	if (!plane_cfgs)
 		return -ENOMEM;
+
+	crtc_cfgs = vkms_config_get_crtcs(vkmsdev->config, &n_crtcs);
+	if (!crtc_cfgs) {
+		ret = -ENOMEM;
+		goto err_free;
+	}
 
 	for (n = 0; n < n_planes; n++) {
 		struct vkms_config_plane *plane_cfg;
@@ -59,19 +65,56 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 			ret = PTR_ERR(plane_cfg->plane);
 			goto err_free;
 		}
-
-		if (type == DRM_PLANE_TYPE_PRIMARY)
-			primary = plane_cfg->plane;
-		else if (type == DRM_PLANE_TYPE_CURSOR)
-			cursor = plane_cfg->plane;
 	}
 
-	vkms_crtc = vkms_crtc_init(dev, &primary->base,
-				   cursor ? &cursor->base : NULL);
-	if (IS_ERR(vkms_crtc)) {
-		DRM_ERROR("Failed to allocate CRTC\n");
-		ret = PTR_ERR(vkms_crtc);
-		goto err_free;
+	for (n = 0; n < n_crtcs; n++) {
+		struct vkms_config_crtc *crtc_cfg;
+		struct vkms_config_plane *primary, *cursor;
+
+		crtc_cfg = crtc_cfgs[n];
+		primary = vkms_config_crtc_primary_plane(vkmsdev->config, crtc_cfg);
+		cursor = vkms_config_crtc_cursor_plane(vkmsdev->config, crtc_cfg);
+
+		crtc_cfg->crtc = vkms_crtc_init(dev, &primary->plane->base,
+						cursor ? &cursor->plane->base : NULL);
+		if (IS_ERR(crtc_cfg->crtc)) {
+			DRM_ERROR("Failed to allocate CRTC\n");
+			ret = PTR_ERR(crtc_cfg->crtc);
+			goto err_free;
+		}
+
+		/* Initialize the writeback component */
+		if (vkms_config_crtc_get_writeback(crtc_cfg)) {
+			writeback = vkms_enable_writeback_connector(vkmsdev, crtc_cfg->crtc);
+			if (writeback) {
+				DRM_ERROR("Failed to init writeback connector\n");
+				goto err_free;
+			}
+		}
+	}
+
+	for (n = 0; n < n_planes; n++) {
+		struct vkms_config_plane *plane_cfg;
+		struct vkms_config_crtc **possible_crtcs;
+		size_t n_possible_crtcs;
+
+		plane_cfg = plane_cfgs[n];
+		possible_crtcs = vkms_config_plane_get_possible_crtcs(plane_cfg,
+								      &n_possible_crtcs);
+		if (!possible_crtcs) {
+			ret = -ENOMEM;
+			goto err_free;
+		}
+
+		for (i = 0; i < n_possible_crtcs; i++) {
+			struct vkms_config_crtc *possible_crtc;
+
+			possible_crtc = possible_crtcs[i];
+			plane_cfg->plane->base.possible_crtcs |=
+				drm_crtc_mask(&possible_crtc->crtc->base);
+		}
+
+		kfree(possible_crtcs);
 	}
 
 	connector = drmm_kzalloc(dev, sizeof(*connector), GFP_KERNEL);
@@ -102,7 +145,7 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 		DRM_ERROR("Failed to init encoder\n");
 		goto err_free;
 	}
-	encoder->possible_crtcs = drm_crtc_mask(&vkms_crtc->base);
+	encoder->possible_crtcs = drm_crtc_mask(&crtc_cfgs[0]->crtc->base);
 
 	/* Attach the encoder and the connector */
 	ret = drm_connector_attach_encoder(connector, encoder);
@@ -111,19 +154,11 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 		goto err_free;
 	}
 
-	/* Initialize the writeback component */
-	if (vkmsdev->config->writeback) {
-		writeback = vkms_enable_writeback_connector(vkmsdev, vkms_crtc);
-		if (writeback) {
-			DRM_ERROR("Failed to init writeback connector\n");
-			goto err_free;
-		}
-	}
-
 	drm_mode_config_reset(dev);
 
 err_free:
 	kfree(plane_cfgs);
+	kfree(crtc_cfgs);
 
 	return ret;
 }
