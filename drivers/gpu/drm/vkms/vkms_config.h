@@ -70,6 +70,7 @@ struct vkms_config_crtc {
  * struct vkms_config_encoder
  *
  * @link: Link to the others encoders in vkms_config
+ * @possible_crtcs: Array of CRTCs that can be used with this encoder
  * @encoder: Internal usage. This pointer should never be considered as valid.
  *           It can be used to store a temporary reference to a VKMS encoder
  *           during device creation. This pointer is not managed by the
@@ -77,6 +78,8 @@ struct vkms_config_crtc {
  */
 struct vkms_config_encoder {
 	struct list_head link;
+
+	struct xarray possible_crtcs;
 
 	/* Internal usage */
 	struct drm_encoder *encoder;
@@ -333,5 +336,35 @@ struct vkms_config_encoder *vkms_config_add_encoder(struct vkms_config *config);
  */
 void vkms_config_destroy_encoder(struct vkms_config *config,
 				 struct vkms_config_encoder *encoder_cfg);
+
+/**
+ * vkms_config_encoder_attach_crtc - Attach a encoder to a CRTC
+ * @encoder_cfg: Encoder to attach
+ * @crtc_cfg: CRTC to attach @encoder_cfg to
+ */
+int __must_check vkms_config_encoder_attach_crtc(struct vkms_config_encoder *encoder_cfg,
+						 struct vkms_config_crtc *crtc_cfg);
+
+/**
+ * vkms_config_encoder_detach_crtc - Detach a encoder from a CRTC
+ * @encoder_cfg: Encoder to detach
+ * @crtc_cfg: CRTC to detach @encoder_cfg from
+ */
+void vkms_config_encoder_detach_crtc(struct vkms_config_encoder *encoder_cfg,
+				     struct vkms_config_crtc *crtc_cfg);
+
+/**
+ * vkms_config_encoder_get_possible_crtcs() - Return the array of possible CRTCs
+ * @encoder_cfg: Encoder to get the possible CRTCs from
+ * @out_length: Length of the returned array
+ *
+ * Returns:
+ * A list of pointers to the configurations. On success, the caller is
+ * responsible to free the returned array, but not its contents. On error,
+ * it returns an error and @out_length is invalid.
+ */
+struct vkms_config_crtc **
+vkms_config_encoder_get_possible_crtcs(struct vkms_config_encoder *encoder_cfg,
+				       size_t *out_length);
 
 #endif /* _VKMS_CONFIG_H_ */

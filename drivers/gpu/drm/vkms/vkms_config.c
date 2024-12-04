@@ -84,6 +84,9 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 	if (IS_ERR(encoder_cfg))
 		goto err_alloc;
 
+	if (vkms_config_encoder_attach_crtc(encoder_cfg, crtc_cfg))
+		goto err_alloc;
+
 	return config;
 
 err_alloc:
@@ -288,6 +291,40 @@ static bool valid_encoder_number(struct vkms_config *config)
 	return true;
 }
 
+static bool valid_encoder_possible_crtcs(struct vkms_config *config)
+{
+	struct vkms_config_crtc *crtc_cfg;
+	struct vkms_config_encoder *encoder_cfg;
+
+	list_for_each_entry(encoder_cfg, &config->encoders, link) {
+		if (xa_empty(&encoder_cfg->possible_crtcs)) {
+			pr_err("All encoders must have at least one possible CRTC\n");
+			return false;
+		}
+	}
+
+	list_for_each_entry(crtc_cfg, &config->crtcs, link) {
+		bool crtc_has_encoder = false;
+
+		list_for_each_entry(encoder_cfg, &config->encoders, link) {
+			struct vkms_config_crtc *possible_crtc;
+			unsigned long idx = 0;
+
+			xa_for_each(&encoder_cfg->possible_crtcs, idx, possible_crtc) {
+				if (possible_crtc == crtc_cfg)
+					crtc_has_encoder = true;
+			}
+		}
+
+		if (!crtc_has_encoder) {
+			pr_err("All CRTCs must have at least one possible encoder\n");
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool vkms_config_is_valid(struct vkms_config *config)
 {
 	struct vkms_config_crtc *crtc_cfg;
@@ -308,6 +345,9 @@ bool vkms_config_is_valid(struct vkms_config *config)
 		if (!valid_plane_type(config, crtc_cfg))
 			return false;
 	}
+
+	if (!valid_encoder_possible_crtcs(config))
+		return false;
 
 	return true;
 }
@@ -454,9 +494,13 @@ void vkms_config_destroy_crtc(struct vkms_config *config,
 			      struct vkms_config_crtc *crtc_cfg)
 {
 	struct vkms_config_plane *plane_cfg;
+	struct vkms_config_encoder *encoder_cfg;
 
 	list_for_each_entry(plane_cfg, &config->planes, link)
 		vkms_config_plane_detach_crtc(plane_cfg, crtc_cfg);
+
+	list_for_each_entry(encoder_cfg, &config->encoders, link)
+		vkms_config_encoder_detach_crtc(encoder_cfg, crtc_cfg);
 
 	list_del(&crtc_cfg->link);
 	kfree(crtc_cfg);
@@ -503,6 +547,8 @@ struct vkms_config_encoder *vkms_config_add_encoder(struct vkms_config *config)
 	if (!encoder_cfg)
 		return ERR_PTR(-ENOMEM);
 
+	xa_init_flags(&encoder_cfg->possible_crtcs, XA_FLAGS_ALLOC);
+
 	list_add_tail(&encoder_cfg->link, &config->encoders);
 
 	return encoder_cfg;
@@ -511,6 +557,66 @@ struct vkms_config_encoder *vkms_config_add_encoder(struct vkms_config *config)
 void vkms_config_destroy_encoder(struct vkms_config *config,
 				 struct vkms_config_encoder *encoder_cfg)
 {
+	xa_destroy(&encoder_cfg->possible_crtcs);
 	list_del(&encoder_cfg->link);
 	kfree(encoder_cfg);
+}
+
+int __must_check vkms_config_encoder_attach_crtc(struct vkms_config_encoder *encoder_cfg,
+						 struct vkms_config_crtc *crtc_cfg)
+{
+	struct vkms_config_crtc *possible_crtc;
+	unsigned long idx = 0;
+	u32 crtc_idx = 0;
+
+	xa_for_each(&encoder_cfg->possible_crtcs, idx, possible_crtc) {
+		if (possible_crtc == crtc_cfg)
+			return -EINVAL;
+	}
+
+	return xa_alloc(&encoder_cfg->possible_crtcs, &crtc_idx, crtc_cfg,
+			xa_limit_32b, GFP_KERNEL);
+}
+
+void vkms_config_encoder_detach_crtc(struct vkms_config_encoder *encoder_cfg,
+				     struct vkms_config_crtc *crtc_cfg)
+{
+	struct vkms_config_crtc *possible_crtc;
+	unsigned long idx = 0;
+
+	xa_for_each(&encoder_cfg->possible_crtcs, idx, possible_crtc) {
+		if (possible_crtc == crtc_cfg)
+			xa_erase(&encoder_cfg->possible_crtcs, idx);
+	}
+}
+
+struct vkms_config_crtc **
+vkms_config_encoder_get_possible_crtcs(struct vkms_config_encoder *encoder_cfg,
+				       size_t *out_length)
+{
+	struct vkms_config_crtc **array;
+	struct vkms_config_crtc *possible_crtc;
+	unsigned long idx;
+	size_t length = 0;
+	int n = 0;
+
+	xa_for_each(&encoder_cfg->possible_crtcs, idx, possible_crtc)
+		length++;
+
+	if (length == 0) {
+		*out_length = 0;
+		return NULL;
+	}
+
+	array = kmalloc_array(length, sizeof(*array), GFP_KERNEL);
+	if (!array)
+		return ERR_PTR(-ENOMEM);
+
+	xa_for_each(&encoder_cfg->possible_crtcs, idx, possible_crtc) {
+		array[n] = possible_crtc;
+		n++;
+	}
+
+	*out_length = length;
+	return array;
 }
