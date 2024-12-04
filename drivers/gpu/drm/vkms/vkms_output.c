@@ -33,11 +33,12 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 {
 	struct drm_device *dev = &vkmsdev->drm;
 	struct drm_connector *connector;
-	struct drm_encoder *encoder;
 	struct vkms_config_plane **plane_cfgs = NULL;
 	size_t n_planes;
 	struct vkms_config_crtc **crtc_cfgs = NULL;
 	size_t n_crtcs;
+	struct vkms_config_encoder **encoder_cfgs = NULL;
+	size_t n_encoders;
 	int ret = 0;
 	int writeback;
 	unsigned int n, i;
@@ -48,6 +49,12 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 
 	crtc_cfgs = vkms_config_get_crtcs(vkmsdev->config, &n_crtcs);
 	if (!crtc_cfgs) {
+		ret = -ENOMEM;
+		goto err_free;
+	}
+
+	encoder_cfgs = vkms_config_get_encoders(vkmsdev->config, &n_encoders);
+	if (!encoder_cfgs) {
 		ret = -ENOMEM;
 		goto err_free;
 	}
@@ -117,6 +124,44 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 		kfree(possible_crtcs);
 	}
 
+	for (n = 0; n < n_encoders; n++) {
+		struct vkms_config_encoder *encoder_cfg;
+		struct vkms_config_crtc **possible_crtcs;
+		size_t n_possible_crtcs;
+
+		encoder_cfg = encoder_cfgs[n];
+
+		encoder_cfg->encoder = drmm_kzalloc(dev, sizeof(*encoder_cfg->encoder), GFP_KERNEL);
+		if (!encoder_cfg->encoder) {
+			DRM_ERROR("Failed to allocate encoder\n");
+			ret = -ENOMEM;
+			goto err_free;
+		}
+		ret = drmm_encoder_init(dev, encoder_cfg->encoder, NULL,
+					DRM_MODE_ENCODER_VIRTUAL, NULL);
+		if (ret) {
+			DRM_ERROR("Failed to init encoder\n");
+			goto err_free;
+		}
+
+		possible_crtcs = vkms_config_encoder_get_possible_crtcs(encoder_cfg,
+									&n_possible_crtcs);
+		if (!possible_crtcs) {
+			ret = -ENOMEM;
+			goto err_free;
+		}
+
+		for (i = 0; i < n_possible_crtcs; i++) {
+			struct vkms_config_crtc *possible_crtc;
+
+			possible_crtc = possible_crtcs[i];
+			encoder_cfg->encoder->possible_crtcs |=
+				drm_crtc_mask(&possible_crtc->crtc->base);
+		}
+
+		kfree(possible_crtcs);
+	}
+
 	connector = drmm_kzalloc(dev, sizeof(*connector), GFP_KERNEL);
 	if (!connector) {
 		DRM_ERROR("Failed to allocate connector\n");
@@ -133,22 +178,8 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 
 	drm_connector_helper_add(connector, &vkms_conn_helper_funcs);
 
-	encoder = drmm_kzalloc(dev, sizeof(*encoder), GFP_KERNEL);
-	if (!encoder) {
-		DRM_ERROR("Failed to allocate encoder\n");
-		ret = -ENOMEM;
-		goto err_free;
-	}
-	ret = drmm_encoder_init(dev, encoder, NULL,
-				DRM_MODE_ENCODER_VIRTUAL, NULL);
-	if (ret) {
-		DRM_ERROR("Failed to init encoder\n");
-		goto err_free;
-	}
-	encoder->possible_crtcs = drm_crtc_mask(&crtc_cfgs[0]->crtc->base);
-
 	/* Attach the encoder and the connector */
-	ret = drm_connector_attach_encoder(connector, encoder);
+	ret = drm_connector_attach_encoder(connector, encoder_cfgs[0]->encoder);
 	if (ret) {
 		DRM_ERROR("Failed to attach connector to encoder\n");
 		goto err_free;
@@ -159,6 +190,7 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 err_free:
 	kfree(plane_cfgs);
 	kfree(crtc_cfgs);
+	kfree(encoder_cfgs);
 
 	return ret;
 }
