@@ -130,6 +130,7 @@ static void vkms_config_test_valid_plane_type(struct kunit *test)
 	struct vkms_config_plane *plane_cfg;
 	struct vkms_config_crtc *crtc_cfg;
 	struct vkms_config_encoder *encoder_cfg;
+	struct vkms_config_connector *connector_cfg;
 	int err;
 
 	config = vkms_config_default_create(false, false, false);
@@ -185,6 +186,9 @@ static void vkms_config_test_valid_plane_type(struct kunit *test)
 	crtc_cfg = vkms_config_add_crtc(config);
 	encoder_cfg = vkms_config_add_encoder(config);
 	err = vkms_config_encoder_attach_crtc(encoder_cfg, crtc_cfg);
+	KUNIT_EXPECT_EQ(test, err, 0);
+	connector_cfg = vkms_config_add_connector(config);
+	err = vkms_config_connector_attach_encoder(connector_cfg, encoder_cfg);
 	KUNIT_EXPECT_EQ(test, err, 0);
 	KUNIT_EXPECT_FALSE(test, vkms_config_is_valid(config));
 
@@ -269,6 +273,7 @@ static void vkms_config_test_valid_encoder_possible_crtcs(struct kunit *test)
 	struct vkms_config_plane *plane_cfg;
 	struct vkms_config_crtc *crtc_cfg1, *crtc_cfg2;
 	struct vkms_config_encoder *encoder_cfg;
+	struct vkms_config_connector *connector_cfg;
 	int err;
 
 	config = vkms_config_default_create(false, false, false);
@@ -278,6 +283,11 @@ static void vkms_config_test_valid_encoder_possible_crtcs(struct kunit *test)
 
 	/* Invalid: Encoder without a possible CRTC */
 	encoder_cfg = vkms_config_add_encoder(config);
+
+	connector_cfg = vkms_config_add_connector(config);
+	err = vkms_config_connector_attach_encoder(connector_cfg, encoder_cfg);
+	KUNIT_EXPECT_EQ(test, err, 0);
+
 	KUNIT_EXPECT_FALSE(test, vkms_config_is_valid(config));
 
 	/* Valid: Second CRTC with shared encoder */
@@ -327,6 +337,50 @@ static void vkms_config_test_valid_connector_number(struct kunit *test)
 		vkms_config_add_connector(config);
 
 	KUNIT_EXPECT_FALSE(test, vkms_config_is_valid(config));
+
+	vkms_config_destroy(config);
+}
+
+static void vkms_config_test_valid_connector_possible_encoders(struct kunit *test)
+{
+	struct vkms_config *config;
+	struct vkms_config_crtc *crtc_cfg;
+	struct vkms_config_encoder *encoder_cfg1, *encoder_cfg2;
+	struct vkms_config_connector *connector_cfg;
+	int err;
+
+	config = vkms_config_default_create(false, false, false);
+	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, config);
+
+	crtc_cfg = list_first_entry(&config->crtcs, typeof(*crtc_cfg), link);
+	encoder_cfg1 = list_first_entry(&config->encoders,
+					typeof(*encoder_cfg1), link);
+
+	/* Invalid: Connector without a possible encoder */
+	connector_cfg = vkms_config_add_connector(config);
+	KUNIT_EXPECT_FALSE(test, vkms_config_is_valid(config));
+
+	/* Valid: Second encoder with shared connector */
+	encoder_cfg2 = vkms_config_add_encoder(config);
+
+	err = vkms_config_encoder_attach_crtc(encoder_cfg2, crtc_cfg);
+	KUNIT_EXPECT_EQ(test, err, 0);
+
+	err = vkms_config_connector_attach_encoder(connector_cfg, encoder_cfg1);
+	KUNIT_EXPECT_EQ(test, err, 0);
+
+	err = vkms_config_connector_attach_encoder(connector_cfg, encoder_cfg2);
+	KUNIT_EXPECT_EQ(test, err, 0);
+
+	KUNIT_EXPECT_TRUE(test, vkms_config_is_valid(config));
+
+	/* Invalid: Second encoder without connectors */
+	vkms_config_connector_detach_encoder(connector_cfg, encoder_cfg2);
+	KUNIT_EXPECT_FALSE(test, vkms_config_is_valid(config));
+
+	/* Valid: First encoder with 2 possible connectors */
+	vkms_config_destroy_encoder(config, encoder_cfg2);
+	KUNIT_EXPECT_TRUE(test, vkms_config_is_valid(config));
 
 	vkms_config_destroy(config);
 }
@@ -398,6 +452,7 @@ static struct kunit_case vkms_config_test_cases[] = {
 	KUNIT_CASE(vkms_config_test_valid_encoder_number),
 	KUNIT_CASE(vkms_config_test_valid_encoder_possible_crtcs),
 	KUNIT_CASE(vkms_config_test_valid_connector_number),
+	KUNIT_CASE(vkms_config_test_valid_connector_possible_encoders),
 	KUNIT_CASE(vkms_config_test_plane_attach_crtc),
 	{}
 };

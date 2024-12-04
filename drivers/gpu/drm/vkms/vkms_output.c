@@ -32,10 +32,10 @@ static const struct drm_connector_helper_funcs vkms_conn_helper_funcs = {
 int vkms_output_init(struct vkms_device *vkmsdev)
 {
 	struct drm_device *dev = &vkmsdev->drm;
-	struct drm_connector *connector;
 	struct vkms_config_plane *plane_cfg;
 	struct vkms_config_crtc *crtc_cfg;
 	struct vkms_config_encoder *encoder_cfg;
+	struct vkms_config_connector *connector_cfg;
 	int ret;
 	int writeback;
 
@@ -102,27 +102,37 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 		}
 	}
 
-	connector = drmm_kzalloc(dev, sizeof(*connector), GFP_KERNEL);
-	if (!connector) {
-		DRM_ERROR("Failed to allocate connector\n");
-		return -ENOMEM;
-	}
+	list_for_each_entry(connector_cfg, &vkmsdev->config->connectors, link) {
+		struct vkms_config_encoder *possible_encoder;
+		unsigned long idx;
 
-	ret = drmm_connector_init(dev, connector, &vkms_connector_funcs,
-				  DRM_MODE_CONNECTOR_VIRTUAL, NULL);
-	if (ret) {
-		DRM_ERROR("Failed to init connector\n");
-		return ret;
-	}
+		connector_cfg->connector = drmm_kzalloc(dev,
+							sizeof(*connector_cfg->connector),
+							GFP_KERNEL);
+		if (!connector_cfg->connector) {
+			DRM_ERROR("Failed to allocate connector\n");
+			return -ENOMEM;
+		}
 
-	drm_connector_helper_add(connector, &vkms_conn_helper_funcs);
+		ret = drmm_connector_init(dev, connector_cfg->connector,
+					  &vkms_connector_funcs,
+					  DRM_MODE_CONNECTOR_VIRTUAL, NULL);
+		if (ret) {
+			DRM_ERROR("Failed to init connector\n");
+			return ret;
+		}
 
-	/* Attach the encoder and the connector */
-	encoder_cfg = list_first_entry(&vkmsdev->config->encoders, typeof(*encoder_cfg), link);
-	ret = drm_connector_attach_encoder(connector, encoder_cfg->encoder);
-	if (ret) {
-		DRM_ERROR("Failed to attach connector to encoder\n");
-		return ret;
+		drm_connector_helper_add(connector_cfg->connector,
+					 &vkms_conn_helper_funcs);
+
+		xa_for_each(&connector_cfg->possible_encoders, idx, possible_encoder) {
+			ret = drm_connector_attach_encoder(connector_cfg->connector,
+							   possible_encoder->encoder);
+			if (ret) {
+				DRM_ERROR("Failed to attach connector to encoder\n");
+				return ret;
+			}
+		}
 	}
 
 	drm_mode_config_reset(dev);

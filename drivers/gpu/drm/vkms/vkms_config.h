@@ -91,6 +91,7 @@ struct vkms_config_encoder {
  * struct vkms_config_connector
  *
  * @link: Link to the others connector in vkms_config
+ * @possible_encoders: Array of encoders that can be used with this connector
  * @connector: Internal usage. This pointer should never be considered as valid.
  *             It can be used to store a temporary reference to a VKMS connector
  *             during device creation. This pointer is not managed by the
@@ -98,6 +99,8 @@ struct vkms_config_encoder {
  */
 struct vkms_config_connector {
 	struct list_head link;
+
+	struct xarray possible_encoders;
 
 	/* Internal usage */
 	struct drm_connector *connector;
@@ -271,5 +274,21 @@ struct vkms_config_connector *vkms_config_add_connector(struct vkms_config *conf
  * @connector_cfg: Connector configuration to destroy
  */
 void vkms_config_destroy_connector(struct vkms_config_connector *connector_cfg);
+
+/**
+ * vkms_config_connector_attach_encoder - Attach a connector to an encoder
+ * @connector_cfg: Connector to attach
+ * @encoder_cfg: Encoder to attach @connector_cfg to
+ */
+int __must_check vkms_config_connector_attach_encoder(struct vkms_config_connector *connector_cfg,
+						      struct vkms_config_encoder *encoder_cfg);
+
+/**
+ * vkms_config_connector_detach_encoder - Detach a connector from an encoder
+ * @connector_cfg: Connector to detach
+ * @encoder_cfg: Encoder to detach @connector_cfg from
+ */
+void vkms_config_connector_detach_encoder(struct vkms_config_connector *connector_cfg,
+					  struct vkms_config_encoder *encoder_cfg);
 
 #endif /* _VKMS_CONFIG_H_ */
