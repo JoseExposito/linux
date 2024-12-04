@@ -26,6 +26,7 @@ static void vkms_config_test_empty_config(struct kunit *test)
 
 	KUNIT_EXPECT_TRUE(test, list_empty(&config->planes));
 	KUNIT_EXPECT_TRUE(test, list_empty(&config->crtcs));
+	KUNIT_EXPECT_TRUE(test, list_empty(&config->encoders));
 
 	KUNIT_EXPECT_FALSE(test, vkms_config_is_valid(config));
 
@@ -97,6 +98,9 @@ static void vkms_config_test_default_config(struct kunit *test)
 		}
 		KUNIT_EXPECT_EQ(test, n_possible_crtcs, 1);
 	}
+
+	/* Encoders */
+	KUNIT_EXPECT_EQ(test, list_count_nodes(&config->encoders), 1);
 
 	KUNIT_EXPECT_TRUE(test, vkms_config_is_valid(config));
 
@@ -228,6 +232,29 @@ static void vkms_config_test_valid_crtc_number(struct kunit *test)
 	vkms_config_destroy(config);
 }
 
+static void vkms_config_test_valid_encoder_number(struct kunit *test)
+{
+	struct vkms_config *config;
+	struct vkms_config_encoder *encoder_cfg;
+	int n;
+
+	config = vkms_config_default_create(false, false, false);
+	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, config);
+
+	/* Invalid: No encoders */
+	encoder_cfg = list_first_entry(&config->encoders, typeof(*encoder_cfg), link);
+	vkms_config_destroy_encoder(config, encoder_cfg);
+	KUNIT_EXPECT_FALSE(test, vkms_config_is_valid(config));
+
+	/* Invalid: Too many encoders */
+	for (n = 0; n <= 32; n++)
+		vkms_config_add_encoder(config);
+
+	KUNIT_EXPECT_FALSE(test, vkms_config_is_valid(config));
+
+	vkms_config_destroy(config);
+}
+
 static void vkms_config_test_plane_attach_crtc(struct kunit *test)
 {
 	struct vkms_config *config;
@@ -292,6 +319,7 @@ static struct kunit_case vkms_config_test_cases[] = {
 	KUNIT_CASE(vkms_config_test_valid_plane_type),
 	KUNIT_CASE(vkms_config_test_valid_plane_possible_crtcs),
 	KUNIT_CASE(vkms_config_test_valid_crtc_number),
+	KUNIT_CASE(vkms_config_test_valid_encoder_number),
 	KUNIT_CASE(vkms_config_test_plane_attach_crtc),
 	{}
 };

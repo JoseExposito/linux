@@ -23,6 +23,7 @@ struct vkms_config *vkms_config_create(const char *dev_name)
 
 	INIT_LIST_HEAD(&config->planes);
 	INIT_LIST_HEAD(&config->crtcs);
+	INIT_LIST_HEAD(&config->encoders);
 
 	return config;
 }
@@ -34,6 +35,7 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 	struct vkms_config *config;
 	struct vkms_config_plane *plane_cfg;
 	struct vkms_config_crtc *crtc_cfg;
+	struct vkms_config_encoder *encoder_cfg;
 	int n;
 
 	config = vkms_config_create(DEFAULT_DEVICE_NAME);
@@ -75,6 +77,10 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 			goto err_alloc;
 	}
 
+	encoder_cfg = vkms_config_add_encoder(config);
+	if (IS_ERR(encoder_cfg))
+		goto err_alloc;
+
 	return config;
 
 err_alloc:
@@ -86,12 +92,16 @@ void vkms_config_destroy(struct vkms_config *config)
 {
 	struct vkms_config_plane *plane_cfg, *plane_tmp;
 	struct vkms_config_crtc *crtc_cfg, *crtc_tmp;
+	struct vkms_config_encoder *encoder_cfg, *encoder_tmp;
 
 	list_for_each_entry_safe(plane_cfg, plane_tmp, &config->planes, link)
 		vkms_config_destroy_plane(plane_cfg);
 
 	list_for_each_entry_safe(crtc_cfg, crtc_tmp, &config->crtcs, link)
 		vkms_config_destroy_crtc(config, crtc_cfg);
+
+	list_for_each_entry_safe(encoder_cfg, encoder_tmp, &config->encoders, link)
+		vkms_config_destroy_encoder(config, encoder_cfg);
 
 	kfree(config->dev_name);
 	kfree(config);
@@ -175,6 +185,19 @@ static bool valid_crtc_number(struct vkms_config *config)
 	return true;
 }
 
+static bool valid_encoder_number(struct vkms_config *config)
+{
+	size_t n_encoders;
+
+	n_encoders = list_count_nodes(&config->encoders);
+	if (n_encoders <= 0 || n_encoders >= 32) {
+		pr_err("The number of encoders must be between 1 and 31\n");
+		return false;
+	}
+
+	return true;
+}
+
 bool vkms_config_is_valid(struct vkms_config *config)
 {
 	struct vkms_config_crtc *crtc_cfg;
@@ -183,6 +206,9 @@ bool vkms_config_is_valid(struct vkms_config *config)
 		return false;
 
 	if (!valid_crtc_number(config))
+		return false;
+
+	if (!valid_encoder_number(config))
 		return false;
 
 	if (!valid_plane_possible_crtcs(config))
@@ -203,6 +229,7 @@ static int vkms_config_show(struct seq_file *m, void *data)
 	struct vkms_device *vkmsdev = drm_device_to_vkms_device(dev);
 	struct vkms_config_plane *plane_cfg;
 	struct vkms_config_crtc *crtc_cfg;
+	struct vkms_config_encoder *encoder_cfg;
 
 	seq_printf(m, "dev_name=%s\n", vkmsdev->config->dev_name);
 
@@ -214,6 +241,10 @@ static int vkms_config_show(struct seq_file *m, void *data)
 	list_for_each_entry(crtc_cfg, &vkmsdev->config->crtcs, link) {
 		seq_puts(m, "crtc:\n");
 		seq_printf(m, "\twriteback=%d\n", crtc_cfg->writeback);
+	}
+
+	list_for_each_entry(encoder_cfg, &vkmsdev->config->encoders, link) {
+		seq_puts(m, "encoder\n");
 	}
 
 	return 0;
@@ -335,4 +366,24 @@ struct vkms_config_plane *vkms_config_crtc_cursor_plane(const struct vkms_config
 							struct vkms_config_crtc *crtc_cfg)
 {
 	return vkms_config_crtc_get_plane(config, crtc_cfg, DRM_PLANE_TYPE_CURSOR);
+}
+
+struct vkms_config_encoder *vkms_config_add_encoder(struct vkms_config *config)
+{
+	struct vkms_config_encoder *encoder_cfg;
+
+	encoder_cfg = kzalloc(sizeof(*encoder_cfg), GFP_KERNEL);
+	if (!encoder_cfg)
+		return ERR_PTR(-ENOMEM);
+
+	list_add_tail(&encoder_cfg->link, &config->encoders);
+
+	return encoder_cfg;
+}
+
+void vkms_config_destroy_encoder(struct vkms_config *config,
+				 struct vkms_config_encoder *encoder_cfg)
+{
+	list_del(&encoder_cfg->link);
+	kfree(encoder_cfg);
 }
