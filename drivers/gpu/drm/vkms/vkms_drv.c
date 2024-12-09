@@ -28,6 +28,7 @@
 #include <drm/drm_vblank.h>
 
 #include "vkms_config.h"
+#include "vkms_configfs.h"
 #include "vkms_drv.h"
 
 #define DRIVER_NAME	"vkms"
@@ -222,8 +223,18 @@ static int __init vkms_init(void)
 
 	ret = vkms_create(config);
 	if (ret)
-		vkms_config_destroy(config);
+		goto err_kfree;
 
+	ret = vkms_configfs_register();
+	if (ret)
+		goto err_destroy;
+
+	return 0;
+
+err_destroy:
+	vkms_destroy(config);
+err_kfree:
+	vkms_config_destroy(config);
 	return ret;
 }
 
@@ -248,6 +259,8 @@ void vkms_destroy(struct vkms_config *config)
 
 static void __exit vkms_exit(void)
 {
+	vkms_configfs_unregister();
+
 	if (default_config->dev)
 		vkms_destroy(default_config);
 
