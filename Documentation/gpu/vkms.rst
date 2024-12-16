@@ -107,6 +107,14 @@ Last but not least, create one or more connectors::
 
   sudo mkdir /config/vkms/my-vkms/connectors/connector0
 
+Connectors have 1 configurable attribute:
+
+- enabled: Unlike planes, CRTCs and encoders, connectors can be add and removed
+  once the device is created. By default, the connector is created disabled to
+  allow configuring it. Once it is enabled, it is added to the device. In the
+  same manner, it can be removed from the device by setting this attribute to
+  false.
+
 To finish the configuration, link the different pipeline items::
 
   sudo ln -s /config/vkms/my-vkms/crtcs/crtc0 /config/vkms/my-vkms/planes/plane0/possible_crtcs
@@ -115,6 +123,10 @@ To finish the configuration, link the different pipeline items::
 Since at least one primary plane is required, make sure to set the right type::
 
   echo "1" | sudo tee /config/vkms/my-vkms/planes/plane0/type
+
+And also enabled the connector::
+
+  echo "1" | sudo tee /config/vkms/my-vkms/connectors/connector0/enabled
 
 Once you are done configuring the VKMS instance, enable it::
 

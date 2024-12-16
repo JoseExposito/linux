@@ -566,6 +566,52 @@ static const struct config_item_type encoder_group_type = {
 	.ct_owner	= THIS_MODULE,
 };
 
+static ssize_t connector_enabled_show(struct config_item *item, char *page)
+{
+	struct vkms_configfs_connector *connector;
+	bool enabled;
+
+	connector = connector_item_to_vkms_configfs_connector(item);
+
+	mutex_lock(&connector->dev->lock);
+	enabled = vkms_config_connector_is_enabled(connector->config);
+	mutex_unlock(&connector->dev->lock);
+
+	return sprintf(page, "%d\n", enabled);
+}
+
+static ssize_t connector_enabled_store(struct config_item *item,
+				       const char *page, size_t count)
+{
+	struct vkms_configfs_connector *connector;
+	bool enabled;
+
+	connector = connector_item_to_vkms_configfs_connector(item);
+
+	if (kstrtobool(page, &enabled))
+		return -EINVAL;
+
+	mutex_lock(&connector->dev->lock);
+
+	if (connector->dev->enabled) {
+		mutex_unlock(&connector->dev->lock);
+		return -EPERM;
+	}
+
+	vkms_config_connector_set_enabled(connector->config, enabled);
+
+	mutex_unlock(&connector->dev->lock);
+
+	return (ssize_t)count;
+}
+
+CONFIGFS_ATTR(connector_, enabled);
+
+static struct configfs_attribute *connector_item_attrs[] = {
+	&connector_attr_enabled,
+	NULL,
+};
+
 static void connector_release(struct config_item *item)
 {
 	struct vkms_configfs_connector *connector;
@@ -585,6 +631,7 @@ static struct configfs_item_operations connector_item_operations = {
 };
 
 static const struct config_item_type connector_item_type = {
+	.ct_attrs	= connector_item_attrs,
 	.ct_item_ops	= &connector_item_operations,
 	.ct_owner	= THIS_MODULE,
 };
