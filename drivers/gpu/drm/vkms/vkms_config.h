@@ -6,6 +6,7 @@
 #include <linux/list.h>
 #include <linux/types.h>
 
+#include "vkms_connector.h"
 #include "vkms_drv.h"
 
 /**
@@ -107,7 +108,7 @@ struct vkms_config_connector {
 	struct xarray possible_encoders;
 
 	/* Internal usage */
-	struct drm_connector *connector;
+	struct vkms_connector *connector;
 };
 
 /**

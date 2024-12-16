@@ -1,33 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0+
 
 #include "vkms_config.h"
+#include "vkms_connector.h"
 #include "vkms_drv.h"
-#include <drm/drm_atomic_helper.h>
-#include <drm/drm_edid.h>
+
 #include <drm/drm_managed.h>
-#include <drm/drm_probe_helper.h>
-
-static const struct drm_connector_funcs vkms_connector_funcs = {
-	.fill_modes = drm_helper_probe_single_connector_modes,
-	.reset = drm_atomic_helper_connector_reset,
-	.atomic_duplicate_state = drm_atomic_helper_connector_duplicate_state,
-	.atomic_destroy_state = drm_atomic_helper_connector_destroy_state,
-};
-
-static int vkms_conn_get_modes(struct drm_connector *connector)
-{
-	int count;
-
-	/* Use the default modes list from DRM */
-	count = drm_add_modes_noedid(connector, XRES_MAX, YRES_MAX);
-	drm_set_preferred_mode(connector, XRES_DEF, YRES_DEF);
-
-	return count;
-}
-
-static const struct drm_connector_helper_funcs vkms_conn_helper_funcs = {
-	.get_modes    = vkms_conn_get_modes,
-};
 
 int vkms_output_init(struct vkms_device *vkmsdev)
 {
@@ -177,25 +154,12 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 
 		connector_cfg = connector_cfgs[n];
 
-		connector_cfg->connector = drmm_kzalloc(dev,
-							sizeof(*connector_cfg->connector),
-							GFP_KERNEL);
-		if (!connector_cfg->connector) {
-			DRM_ERROR("Failed to allocate connector\n");
-			ret = -ENOMEM;
-			goto err_free;
-		}
-
-		ret = drmm_connector_init(dev, connector_cfg->connector,
-					  &vkms_connector_funcs,
-					  DRM_MODE_CONNECTOR_VIRTUAL, NULL);
-		if (ret) {
+		connector_cfg->connector = vkms_connector_init(vkmsdev);
+		if (IS_ERR(connector_cfg->connector)) {
 			DRM_ERROR("Failed to init connector\n");
+			ret = PTR_ERR(connector_cfg->connector);
 			goto err_free;
 		}
-
-		drm_connector_helper_add(connector_cfg->connector,
-					 &vkms_conn_helper_funcs);
 
 		possible_encoders =
 			vkms_config_connector_get_possible_encoders(connector_cfg,
@@ -209,7 +173,7 @@ int vkms_output_init(struct vkms_device *vkmsdev)
 			struct vkms_config_encoder *possible_encoder;
 
 			possible_encoder = possible_encoders[i];
-			ret = drm_connector_attach_encoder(connector_cfg->connector,
+			ret = drm_connector_attach_encoder(&connector_cfg->connector->base,
 							   possible_encoder->encoder);
 			if (ret) {
 				DRM_ERROR("Failed to attach connector to encoder\n");
