@@ -586,6 +586,8 @@ static ssize_t connector_enabled_store(struct config_item *item,
 {
 	struct vkms_configfs_connector *connector;
 	bool enabled;
+	bool was_enabled;
+	ssize_t ret = 0;
 
 	connector = connector_item_to_vkms_configfs_connector(item);
 
@@ -594,16 +596,71 @@ static ssize_t connector_enabled_store(struct config_item *item,
 
 	mutex_lock(&connector->dev->lock);
 
-	if (connector->dev->enabled) {
-		mutex_unlock(&connector->dev->lock);
-		return -EPERM;
-	}
-
+	was_enabled = vkms_config_connector_is_enabled(connector->config);
 	vkms_config_connector_set_enabled(connector->config, enabled);
 
-	mutex_unlock(&connector->dev->lock);
+	// TODO: Pensar bien si con el device deshabilitado no hay que hacer más
+	if (!connector->dev->enabled) {
+		ret = (ssize_t)count;
+		goto err_unlock;
+	}
 
-	return (ssize_t)count;
+	// TODO: Move this code to a hot-add connector function in vkms_connector
+	if (!vkms_config_is_valid(connector->dev->config)) {
+		vkms_config_connector_set_enabled(connector->config, was_enabled);
+		ret = -EINVAL;
+		goto err_unlock;
+	}
+
+	struct vkms_config_connector *connector_cfg;
+	struct vkms_config_encoder **possible_encoders;
+	size_t n_possible_encoders;
+	int i;
+
+	if (!was_enabled && enabled) {
+		struct vkms_connector *new_connector;
+
+		possible_encoders =
+			vkms_config_connector_get_possible_encoders(connector->config,
+								    &n_possible_encoders);
+		if (!possible_encoders) {
+			ret = -ENOMEM;
+			goto err_unlock;
+		}
+
+		new_connector = vkms_connector_init(connector->dev->config->dev);
+		if (ret) {
+			DRM_ERROR("Failed to init connector\n");
+			ret = PTR_ERR(connector_cfg->connector);
+			goto err_unlock;
+		}
+
+		for (i = 0; i < n_possible_encoders; i++) {
+			struct vkms_config_encoder *possible_encoder;
+
+			possible_encoder = possible_encoders[i];
+			ret = drm_connector_attach_encoder(&new_connector->base,
+							   possible_encoder->encoder);
+			if (ret) {
+				DRM_ERROR("Failed to attach connector to encoder\n");
+				goto err_unlock;
+			}
+		}
+
+		kfree(possible_encoders);
+
+		drm_mode_config_reset(&connector->dev->config->dev->drm);
+
+		drm_connector_register(&new_connector->base);
+	} else if (was_enabled && !enabled) {
+		// TODO Implement a hot-remove function
+	}
+
+	ret = (ssize_t)count;
+
+err_unlock:
+	mutex_unlock(&connector->dev->lock);
+	return ret;
 }
 
 CONFIGFS_ATTR(connector_, enabled);
