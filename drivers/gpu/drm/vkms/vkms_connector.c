@@ -25,8 +25,38 @@ static int vkms_conn_get_modes(struct drm_connector *connector)
 	return count;
 }
 
+static struct drm_connector *foo_conn = NULL;
+static struct drm_encoder *foo_enc = NULL;
+
+static struct drm_encoder *vkms_conn_best_encoder(struct drm_connector *connector)
+{
+	struct drm_encoder *encoder;
+
+	// TODO: Implement this following the config
+	drm_connector_for_each_possible_encoder(connector, encoder) {
+		if (!foo_conn) {
+			foo_conn = connector;
+			foo_enc = encoder;
+		}
+
+		if (foo_conn == connector && foo_enc == encoder) {
+printk("@@@@@@@ vkms_conn_best_encoder: connector = %p <-> encoder = %p\n", connector, encoder);
+			return encoder;
+		}
+
+		if (foo_conn != connector && foo_enc != encoder) {
+printk("@@@@@@@ vkms_conn_best_encoder: connector = %p <-> encoder = %p\n", connector, encoder);
+			return encoder;
+		}
+
+	}
+printk("@@@@@@@ vkms_conn_best_encoder: connector = %p <-> encoder = NULL\n", connector);
+	return NULL;
+}
+
 static const struct drm_connector_helper_funcs vkms_conn_helper_funcs = {
 	.get_modes    = vkms_conn_get_modes,
+	.best_encoder = vkms_conn_best_encoder,
 };
 
 struct vkms_connector *vkms_connector_init(struct vkms_device *vkmsdev)
