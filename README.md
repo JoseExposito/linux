@@ -12,9 +12,10 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-vkms-configfs](https://github.com/JoseExposito/linux/tree/patch-vkms-configfs) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Allow to configure VKMS using ConfigFS | 🔨 |
+| [patch-vkms-config](https://github.com/JoseExposito/linux/tree/patch-vkms-config) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | RFC: Allow to configure VKMS using ConfigFS | ⏳ |
 | [patch-vkms-drop-drm_crtc_cleanup](https://github.com/JoseExposito/linux/tree/patch-vkms-drop-drm_crtc_cleanup) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Drop unnecessary call to drm_crtc_cleanup() in VKMS| 🔀 |
 | [patch-drmm-connector-docs](https://github.com/JoseExposito/linux/tree/patch-drmm-connector-docs) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Document the destroy hook in drmm init functions | 🔀 |
-| [patch-vkms-config](https://github.com/JoseExposito/linux/tree/patch-vkms-config) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Allow to configure VKMS using ConfigFS | ⏳ |
 | [patch-amd-display-bounds-checking](https://github.com/JoseExposito/linux/tree/patch-amd-display-bounds-checking) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Add bounds checking in various amd/display `create_stream_encoder()` functions | ⏳ |
 | [patch-sparse-le-warnings](https://github.com/JoseExposito/linux/tree/patch-sparse-le-warnings) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Fix cpu_to_le16/le16_to_cpu warnings | 🔀 |
 | [patch-uclogic-multiple-modules-warning](https://github.com/JoseExposito/linux/tree/patch-uclogic-multiple-modules-warning) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Fix warning `hid-uclogic-[rdesc/params].o is added to multiple modules: hid-uclogic hid-uclogic-test` | 🔀 |
