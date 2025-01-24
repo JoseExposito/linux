@@ -6,6 +6,7 @@
 #include "vkms_drv.h"
 #include "vkms_config.h"
 #include "vkms_configfs.h"
+#include "vkms_connector.h"
 
 /* To avoid registering configfs more than once or unregistering on error */
 static bool is_configfs_registered;
@@ -591,25 +592,52 @@ static ssize_t connector_enabled_store(struct config_item *item,
 				       const char *page, size_t count)
 {
 	struct vkms_configfs_connector *connector;
+	struct vkms_config_connector *connector_cfg;
 	bool enabled;
+	bool was_enabled;
+	ssize_t ret;
 
 	connector = connector_item_to_vkms_configfs_connector(item);
+	connector_cfg = connector->config;
 
 	if (kstrtobool(page, &enabled))
 		return -EINVAL;
 
 	mutex_lock(&connector->dev->lock);
 
-	if (connector->dev->enabled) {
+	was_enabled = vkms_config_connector_is_enabled(connector_cfg);
+	vkms_config_connector_set_enabled(connector_cfg, enabled);
+
+	if (!connector->dev->enabled) {
 		mutex_unlock(&connector->dev->lock);
-		return -EPERM;
+		return (ssize_t)count;
 	}
 
-	vkms_config_connector_set_enabled(connector->config, enabled);
+	if (!vkms_config_is_valid(connector->dev->config)) {
+		ret = -EINVAL;
+		goto err_unlock;
+	}
+
+	if (!was_enabled && enabled) {
+		connector_cfg->connector = vkms_connector_hot_add(connector->dev->config->dev,
+								  connector_cfg);
+		if (IS_ERR(connector_cfg->connector)) {
+			ret = PTR_ERR(connector_cfg->connector);
+			goto err_unlock;
+		}
+	} else if (was_enabled && !enabled) {
+		ret = -EINVAL;
+		goto err_unlock;
+	}
 
 	mutex_unlock(&connector->dev->lock);
 
 	return (ssize_t)count;
+
+err_unlock:
+	vkms_config_connector_set_enabled(connector_cfg, was_enabled);
+	mutex_unlock(&connector->dev->lock);
+	return ret;
 }
 
 CONFIGFS_ATTR(connector_, enabled);

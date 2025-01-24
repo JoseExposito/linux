@@ -5,6 +5,7 @@
 #include <drm/drm_managed.h>
 #include <drm/drm_probe_helper.h>
 
+#include "vkms_config.h"
 #include "vkms_connector.h"
 
 static const struct drm_connector_funcs vkms_connector_funcs = {
@@ -57,5 +58,44 @@ struct vkms_connector *vkms_connector_init(struct vkms_device *vkmsdev)
 
 	drm_connector_helper_add(&connector->base, &vkms_conn_helper_funcs);
 
+	return connector;
+}
+
+struct vkms_connector *vkms_connector_hot_add(struct vkms_device *vkmsdev,
+					      struct vkms_config_connector *connector_cfg)
+{
+	struct vkms_config_encoder **possible_encoders = NULL;
+	size_t n_possible_encoders;
+	struct vkms_config_encoder *possible_encoder;
+	struct vkms_connector *connector;
+	int ret;
+	int i;
+
+	possible_encoders = vkms_config_connector_get_possible_encoders(connector_cfg,
+									&n_possible_encoders);
+	if (IS_ERR(possible_encoders)) {
+		connector = ERR_CAST(possible_encoders);
+		goto out_free;
+	}
+
+	connector = vkms_connector_init(vkmsdev);
+	if (IS_ERR(connector))
+		goto out_free;
+
+	for (i = 0; i < n_possible_encoders; i++) {
+		possible_encoder = possible_encoders[i];
+		ret = drm_connector_attach_encoder(&connector->base,
+						   possible_encoder->encoder);
+		if (ret) {
+			connector = ERR_PTR(ret);
+			goto out_free;
+		}
+	}
+
+	drm_mode_config_reset(&vkmsdev->drm);
+
+	drm_connector_register(&connector->base);
+out_free:
+	kfree(possible_encoders);
 	return connector;
 }

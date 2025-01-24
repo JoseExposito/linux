@@ -5,6 +5,8 @@
 
 #include "vkms_drv.h"
 
+struct vkms_config_connector;
+
 /**
  * struct vkms_connector - VKMS custom type wrapping around the DRM connector
  *
@@ -22,5 +24,16 @@ struct vkms_connector {
  * The connector or an error on failure.
  */
 struct vkms_connector *vkms_connector_init(struct vkms_device *vkmsdev);
+
+/**
+ * vkms_connector_hot_add() - Create a connector after the device is created
+ * @vkmsdev: Device to hot-add the connector to
+ * @connector_cfg: Connector's configuration
+ *
+ * Returns:
+ * The connector or an error on failure.
+ */
+struct vkms_connector *vkms_connector_hot_add(struct vkms_device *vkmsdev,
+					      struct vkms_config_connector *connector_cfg);
 
 #endif /* _VKMS_CONNECTOR_H_ */
