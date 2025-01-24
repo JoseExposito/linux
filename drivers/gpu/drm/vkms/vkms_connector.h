@@ -36,4 +36,10 @@ struct vkms_connector *vkms_connector_init(struct vkms_device *vkmsdev);
 struct vkms_connector *vkms_connector_hot_add(struct vkms_device *vkmsdev,
 					      struct vkms_config_connector *connector_cfg);
 
+/**
+ * vkms_connector_hot_remove() - Remove a connector after a device is created
+ * @connector: The connector to hot-remove
+ */
+void vkms_connector_hot_remove(struct vkms_connector *connector);
+
 #endif /* _VKMS_CONNECTOR_H_ */

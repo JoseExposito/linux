@@ -99,3 +99,8 @@ out_free:
 	kfree(possible_encoders);
 	return connector;
 }
+
+void vkms_connector_hot_remove(struct vkms_connector *connector)
+{
+	drm_connector_unregister(&connector->base);
+}

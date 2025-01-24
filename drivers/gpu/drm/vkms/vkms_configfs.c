@@ -626,8 +626,7 @@ static ssize_t connector_enabled_store(struct config_item *item,
 			goto err_unlock;
 		}
 	} else if (was_enabled && !enabled) {
-		ret = -EINVAL;
-		goto err_unlock;
+		vkms_connector_hot_remove(connector_cfg->connector);
 	}
 
 	mutex_unlock(&connector->dev->lock);
