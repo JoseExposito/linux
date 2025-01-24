@@ -693,14 +693,23 @@ static int connector_possible_encoders_allow_link(struct config_item *src,
 
 	mutex_lock(&connector->dev->lock);
 
-	if (connector->dev->enabled) {
-		mutex_unlock(&connector->dev->lock);
-		return -EPERM;
-	}
-
 	ret = vkms_config_connector_attach_encoder(connector->config,
 						   encoder->config);
+	if (ret)
+		goto err_unlock;
 
+	if (connector->dev->enabled && connector->config->enabled) {
+		ret = vkms_connector_hot_attach_encoder(connector->dev->config->dev,
+							connector->config->connector,
+							encoder->config->encoder);
+		if (ret) {
+			vkms_config_connector_detach_encoder(connector->config,
+							     encoder->config);
+			goto err_unlock;
+		}
+	}
+
+err_unlock:
 	mutex_unlock(&connector->dev->lock);
 
 	return ret;
