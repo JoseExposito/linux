@@ -655,8 +655,13 @@ static void connector_release(struct config_item *item)
 	lock = &connector->dev->lock;
 
 	mutex_lock(lock);
+
+	if (connector->dev->enabled)
+		vkms_connector_hot_remove(connector->config->connector);
+
 	vkms_config_destroy_connector(connector->config);
 	kfree(connector);
+
 	mutex_unlock(lock);
 }
 
