@@ -710,11 +710,6 @@ static struct config_group *make_connector_group(struct config_group *group,
 
 	mutex_lock(&dev->lock);
 
-	if (dev->enabled) {
-		ret = -EINVAL;
-		goto err_unlock;
-	}
-
 	connector = kzalloc(sizeof(*connector), GFP_KERNEL);
 	if (!connector) {
 		ret = -ENOMEM;
