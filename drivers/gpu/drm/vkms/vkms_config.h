@@ -94,6 +94,7 @@ struct vkms_config_encoder {
  * @enabled: Connector are a different from planes, CRTCs and encoders because
  *           they can be added and removed once the device is created.
  *           This flag represents if they are part of the device or not.
+ * @possible_encoders: Array of encoders that can be used with this connector
  * @connector: Internal usage. This pointer should never be considered as valid.
  *             It can be used to store a temporary reference to a VKMS connector
  *             during device creation. This pointer is not managed by the
@@ -103,6 +104,7 @@ struct vkms_config_connector {
 	struct list_head link;
 
 	bool enabled;
+	struct xarray possible_encoders;
 
 	/* Internal usage */
 	struct vkms_connector *connector;
@@ -442,5 +444,36 @@ vkms_config_connector_set_enabled(struct vkms_config_connector *connector_cfg,
 {
 	connector_cfg->enabled = enabled;
 }
+
+/**
+ * vkms_config_connector_attach_encoder - Attach a connector to an encoder
+ * @connector_cfg: Connector to attach
+ * @encoder_cfg: Encoder to attach @connector_cfg to
+ */
+int __must_check vkms_config_connector_attach_encoder(struct vkms_config_connector *connector_cfg,
+						      struct vkms_config_encoder *encoder_cfg);
+
+/**
+ * vkms_config_connector_detach_encoder - Detach a connector from an encoder
+ * @connector_cfg: Connector to detach
+ * @encoder_cfg: Encoder to detach @connector_cfg from
+ */
+void vkms_config_connector_detach_encoder(struct vkms_config_connector *connector_cfg,
+					  struct vkms_config_encoder *encoder_cfg);
+
+/**
+ * vkms_config_connector_get_possible_encoders() - Return the array of possible
+ * encoders
+ * @connector_cfg: Connector to get the possible encoders from
+ * @out_length: Length of the returned array
+ *
+ * Returns:
+ * A list of pointers to the configurations. On success, the caller is
+ * responsible to free the returned array, but not its contents. On error,
+ * it returns an error and @out_length is invalid.
+ */
+struct vkms_config_encoder **
+vkms_config_connector_get_possible_encoders(struct vkms_config_connector *connector_cfg,
+					    size_t *out_length);
 
 #endif /* _VKMS_CONFIG_H_ */
