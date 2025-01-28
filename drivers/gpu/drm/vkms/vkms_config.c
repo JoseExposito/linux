@@ -50,13 +50,20 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 		goto err_alloc;
 	vkms_config_crtc_set_writeback(crtc_cfg, enable_writeback);
 
+	if (vkms_config_plane_attach_crtc(plane_cfg, crtc_cfg))
+		goto err_alloc;
+
 	if (enable_overlay) {
 		for (n = 0; n < NUM_OVERLAY_PLANES; n++) {
 			plane_cfg = vkms_config_add_plane(config);
 			if (IS_ERR(plane_cfg))
 				goto err_alloc;
+
 			vkms_config_plane_set_type(plane_cfg,
 						   DRM_PLANE_TYPE_OVERLAY);
+
+			if (vkms_config_plane_attach_crtc(plane_cfg, crtc_cfg))
+				goto err_alloc;
 		}
 	}
 
@@ -64,7 +71,11 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 		plane_cfg = vkms_config_add_plane(config);
 		if (IS_ERR(plane_cfg))
 			goto err_alloc;
+
 		vkms_config_plane_set_type(plane_cfg, DRM_PLANE_TYPE_CURSOR);
+
+		if (vkms_config_plane_attach_crtc(plane_cfg, crtc_cfg))
+			goto err_alloc;
 	}
 
 	return config;
@@ -156,37 +167,59 @@ static bool valid_plane_number(struct vkms_config *config)
 	return true;
 }
 
-static bool valid_plane_type(struct vkms_config *config)
+static bool valid_plane_type(struct vkms_config *config,
+			     struct vkms_config_crtc *crtc_cfg)
 {
 	struct vkms_config_plane *plane_cfg;
 	bool has_primary_plane = false;
 	bool has_cursor_plane = false;
 
 	list_for_each_entry(plane_cfg, &config->planes, link) {
+		struct vkms_config_crtc *possible_crtc;
+		unsigned long idx = 0;
 		enum drm_plane_type type;
 
 		type = vkms_config_plane_get_type(plane_cfg);
 
-		if (type == DRM_PLANE_TYPE_PRIMARY) {
-			if (has_primary_plane) {
-				pr_err("Multiple primary planes\n");
-				return false;
-			}
+		xa_for_each(&plane_cfg->possible_crtcs, idx, possible_crtc) {
+			if (possible_crtc != crtc_cfg)
+				continue;
 
-			has_primary_plane = true;
-		} else if (type == DRM_PLANE_TYPE_CURSOR) {
-			if (has_cursor_plane) {
-				pr_err("Multiple cursor planes\n");
-				return false;
-			}
+			if (type == DRM_PLANE_TYPE_PRIMARY) {
+				if (has_primary_plane) {
+					pr_err("Multiple primary planes\n");
+					return false;
+				}
 
-			has_cursor_plane = true;
+				has_primary_plane = true;
+			} else if (type == DRM_PLANE_TYPE_CURSOR) {
+				if (has_cursor_plane) {
+					pr_err("Multiple cursor planes\n");
+					return false;
+				}
+
+				has_cursor_plane = true;
+			}
 		}
 	}
 
 	if (!has_primary_plane) {
 		pr_err("Primary plane not found\n");
 		return false;
+	}
+
+	return true;
+}
+
+static bool valid_plane_possible_crtcs(struct vkms_config *config)
+{
+	struct vkms_config_plane *plane_cfg;
+
+	list_for_each_entry(plane_cfg, &config->planes, link) {
+		if (xa_empty(&plane_cfg->possible_crtcs)) {
+			pr_err("All planes must have at least one possible CRTC\n");
+			return false;
+		}
 	}
 
 	return true;
@@ -207,14 +240,21 @@ static bool valid_crtc_number(struct vkms_config *config)
 
 bool vkms_config_is_valid(struct vkms_config *config)
 {
+	struct vkms_config_crtc *crtc_cfg;
+
 	if (!valid_plane_number(config))
 		return false;
 
 	if (!valid_crtc_number(config))
 		return false;
 
-	if (!valid_plane_type(config))
+	if (!valid_plane_possible_crtcs(config))
 		return false;
+
+	list_for_each_entry(crtc_cfg, &config->crtcs, link) {
+		if (!valid_plane_type(config, crtc_cfg))
+			return false;
+	}
 
 	return true;
 }
@@ -265,6 +305,7 @@ struct vkms_config_plane *vkms_config_add_plane(struct vkms_config *config)
 		return ERR_PTR(-ENOMEM);
 
 	vkms_config_plane_set_type(plane_cfg, DRM_PLANE_TYPE_OVERLAY);
+	xa_init_flags(&plane_cfg->possible_crtcs, XA_FLAGS_ALLOC);
 
 	list_add_tail(&plane_cfg->link, &config->planes);
 
@@ -273,8 +314,67 @@ struct vkms_config_plane *vkms_config_add_plane(struct vkms_config *config)
 
 void vkms_config_destroy_plane(struct vkms_config_plane *plane_cfg)
 {
+	xa_destroy(&plane_cfg->possible_crtcs);
 	list_del(&plane_cfg->link);
 	kfree(plane_cfg);
+}
+
+int __must_check vkms_config_plane_attach_crtc(struct vkms_config_plane *plane_cfg,
+					       struct vkms_config_crtc *crtc_cfg)
+{
+	struct vkms_config_crtc *possible_crtc;
+	unsigned long idx = 0;
+	u32 crtc_idx = 0;
+
+	xa_for_each(&plane_cfg->possible_crtcs, idx, possible_crtc) {
+		if (possible_crtc == crtc_cfg)
+			return -EINVAL;
+	}
+
+	return xa_alloc(&plane_cfg->possible_crtcs, &crtc_idx, crtc_cfg,
+			xa_limit_32b, GFP_KERNEL);
+}
+
+void vkms_config_plane_detach_crtc(struct vkms_config_plane *plane_cfg,
+				   struct vkms_config_crtc *crtc_cfg)
+{
+	struct vkms_config_crtc *possible_crtc;
+	unsigned long idx = 0;
+
+	xa_for_each(&plane_cfg->possible_crtcs, idx, possible_crtc) {
+		if (possible_crtc == crtc_cfg)
+			xa_erase(&plane_cfg->possible_crtcs, idx);
+	}
+}
+
+struct vkms_config_crtc **vkms_config_plane_get_possible_crtcs(struct vkms_config_plane *plane_cfg,
+							       size_t *out_length)
+{
+	struct vkms_config_crtc **array;
+	struct vkms_config_crtc *possible_crtc;
+	unsigned long idx;
+	size_t length = 0;
+	int n = 0;
+
+	xa_for_each(&plane_cfg->possible_crtcs, idx, possible_crtc)
+		length++;
+
+	if (length == 0) {
+		*out_length = length;
+		return NULL;
+	}
+
+	array = kmalloc_array(length, sizeof(*array), GFP_KERNEL);
+	if (!array)
+		return ERR_PTR(-ENOMEM);
+
+	xa_for_each(&plane_cfg->possible_crtcs, idx, possible_crtc) {
+		array[n] = possible_crtc;
+		n++;
+	}
+
+	*out_length = length;
+	return array;
 }
 
 struct vkms_config_crtc *vkms_config_add_crtc(struct vkms_config *config)
@@ -295,6 +395,44 @@ struct vkms_config_crtc *vkms_config_add_crtc(struct vkms_config *config)
 void vkms_config_destroy_crtc(struct vkms_config *config,
 			      struct vkms_config_crtc *crtc_cfg)
 {
+	struct vkms_config_plane *plane_cfg;
+
+	list_for_each_entry(plane_cfg, &config->planes, link)
+		vkms_config_plane_detach_crtc(plane_cfg, crtc_cfg);
+
 	list_del(&crtc_cfg->link);
 	kfree(crtc_cfg);
+}
+
+static struct vkms_config_plane *vkms_config_crtc_get_plane(const struct vkms_config *config,
+							    struct vkms_config_crtc *crtc_cfg,
+							    enum drm_plane_type type)
+{
+	struct vkms_config_plane *plane_cfg;
+	struct vkms_config_crtc *possible_crtc;
+	enum drm_plane_type current_type;
+	unsigned long idx;
+
+	list_for_each_entry(plane_cfg, &config->planes, link) {
+		current_type = vkms_config_plane_get_type(plane_cfg);
+
+		xa_for_each(&plane_cfg->possible_crtcs, idx, possible_crtc) {
+			if (possible_crtc == crtc_cfg && current_type == type)
+				return plane_cfg;
+		}
+	}
+
+	return NULL;
+}
+
+struct vkms_config_plane *vkms_config_crtc_primary_plane(const struct vkms_config *config,
+							 struct vkms_config_crtc *crtc_cfg)
+{
+	return vkms_config_crtc_get_plane(config, crtc_cfg, DRM_PLANE_TYPE_PRIMARY);
+}
+
+struct vkms_config_plane *vkms_config_crtc_cursor_plane(const struct vkms_config *config,
+							struct vkms_config_crtc *crtc_cfg)
+{
+	return vkms_config_crtc_get_plane(config, crtc_cfg, DRM_PLANE_TYPE_CURSOR);
 }
