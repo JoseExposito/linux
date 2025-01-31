@@ -626,7 +626,8 @@ static ssize_t connector_enabled_store(struct config_item *item,
 			goto err_unlock;
 		}
 	} else if (was_enabled && !enabled) {
-		vkms_connector_hot_remove(connector_cfg->connector);
+		vkms_connector_hot_remove(connector->dev->config->dev,
+					  connector_cfg->connector);
 	}
 
 	mutex_unlock(&connector->dev->lock);
@@ -656,8 +657,10 @@ static void connector_release(struct config_item *item)
 
 	mutex_lock(lock);
 
-	if (connector->dev->enabled)
-		vkms_connector_hot_remove(connector->config->connector);
+	if (connector->dev->enabled) {
+		vkms_connector_hot_remove(connector->dev->config->dev,
+					  connector->config->connector);
+	}
 
 	vkms_config_destroy_connector(connector->config);
 	kfree(connector);

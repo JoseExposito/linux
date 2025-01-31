@@ -40,7 +40,8 @@ struct vkms_connector *vkms_connector_hot_add(struct vkms_device *vkmsdev,
  * vkms_connector_hot_remove() - Remove a connector after a device is created
  * @connector: The connector to hot-remove
  */
-void vkms_connector_hot_remove(struct vkms_connector *connector);
+void vkms_connector_hot_remove(struct vkms_device *vkmsdev,
+			       struct vkms_connector *connector);
 
 /**
  * vkms_connector_hot_attach_encoder() - Attach a connector to a encoder after
