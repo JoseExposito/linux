@@ -83,8 +83,12 @@ static void vkms_atomic_commit_tail(struct drm_atomic_state *old_state)
 static const struct drm_driver vkms_driver = {
 	.driver_features	= DRIVER_MODESET | DRIVER_ATOMIC | DRIVER_GEM,
 	.fops			= &vkms_driver_fops,
-	DRM_GEM_SHMEM_DRIVER_OPS,
-	DRM_FBDEV_SHMEM_DRIVER_OPS,
+	// TODO: Commenting this and avoids crashes on clean up. The modes are
+	//       added to the client when a connector is hot-added but not
+	//       removed when the connector is hot-removed, causing a NULL
+	//       pointer error on clean up.
+	// DRM_GEM_SHMEM_DRIVER_OPS,
+	// DRM_FBDEV_SHMEM_DRIVER_OPS,
 
 	.name			= DRIVER_NAME,
 	.desc			= DRIVER_DESC,
@@ -199,7 +203,8 @@ int vkms_create(struct vkms_config *config)
 	if (ret)
 		goto out_devres;
 
-	drm_client_setup(&vkms_device->drm, NULL);
+	// See comment in static const struct drm_driver vkms_driver
+	// drm_client_setup(&vkms_device->drm, NULL);
 
 	return 0;
 

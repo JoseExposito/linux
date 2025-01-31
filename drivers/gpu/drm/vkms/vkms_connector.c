@@ -61,6 +61,14 @@ struct vkms_connector *vkms_connector_init(struct vkms_device *vkmsdev)
 	return connector;
 }
 
+static const struct drm_connector_funcs vkms_dynamic_connector_funcs = {
+	.fill_modes = drm_helper_probe_single_connector_modes,
+	.reset = drm_atomic_helper_connector_reset,
+	.atomic_duplicate_state = drm_atomic_helper_connector_duplicate_state,
+	.atomic_destroy_state = drm_atomic_helper_connector_destroy_state,
+	.destroy = drm_connector_cleanup,
+};
+
 struct vkms_connector *vkms_connector_hot_add(struct vkms_device *vkmsdev,
 					      struct vkms_config_connector *connector_cfg)
 {
@@ -78,9 +86,29 @@ struct vkms_connector *vkms_connector_hot_add(struct vkms_device *vkmsdev,
 		goto out_free;
 	}
 
-	connector = vkms_connector_init(vkmsdev);
-	if (IS_ERR(connector))
+	// connector = vkms_connector_init(vkmsdev);
+	// if (IS_ERR(connector))
+	// 	goto out_free;
+	//
+	// Instead of drmm_connector_init(), use drm_connector_dynamic_init().
+	// Unfortunately, this function doesn't have a drmm version yet.
+	// 
+	// {
+	connector = kzalloc(sizeof(*connector), GFP_KERNEL);
+	if (!connector) {
+		connector = ERR_PTR(-ENOMEM);
 		goto out_free;
+	}
+		
+	ret = drm_connector_dynamic_init(&vkmsdev->drm, &connector->base, &vkms_dynamic_connector_funcs, DRM_MODE_CONNECTOR_VIRTUAL, NULL);
+	if (ret) {
+		// TODO: Free memory
+		connector = ERR_PTR(ret);
+		goto out_free;
+	}
+
+	drm_connector_helper_add(&connector->base, &vkms_conn_helper_funcs);
+	// }
 
 	for (i = 0; i < n_possible_encoders; i++) {
 		possible_encoder = possible_encoders[i];
@@ -94,15 +122,27 @@ struct vkms_connector *vkms_connector_hot_add(struct vkms_device *vkmsdev,
 
 	drm_mode_config_reset(&vkmsdev->drm);
 
-	drm_connector_register(&connector->base);
+	// drm_connector_register(&connector->base);
+	// {
+	ret = drm_connector_dynamic_register(&connector->base);
+	if (ret) {
+		// TODO: Free memory
+		connector = ERR_PTR(ret);
+		goto out_free;
+	}
+	// }
+
 out_free:
 	kfree(possible_encoders);
 	return connector;
 }
 
-void vkms_connector_hot_remove(struct vkms_connector *connector)
+void vkms_connector_hot_remove(struct vkms_device *vkmsdev,
+			       struct vkms_connector *connector)
 {
 	drm_connector_unregister(&connector->base);
+	drm_mode_config_reset(&vkmsdev->drm);
+	drm_connector_put(&connector->base);
 }
 
 int vkms_connector_hot_attach_encoder(struct vkms_device *vkmsdev,
