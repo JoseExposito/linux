@@ -511,6 +511,27 @@ static void vkms_config_test_invalid_connector_number(struct kunit *test)
 	vkms_config_destroy(config);
 }
 
+static void vkms_config_test_valid_connector_possible_encoders(struct kunit *test)
+{
+	struct vkms_config *config;
+	struct vkms_config_encoder *encoder_cfg;
+	struct vkms_config_connector *connector_cfg;
+
+	config = vkms_config_default_create(false, false, false);
+	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, config);
+
+	encoder_cfg = list_first_entry(&config->encoders,
+				       typeof(*encoder_cfg), link);
+	connector_cfg = list_first_entry(&config->connectors,
+					 typeof(*connector_cfg), link);
+
+	/* Invalid: Connector without a possible encoder */
+	vkms_config_connector_detach_encoder(connector_cfg, encoder_cfg);
+	KUNIT_EXPECT_FALSE(test, vkms_config_is_valid(config));
+
+	vkms_config_destroy(config);
+}
+
 static void vkms_config_test_plane_attach_crtc(struct kunit *test)
 {
 	struct vkms_config *config;
@@ -700,6 +721,77 @@ static void vkms_config_test_encoder_get_possible_crtcs(struct kunit *test)
 	vkms_config_destroy(config);
 }
 
+static void vkms_config_test_connector_get_possible_encoders(struct kunit *test)
+{
+	struct vkms_config *config;
+	struct vkms_config_connector *connector_cfg1, *connector_cfg2;
+	struct vkms_config_encoder *encoder_cfg1, *encoder_cfg2;
+	struct vkms_config_encoder *possible_encoder;
+	unsigned long idx = 0;
+	int n_encoders = 0;
+	int err;
+
+	config = vkms_config_create("test");
+	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, config);
+
+	connector_cfg1 = vkms_config_create_connector(config);
+	connector_cfg2 = vkms_config_create_connector(config);
+	encoder_cfg1 = vkms_config_create_encoder(config);
+	encoder_cfg2 = vkms_config_create_encoder(config);
+
+	/* No possible encoders */
+	vkms_config_connector_for_each_possible_encoder(connector_cfg1, idx,
+							possible_encoder)
+		KUNIT_FAIL(test, "Unexpected possible encoder");
+
+	vkms_config_connector_for_each_possible_encoder(connector_cfg2, idx,
+							possible_encoder)
+		KUNIT_FAIL(test, "Unexpected possible encoder");
+
+	/* Connector 1 attached to encoders 1 and 2 */
+	err = vkms_config_connector_attach_encoder(connector_cfg1, encoder_cfg1);
+	KUNIT_EXPECT_EQ(test, err, 0);
+	err = vkms_config_connector_attach_encoder(connector_cfg1, encoder_cfg2);
+	KUNIT_EXPECT_EQ(test, err, 0);
+
+	vkms_config_connector_for_each_possible_encoder(connector_cfg1, idx,
+							possible_encoder) {
+		n_encoders++;
+		if (possible_encoder != encoder_cfg1 &&
+		    possible_encoder != encoder_cfg2)
+			KUNIT_FAIL(test, "Unexpected possible encoder");
+	}
+	KUNIT_ASSERT_EQ(test, n_encoders, 2);
+	n_encoders = 0;
+
+	vkms_config_connector_for_each_possible_encoder(connector_cfg2, idx,
+							possible_encoder)
+		KUNIT_FAIL(test, "Unexpected possible encoder");
+
+	/* Connector 1 attached to encoder 1 and connector 2 to encoder 2 */
+	vkms_config_connector_detach_encoder(connector_cfg1, encoder_cfg2);
+	vkms_config_connector_for_each_possible_encoder(connector_cfg1, idx,
+							possible_encoder) {
+		n_encoders++;
+		if (possible_encoder != encoder_cfg1)
+			KUNIT_FAIL(test, "Unexpected possible encoder");
+	}
+	KUNIT_ASSERT_EQ(test, n_encoders, 1);
+	n_encoders = 0;
+
+	err = vkms_config_connector_attach_encoder(connector_cfg2, encoder_cfg2);
+	KUNIT_EXPECT_EQ(test, err, 0);
+	vkms_config_connector_for_each_possible_encoder(connector_cfg2, idx,
+							possible_encoder) {
+		n_encoders++;
+		if (possible_encoder != encoder_cfg2)
+			KUNIT_FAIL(test, "Unexpected possible encoder");
+	}
+	KUNIT_ASSERT_EQ(test, n_encoders, 1);
+
+	vkms_config_destroy(config);
+}
+
 static struct kunit_case vkms_config_test_cases[] = {
 	KUNIT_CASE(vkms_config_test_empty_config),
 	KUNIT_CASE_PARAM(vkms_config_test_default_config,
@@ -715,9 +807,11 @@ static struct kunit_case vkms_config_test_cases[] = {
 	KUNIT_CASE(vkms_config_test_invalid_encoder_number),
 	KUNIT_CASE(vkms_config_test_valid_encoder_possible_crtcs),
 	KUNIT_CASE(vkms_config_test_invalid_connector_number),
+	KUNIT_CASE(vkms_config_test_valid_connector_possible_encoders),
 	KUNIT_CASE(vkms_config_test_plane_attach_crtc),
 	KUNIT_CASE(vkms_config_test_plane_get_possible_crtcs),
 	KUNIT_CASE(vkms_config_test_encoder_get_possible_crtcs),
+	KUNIT_CASE(vkms_config_test_connector_get_possible_encoders),
 	{}
 };
 
