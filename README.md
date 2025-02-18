@@ -12,7 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
-| [patch-vkms-configfs](https://github.com/JoseExposito/linux/tree/patch-vkms-configfs) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Allow to configure VKMS using ConfigFS | 🔨 |
+| [patch-vkms-configfs](https://github.com/JoseExposito/linux/tree/patch-vkms-configfs) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Allow to configure VKMS using ConfigFS | ⏳ |
 | [patch-vkms-configfs-connector-hot-add-remove](https://github.com/JoseExposito/linux/tree/patch-vkms-configfs-connector-hot-add-remove) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Testing with connector hot-add/remove | 🔨 |
 | [patch-vkms-config](https://github.com/JoseExposito/linux/tree/patch-vkms-config) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | RFC: Allow to configure VKMS using ConfigFS | ⏳ |
 | [patch-vkms-init-error-double-free](https://github.com/JoseExposito/linux/tree/patch-vkms-init-error-double-free) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Fix use after free and double free on VKMS init error | 🔀 |
