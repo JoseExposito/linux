@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-kunit-drm-format-helper-endian-fixes](https://github.com/JoseExposito/linux/tree/patch-kunit-drm-format-helper-endian-fixes) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Fix endian issues in `drm_test_fb_xrgb8888_to_xrgb2101010()` | ⏳ |
 | [patch-vkms-configfs-connector-hot-add-remove](https://github.com/JoseExposito/linux/tree/patch-vkms-configfs-connector-hot-add-remove) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Testing with connector hot-add/remove | 🔨 |
 | [patch-vkms-configfs](https://github.com/JoseExposito/linux/tree/patch-vkms-configfs) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Allow to configure VKMS using ConfigFS | ⏳ |
 | [patch-vkms-config](https://github.com/JoseExposito/linux/tree/patch-vkms-config) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Allow to configure VKMS in preparation for ConfigFS | 🔀 |
