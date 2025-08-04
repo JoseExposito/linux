@@ -180,6 +180,7 @@ My personal working configs are save in `config-*` branches:
 | [config-6.9.0-fedora-39](https://github.com/JoseExposito/linux/tree/config-6.9.0-fedora-39) | 6.9.0 | Fedora 39 |
 | [config-6.10.0-fedora-40](https://github.com/JoseExposito/linux/tree/config-6.10.0-fedora-40) | 6.10.0 | Fedora 40 |
 | [config-6.11.0-fedora-40](https://github.com/JoseExposito/linux/tree/config-6.11.0-fedora-40) | 6.11.0 | Fedora 40 |
+| [config-6.16.0-fedora-42](https://github.com/JoseExposito/linux/tree/config-6.16.0-fedora-42) | 6.16.0 | Fedora 42 |
 | [config-6.13.0-qemu-fedora-41](https://github.com/JoseExposito/linux/tree/config-6.13.0-qemu-fedora-41) | 6.13.0 | QEMU (Fedora 41) |
 | [config-6.14.0-qemu-fedora-41](https://github.com/JoseExposito/linux/tree/config-6.14.0-qemu-fedora-41) | 6.14.0 | QEMU (Fedora 41) |
 | [config-6.14.0-qemu-fedora-41](https://github.com/JoseExposito/linux/tree/config-6.16.0-qemu-fedora-42) | 6.16.0 | QEMU (Fedora 42) |
