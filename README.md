@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-smatch-check-vkms_config_create](https://github.com/JoseExposito/linux/tree/patch-smatch-check-vkms_config_create) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Assert if vkms_config_create_*() fails in KUnit tests | ⏳ |
 | [patch-report-battery-status-immediately](https://github.com/JoseExposito/linux/tree/patch-report-battery-status-immediately) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Report battery status changes immediately | 🔨 |
 | [patch-kunit-drm-format-helper-endian-fixes](https://github.com/JoseExposito/linux/tree/patch-kunit-drm-format-helper-endian-fixes) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Fix endian issues in `drm_test_fb_xrgb8888_to_xrgb2101010()` | ⏳ |
 | [patch-vkms-configfs-connector-hot-add-remove](https://github.com/JoseExposito/linux/tree/patch-vkms-configfs-connector-hot-add-remove) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Testing with connector hot-add/remove | 🔨 |
