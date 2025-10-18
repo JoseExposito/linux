@@ -47,6 +47,8 @@ struct vkms_config {
  *         must be managed by other means.
  * @default_color_encoding: Default color encoding that should be used by this plane
  * @supported_color_encoding: Color encoding that this plane will support
+ * @default_color_range: Default color range that should be used by this plane
+ * @supported_color_range: Color range that this plane will support
  */
 struct vkms_config_plane {
 	struct list_head link;
@@ -58,6 +60,8 @@ struct vkms_config_plane {
 	unsigned int supported_rotations;
 	enum drm_color_encoding default_color_encoding;
 	unsigned int supported_color_encoding;
+	enum drm_color_range default_color_range;
+	unsigned int supported_color_range;
 	struct xarray possible_crtcs;
 
 	/* Internal usage */
@@ -372,6 +376,32 @@ vkms_config_plane_set_supported_color_encoding(struct vkms_config_plane *plane_c
 					       unsigned int supported_color_encoding)
 {
 	plane_cfg->supported_color_encoding = supported_color_encoding;
+}
+
+static inline enum drm_color_range
+vkms_config_plane_get_default_color_range(struct vkms_config_plane *plane_cfg)
+{
+	return plane_cfg->default_color_range;
+}
+
+static inline void
+vkms_config_plane_set_default_color_range(struct vkms_config_plane *plane_cfg,
+					  enum drm_color_range default_color_range)
+{
+	plane_cfg->default_color_range = default_color_range;
+}
+
+static inline unsigned int
+vkms_config_plane_get_supported_color_range(struct vkms_config_plane *plane_cfg)
+{
+	return plane_cfg->supported_color_range;
+}
+
+static inline void
+vkms_config_plane_set_supported_color_range(struct vkms_config_plane *plane_cfg,
+					    unsigned int supported_color_range)
+{
+	plane_cfg->supported_color_range = supported_color_range;
 }
 
 /**

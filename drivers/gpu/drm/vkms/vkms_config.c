@@ -163,6 +163,13 @@ static bool valid_plane_properties(const struct vkms_config *config)
 			drm_info(dev, "Configured default color encoding is not supported by the plane\n");
 			return false;
 		}
+
+		if ((BIT(vkms_config_plane_get_default_color_range(plane_cfg)) &
+		     vkms_config_plane_get_supported_color_range(plane_cfg)) !=
+		    BIT(vkms_config_plane_get_default_color_range(plane_cfg))) {
+			drm_info(dev, "Configured default color range is not supported by the plane\n");
+			return false;
+		}
 	}
 	return true;
 }
@@ -386,6 +393,10 @@ static int vkms_config_show(struct seq_file *m, void *data)
 			   vkms_config_plane_get_supported_color_encoding(plane_cfg));
 		seq_printf(m, "\tdefault color encoding: %d\n",
 			   vkms_config_plane_get_default_color_encoding(plane_cfg));
+		seq_printf(m, "\tsupported color range: 0x%x\n",
+			   vkms_config_plane_get_supported_color_range(plane_cfg));
+		seq_printf(m, "\tdefault color range: %d\n",
+			   vkms_config_plane_get_default_color_range(plane_cfg));
 	}
 
 	vkms_config_for_each_crtc(vkmsdev->config, crtc_cfg) {
@@ -433,6 +444,9 @@ struct vkms_config_plane *vkms_config_create_plane(struct vkms_config *config)
 							BIT(DRM_COLOR_YCBCR_BT709) |
 							BIT(DRM_COLOR_YCBCR_BT2020));
 	vkms_config_plane_set_default_color_encoding(plane_cfg, DRM_COLOR_YCBCR_BT601);
+	vkms_config_plane_set_supported_color_range(plane_cfg, BIT(DRM_COLOR_YCBCR_LIMITED_RANGE) |
+							       BIT(DRM_COLOR_YCBCR_FULL_RANGE));
+	vkms_config_plane_set_default_color_range(plane_cfg, DRM_COLOR_YCBCR_FULL_RANGE);
 
 	xa_init_flags(&plane_cfg->possible_crtcs, XA_FLAGS_ALLOC);
 
