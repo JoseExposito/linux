@@ -87,7 +87,7 @@ Start by creating one or more planes::
 
   sudo mkdir /config/vkms/my-vkms/planes/plane0
 
-Planes have 5 configurable attribute:
+Planes have 7 configurable attribute:
 
 - type: Plane type: 0 overlay, 1 primary, 2 cursor (same values as those
   exposed by the "type" property of a plane)
@@ -101,6 +101,11 @@ Planes have 5 configurable attribute:
   by the COLOR_ENCODING property of a plane)
 - default_color_encoding: Default color encoding presented to the userspace, same
   values as supported_color_encoding
+- supported_color_range: Available color range for a plane, as a bitmask:
+  0x1 DRM_COLOR_YCBCR_LIMITED_RANGE, 0x2 DRM_COLOR_YCBCR_FULL_RANGE (same values as
+  those exposed by the COLOR_RANGE property of a plane)
+- default_color_range: Default color range presented to the userspace, same
+  values as supported_color_range
 
 Continue by creating one or more CRTCs::
 
