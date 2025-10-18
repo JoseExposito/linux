@@ -86,6 +86,7 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 	if (IS_ERR(plane_cfg))
 		goto err_alloc;
 	vkms_config_plane_set_type(plane_cfg, DRM_PLANE_TYPE_PRIMARY);
+	vkms_config_plane_set_zpos_enabled(plane_cfg, false);
 
 	crtc_cfg = vkms_config_create_crtc(config);
 	if (IS_ERR(crtc_cfg))
@@ -103,6 +104,7 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 
 			vkms_config_plane_set_type(plane_cfg,
 						   DRM_PLANE_TYPE_OVERLAY);
+			vkms_config_plane_set_zpos_enabled(plane_cfg, false);
 
 			if (vkms_config_plane_attach_crtc(plane_cfg, crtc_cfg))
 				goto err_alloc;
@@ -115,6 +117,7 @@ struct vkms_config *vkms_config_default_create(bool enable_cursor,
 			goto err_alloc;
 
 		vkms_config_plane_set_type(plane_cfg, DRM_PLANE_TYPE_CURSOR);
+		vkms_config_plane_set_zpos_enabled(plane_cfg, false);
 
 		if (vkms_config_plane_attach_crtc(plane_cfg, crtc_cfg))
 			goto err_alloc;
@@ -206,6 +209,24 @@ static bool valid_plane_properties(const struct vkms_config *config)
 			drm_info(dev, "Configured default color range is not supported by the plane\n");
 			return false;
 		}
+		if (vkms_config_plane_get_zpos_initial(plane_cfg) >
+		    vkms_config_plane_get_zpos_max(plane_cfg)) {
+			drm_info(dev, "Configured initial zpos value bigger than zpos max\n");
+			return false;
+		}
+
+		if (vkms_config_plane_get_zpos_max(plane_cfg) <
+		    vkms_config_plane_get_zpos_min(plane_cfg)) {
+			drm_info(dev, "Configured zpos max value smaller than zpos min\n");
+			return false;
+		}
+
+		if (vkms_config_plane_get_zpos_initial(plane_cfg) <
+		    vkms_config_plane_get_zpos_min(plane_cfg)) {
+			drm_info(dev, "Configured initial zpos value smaller than zpos min\n");
+			return false;
+		}
+
 	}
 	return true;
 }
