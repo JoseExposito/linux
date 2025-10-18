@@ -87,7 +87,7 @@ Start by creating one or more planes::
 
   sudo mkdir /config/vkms/my-vkms/planes/plane0
 
-Planes have 7 configurable attribute:
+Planes have 8 configurable attribute:
 
 - type: Plane type: 0 overlay, 1 primary, 2 cursor (same values as those
   exposed by the "type" property of a plane)
@@ -106,6 +106,11 @@ Planes have 7 configurable attribute:
   those exposed by the COLOR_RANGE property of a plane)
 - default_color_range: Default color range presented to the userspace, same
   values as supported_color_range
+- supported_formats: List of supported formats for this plane. To add a new item in the
+  list, write it using a plus its fourcc code: +XR24
+  To remove a format, use a minus and its fourcc: -XR24
+  To add all formats use +*
+  To remove all formats, use -*
 
 Continue by creating one or more CRTCs::
 
