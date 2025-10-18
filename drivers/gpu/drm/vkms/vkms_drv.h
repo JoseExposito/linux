@@ -226,6 +226,7 @@ struct vkms_output {
 
 struct vkms_config;
 struct vkms_config_plane;
+struct vkms_config_connector;
 
 /**
  * struct vkms_device - Description of a VKMS device
