@@ -376,6 +376,7 @@ static struct config_group *make_plane_group(struct config_group *group,
 			kfree(plane);
 			return ERR_CAST(plane->config);
 		}
+		vkms_config_plane_set_name(plane->config, name);
 
 		config_group_init_type_name(&plane->group, name, &plane_item_type);
 
