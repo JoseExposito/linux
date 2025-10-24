@@ -139,6 +139,8 @@ static void vkms_config_test_default_config(struct kunit *test)
 
 	/* Planes */
 	vkms_config_for_each_plane(config, plane_cfg) {
+		KUNIT_ASSERT_NULL(test, vkms_config_plane_get_name(plane_cfg));
+
 		switch (vkms_config_plane_get_type(plane_cfg)) {
 		case DRM_PLANE_TYPE_PRIMARY:
 			n_primaries++;
@@ -501,6 +503,24 @@ static void vkms_config_test_valid_plane_possible_crtcs(struct kunit *test)
 	/* Invalid: Primary plane without a possible CRTC */
 	vkms_config_plane_detach_crtc(plane_cfg, crtc_cfg);
 	KUNIT_EXPECT_FALSE(test, vkms_config_is_valid(config));
+
+	vkms_config_destroy(config);
+}
+
+static void vkms_config_test_valid_plane_name(struct kunit *test)
+{
+	struct vkms_config *config;
+	struct vkms_config_plane *plane_cfg;
+
+	config = vkms_config_default_create(false, false, false);
+	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, config);
+
+	plane_cfg = get_first_plane(config);
+	KUNIT_ASSERT_NULL(test, vkms_config_plane_get_name(plane_cfg));
+
+	vkms_config_plane_set_name(plane_cfg, "test");
+	KUNIT_ASSERT_STREQ(test, vkms_config_plane_get_name(plane_cfg), "test");
+	KUNIT_EXPECT_TRUE(test, vkms_config_is_valid(config));
 
 	vkms_config_destroy(config);
 }
@@ -1009,6 +1029,7 @@ static struct kunit_case vkms_config_test_cases[] = {
 	KUNIT_CASE(vkms_config_test_invalid_plane_number),
 	KUNIT_CASE(vkms_config_test_valid_plane_type),
 	KUNIT_CASE(vkms_config_test_valid_plane_possible_crtcs),
+	KUNIT_CASE(vkms_config_test_valid_plane_name),
 	KUNIT_CASE(vkms_config_test_invalid_crtc_number),
 	KUNIT_CASE(vkms_config_test_invalid_encoder_number),
 	KUNIT_CASE(vkms_config_test_valid_encoder_possible_crtcs),
