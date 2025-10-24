@@ -12,6 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
+| [patch-vkms-kunit-louis-new-configs](https://github.com/JoseExposito/linux/tree/patch-vkms-kunit-louis-new-configs) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Add tests to help me review and validate [this series](https://lore.kernel.org/dri-devel/20251018-vkms-all-config-v1-0-a7760755d92d@bootlin.com/) | 🔨 |
 | [patch-kunit-atomic-state-handle-EDEADLK](https://github.com/JoseExposito/linux/tree/patch-kunit-atomic-state-handle-EDEADLK) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Handle `EDEADLK` in some drm_atomic_state tests | ⏳ |
 | [patch-kunit-hdmi-handle-EDEADLK](https://github.com/JoseExposito/linux/tree/patch-kunit-hdmi-handle-EDEADLK) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Handle `EDEADLK` in drm_hdmi_state_helper tests | ⏳ |
 | [patch-smatch-check-vkms_config_create](https://github.com/JoseExposito/linux/tree/patch-smatch-check-vkms_config_create) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Assert if vkms_config_create_*() fails in KUnit tests | 🔀 |
