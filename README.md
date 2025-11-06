@@ -12,7 +12,6 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
-| [patch-vkms-kunit-louis-new-configs](https://github.com/JoseExposito/linux/tree/patch-vkms-kunit-louis-new-configs) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Add tests to help me review and validate [this series](https://lore.kernel.org/dri-devel/20251018-vkms-all-config-v1-0-a7760755d92d@bootlin.com/) | 🔨 |
 | [patch-update-igt-device-docs](https://github.com/JoseExposito/linux/tree/patch-update-igt-device-docs) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Use `IGT_FORCE_DRIVER` to run IGT tests | 🔀 |
 | [patch-kunit-atomic-state-handle-EDEADLK](https://github.com/JoseExposito/linux/tree/patch-kunit-atomic-state-handle-EDEADLK) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Handle `EDEADLK` in some drm_atomic_state tests | ⏳ |
 | [patch-kunit-hdmi-handle-EDEADLK](https://github.com/JoseExposito/linux/tree/patch-kunit-hdmi-handle-EDEADLK) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Handle `EDEADLK` in drm_hdmi_state_helper tests | ⏳ |
