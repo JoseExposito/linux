@@ -13,7 +13,7 @@ Welcome to my fork of the Linux kernel.
 | Branch | Target | Details | Status |
 | - | - | - | - |
 | [patch-update-igt-device-docs](https://github.com/JoseExposito/linux/tree/patch-update-igt-device-docs) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Use `IGT_FORCE_DRIVER` to run IGT tests | 🔀 |
-| [patch-kunit-atomic-state-handle-EDEADLK](https://github.com/JoseExposito/linux/tree/patch-kunit-atomic-state-handle-EDEADLK) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Handle `EDEADLK` in some drm_atomic_state tests | ⏳ |
+| [patch-kunit-atomic-state-handle-EDEADLK](https://github.com/JoseExposito/linux/tree/patch-kunit-atomic-state-handle-EDEADLK) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Handle `EDEADLK` in some drm_atomic_state tests | 🔀 |
 | [patch-kunit-hdmi-handle-EDEADLK](https://github.com/JoseExposito/linux/tree/patch-kunit-hdmi-handle-EDEADLK) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Handle `EDEADLK` in drm_hdmi_state_helper tests | 🔀 |
 | [patch-smatch-check-vkms_config_create](https://github.com/JoseExposito/linux/tree/patch-smatch-check-vkms_config_create) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Assert if vkms_config_create_*() fails in KUnit tests | 🔀 |
 | [patch-report-battery-status-immediately](https://github.com/JoseExposito/linux/tree/patch-report-battery-status-immediately) | [upstream-hid-master](https://github.com/JoseExposito/linux/tree/upstream-hid-master) | Report battery status changes immediately | 🔀 |
