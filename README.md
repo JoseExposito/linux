@@ -189,6 +189,7 @@ My personal working configs are save in `config-*` branches:
 | [config-6.16.0-qemu-fedora-42](https://github.com/JoseExposito/linux/tree/config-6.16.0-qemu-fedora-42) | 6.16.0 | QEMU (Fedora 42) |
 | [config-6.17.0-qemu-fedora-42](https://github.com/JoseExposito/linux/tree/config-6.17.0-qemu-fedora-42) | 6.17.0 | QEMU (Fedora 42) |
 | [config-6.18.0-qemu-fedora-42](https://github.com/JoseExposito/linux/tree/config-6.18.0-qemu-fedora-42) | 6.18.0 | QEMU (Fedora 42) |
+| [config-6.19.0-qemu-fedora-43](https://github.com/JoseExposito/linux/tree/config-6.19.0-qemu-fedora-43) | 6.19.0 | QEMU (Fedora 43) |
 | [config-6.1.0-rust-fedora-37](https://github.com/JoseExposito/linux/tree/config-6.1.0-rust-fedora-37) | 6.1.0 | Rust - Fedora 37 |
 | [config-5.10.y-raspberrypi4](https://github.com/JoseExposito/linux/tree/config-5.10.y-raspberrypi4) | 5.10.y | Raspberry Pi 4 |
 | [config-5.15.y-raspberrypi4](https://github.com/JoseExposito/linux/tree/config-5.15.y-raspberrypi4) | 5.15.y | Raspberry Pi 4 |
