@@ -12,7 +12,7 @@ Welcome to my fork of the Linux kernel.
 
 | Branch | Target | Details | Status |
 | - | - | - | - |
-| [patch-fix-drm_gem_shmem_test-get_pages_sgt-and-purge](https://github.com/JoseExposito/linux/tree/patch-fix-drm_gem_shmem_test-get_pages_sgt-and-purge) | [upstream-drm-misc-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-fixes) | Fixes for the KUnit tests `drm_gem_shmem_test_get_pages_sgt()` and `drm_gem_shmem_test_purge()` | 🔨 |
+| [patch-fix-drm_gem_shmem_test-get_pages_sgt-and-purge](https://github.com/JoseExposito/linux/tree/patch-fix-drm_gem_shmem_test-get_pages_sgt-and-purge) | [upstream-drm-misc-fixes](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-fixes) | Fixes for the KUnit tests `drm_gem_shmem_test_get_pages_sgt()` and `drm_gem_shmem_test_purge()` | ⏳ |
 | [patch-update-igt-device-docs](https://github.com/JoseExposito/linux/tree/patch-update-igt-device-docs) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Use `IGT_FORCE_DRIVER` to run IGT tests | 🔀 |
 | [patch-kunit-atomic-state-handle-EDEADLK](https://github.com/JoseExposito/linux/tree/patch-kunit-atomic-state-handle-EDEADLK) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Handle `EDEADLK` in some drm_atomic_state tests | 🔀 |
 | [patch-kunit-hdmi-handle-EDEADLK](https://github.com/JoseExposito/linux/tree/patch-kunit-hdmi-handle-EDEADLK) | [upstream-drm-misc-next](https://github.com/JoseExposito/linux/tree/upstream-drm-misc-next) | Handle `EDEADLK` in drm_hdmi_state_helper tests | 🔀 |
